@@ -9,8 +9,7 @@ const AuthPageHeader = () => {
         </span>
       </h1>
       <p className="text-xl sm:text-2xl text-gray-600 dark:text-gray-300 leading-relaxed max-w-3xl mx-auto">
-        Transform your learning with intelligent flashcards and spaced
-        repetition.
+        Transform your learning with intelligent flashcards and spaced repetition.
       </p>
     </div>
   );

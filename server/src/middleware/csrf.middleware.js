@@ -1,6 +1,6 @@
 // implemented from https://web.dev/articles/fetch-metadata
 
-const allowedOrigins = ["https://repetitions.learnapp.workers.dev"];
+const allowedOrigins = [];
 
 export function csrfProtectionMiddleware(req, res, next) {
   const secFetchSite = req.headers["sec-fetch-site"];

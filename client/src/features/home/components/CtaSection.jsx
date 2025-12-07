@@ -116,7 +116,7 @@ const CtaSection = () => {
             </p>
             <div className="flex flex-wrap justify-center items-center gap-8">
               <a
-                href="https://github.com/FrOz3nFir3/repetitions"
+                href="https://github.com/FrOz3nFir3/retainlearn"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-white font-semibold hover:text-yellow-400 transition-colors duration-300 flex items-center gap-2"

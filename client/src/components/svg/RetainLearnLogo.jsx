@@ -1,6 +1,6 @@
 import React from "react";
 
-function RepetitionsLogo(props) {
+function RetainLearnLogo(props) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -75,4 +75,4 @@ function RepetitionsLogo(props) {
   );
 }
 
-export default React.memo(RepetitionsLogo);
+export default React.memo(RetainLearnLogo);

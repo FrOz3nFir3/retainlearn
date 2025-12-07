@@ -21,7 +21,7 @@ const AuthFormCard = ({ isLogin, onTabChange }) => {
           <p className="text-gray-600 dark:text-gray-300">
             {isLogin
               ? "Continue your learning journey"
-              : "Begin your journey with Repetitions"}
+              : "Begin your journey with Retain Learn"}
           </p>
         </div>
 
