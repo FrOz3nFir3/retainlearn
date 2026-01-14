@@ -1,19 +1,21 @@
 name: Deploy to Dokploy
 
-# Trigger on push to the main branch
 on:
   push:
     branches:
-      - main
+      - main 
 
 jobs:
   deploy-trigger:
     runs-on: ubuntu-latest
     steps:
       - name: Trigger Dokploy Webhook
+        env:
+          # This converts the whole GitHub event into a JSON string safely
+          PAYLOAD: ${{ toJson(github.event) }}
         run: |
-          curl -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
+          curl -v -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
-          -d "{}" \
           -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
-          -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}"
+          -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
+          -d "$PAYLOAD"
