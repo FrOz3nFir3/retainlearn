@@ -1,4 +1,4 @@
-name: Deploy to Dokploy
+name: Deploy to Dokploy 
 
 # Trigger on push to the main branch
 on:
