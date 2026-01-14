@@ -3,19 +3,24 @@ name: Deploy to Dokploy
 on:
   push:
     branches:
-      - main 
+      - main
 
 jobs:
   deploy-trigger:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Dokploy Webhook
+      - name: Create Payload File
+        # We write the JSON to a file to avoid quoting/escaping issues in curl
         env:
-          # This converts the whole GitHub event into a JSON string safely
           PAYLOAD: ${{ toJson(github.event) }}
+        run: echo "$PAYLOAD" > payload.json
+
+      - name: Trigger Dokploy Webhook
         run: |
           curl -v -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
+          -H "X-GitHub-Event: push" \
+          -H "User-Agent: GitHub-Hookshot/mock" \
           -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
           -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
-          -d "$PAYLOAD"
+          --data @payload.json
