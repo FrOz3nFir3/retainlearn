@@ -13,7 +13,6 @@ jobs:
         run: |
           curl -v -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
           -H "Content-Type: application/json" \
-          -H "X-GitHub-Event: push" \
           -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
           -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
-          -d '{"ref": "refs/heads/main", "repository": { "url": "https://github.com/${{ github.repository }}" }}'
+          -d '{"branch": "main"}'
