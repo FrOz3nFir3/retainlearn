@@ -6,13 +6,15 @@ on:
       - main 
 
 jobs:
-  deploy-trigger:
+  deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Trigger Dokploy
+      - name: Trigger Dokploy Deployment
         run: |
-          curl -v -X POST "${{ secrets.DOKPLOY_WEBHOOK_URL }}" \
+          curl -v -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
           -H "Content-Type: application/json" \
+          -H "Accept: application/json" \
+          -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \
           -H "CF-Access-Client-Id: ${{ secrets.CF_ACCESS_CLIENT_ID }}" \
           -H "CF-Access-Client-Secret: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}" \
-          -d '{"branch": "main"}'
+          -d '{ "applicationId": "${{ secrets.DOKPLOY_APP_ID }}" }'
