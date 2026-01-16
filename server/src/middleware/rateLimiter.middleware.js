@@ -125,7 +125,7 @@ export const globalApiLimiter = rateLimit({
       return -1; // The "Penalty Box" logic.
     }
 
-    return req.token ? 400 : 250; // Standard limits for everyone else.
+    return req.token ? 500 : 250; // Standard limits for everyone else.
   },
   keyGenerator: (req, res) => {
     return req.token ? req.token.id : getClientIp(req);
@@ -174,4 +174,44 @@ export const globalApiLimiter = rateLimit({
       },
     })
     : new MemoryStore(),
+});
+
+const ddosCache = new LRUCache({
+  max: 50000,     
+  ttl: 60 * 1000,  // 1 Minute only.
+});
+
+export const ddosLimiter = rateLimit({
+  windowMs: 1 * 60 * 1000, // 1 minute
+  max: 1000, // High limit: 1000 reqs/min per IP. 
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => getClientIp(req),
+  message: { error: "Too many requests. Please wait." },
+  store: {
+    init: () => {},
+    get: async (key) => {
+      const hitCount = ddosCache.get(key);
+      if (!hitCount) return undefined;
+      return { 
+        totalHits: hitCount, 
+        resetTime: new Date(Date.now() + 60000) 
+      };
+    },
+    increment: async (key) => {
+      const current = ddosCache.get(key) || 0;
+      const next = current + 1;
+      ddosCache.set(key, next);
+      return {
+        totalHits: next,
+        resetTime: new Date(Date.now() + 60000)
+      };
+    },
+    decrement: async (key) => {
+       // Optional implementation
+    },
+    resetKey: async (key) => {
+      ddosCache.delete(key);
+    },
+  },
 });

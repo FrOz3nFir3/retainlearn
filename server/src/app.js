@@ -9,7 +9,7 @@ import cookieParser from "cookie-parser";
 import apiRouter from "./routes/api.router.js";
 import helmet from "helmet";
 import cors from "cors";
-import { globalApiLimiter } from "./middleware/rateLimiter.middleware.js";
+import { ddosLimiter, globalApiLimiter } from "./middleware/rateLimiter.middleware.js";
 import { attachTokenIfAuthenticated } from "./middleware/auth.middleware.js";
 
 const app = express();
@@ -100,12 +100,12 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    if (allowedOrigins.indexOf(origin) !== -1) {
+    if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       return callback(null, true);
     }
 
     // Allow localhost dynamically (only if NOT in production)
-    if (!runningInProduction && origin.startsWith("http://localhost")) {
+    if (!runningInProduction && origin?.startsWith("http://localhost")) {
       return callback(null, true);
     }
 
@@ -117,6 +117,7 @@ const corsOptions = {
 };
 app.use("/api", cors(corsOptions));
 
+app.use(ddosLimiter);
 app.use(attachTokenIfAuthenticated);
 app.use((req, res, next) => {
   const url = req.url;
