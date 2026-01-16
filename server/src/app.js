@@ -91,12 +91,29 @@ app.use(express.static(path.join(__dirname, "..", "public")));
 app.use("/api", cookieParser(cookieSecret));
 
 // CORS configuration
+const allowedOrigins = [
+  "https://retainlearn.com",     
+  "https://www.retainlearn.com",
+  "https://retainlearn.learnapp.workers.dev",
+  "https://www.retainlearn.learnapp.workers.dev",
+];
+
 const corsOptions = {
-  origin: runningInProduction
-    ? true
-    : "http://localhost",
-  credentials: true,
-  optionsSuccessStatus: 200, // For legacy browser support
+  origin: function (origin, callback) {
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
+    }
+
+    // Allow localhost dynamically (only if NOT in production)
+    if (!runningInProduction && origin.startsWith("http://localhost")) {
+      return callback(null, true);
+    }
+
+    // Block everyone else
+    return callback(new Error('Not allowed by CORS'));
+  },
+  credentials: true, // Needed for cookies/authorization headers
+  optionsSuccessStatus: 200,
 };
 app.use("/api", cors(corsOptions));
 
