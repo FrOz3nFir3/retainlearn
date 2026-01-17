@@ -1,7 +1,7 @@
 {
   "name": "retainlearn",
   "version": "1.0.0",
-  "description": "full stack project",
+  "description": "A full-stack spaced repetition and flashcard application built with React and Node.js.",
   "scripts": {
     "install-all": "npm install && npm install --prefix ./client && npm install --prefix ./server",
     "install-server": "npm install --prefix server",
@@ -14,8 +14,8 @@
     "deploy": "npm run client && npm run server"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "FrOz3nFir3",
+  "license": "Unlicense",
   "engines": {
     "node": "22.x"
   },

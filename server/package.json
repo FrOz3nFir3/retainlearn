@@ -1,7 +1,7 @@
 {
   "name": "backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Backend API for RetainLearn, built with Express and MongoDB.",
   "main": "src/server.js",
   "type": "module",
   "engines": {
@@ -13,8 +13,8 @@
     "cron:cleanup": "node src/cron-jobs/index.js"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "FrOz3nFir3",
+  "license": "Unlicense",
   "dependencies": {
     "bcrypt": "^6.0.0",
     "compression": "^1.8.1",
@@ -31,8 +31,7 @@
     "lru-cache": "^11.1.0",
     "mongoose": "^8.16.1",
     "rate-limit-redis": "^4.2.2",
-    "redis": "^5.8.3",
-    "retainlearn": "file:.."
+    "redis": "^5.8.3"
   },
   "devDependencies": {
     "nodemon": "^3.1.10"
