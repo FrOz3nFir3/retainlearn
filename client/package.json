@@ -2,7 +2,7 @@
   "name": "frontend",
   "version": "1.0.0",
   "type": "module",
-  "description": "",
+  "description": "Frontend for RetainLearn - A spaced repetition learning application.",
   "main": "index.js",
   "scripts": {
     "start": "vite build",
@@ -13,8 +13,8 @@
     "test": "jest test"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": "FrOz3nFir3",
+  "license": "Unlicense",
   "devDependencies": {
     "@vitejs/plugin-react-swc": "^3.11.0",
     "compression": "^1.8.1",
