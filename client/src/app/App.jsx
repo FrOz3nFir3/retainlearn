@@ -8,6 +8,7 @@ import {
 import { Toaster } from "react-hot-toast";
 
 import Header from "../components/layout/Header/Header";
+import Footer from "../components/layout/Footer/Footer";
 import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
 
 // Lazy-loaded route wrappers
@@ -42,9 +43,12 @@ const NotFoundRoute = lazy(() =>
 // Root layout component
 const RootLayout = () => (
   <ErrorBoundary>
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen">
+    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
       <Header />
-      <Outlet />
+      <main className="flex-grow">
+        <Outlet />
+      </main>
+      <Footer />
       <Toaster />
       <ScrollRestoration
         getKey={(location, matches) => {
