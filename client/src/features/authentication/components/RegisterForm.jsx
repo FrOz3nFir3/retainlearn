@@ -6,6 +6,9 @@ import { AtSymbolIcon, LockClosedIcon } from "@heroicons/react/24/solid";
 import AuthInput from "./ui/AuthInput";
 import AuthSubmitButton from "./ui/AuthSubmitButton";
 import AuthErrorDisplay from "./ui/AuthErrorDisplay";
+import ContactHelpMessage from "./ui/ContactHelpMessage";
+import { setSessionStatus } from "../../../utils/session";
+import { useFailedAttempts } from "../hooks/useFailedAttempts";
 import {
   UserIcon,
   UserPlusIcon,
@@ -21,6 +24,8 @@ const RegisterForm = () => {
   const emailRef = useRef();
   const passwordRef = useRef();
   const confirmPasswordRef = useRef();
+
+  const { shouldShowHelp } = useFailedAttempts(error);
 
   useEffect(() => {
     if (data) {
@@ -41,7 +46,10 @@ const RegisterForm = () => {
 
   return (
     <form className="space-y-5" onSubmit={handleSubmit}>
-      <AuthErrorDisplay error={error} />
+      <div>
+        <AuthErrorDisplay error={error} />
+        {shouldShowHelp && <ContactHelpMessage />}
+      </div>
 
       <div className="space-y-4">
         <AuthInput

@@ -4,8 +4,10 @@ import { useDispatch } from "react-redux";
 import { initialUser } from "../state/authSlice";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import LoginByGoogleSkeleton from "../../../components/ui/skeletons/LoginByGoogleSkeleton";
+import ContactHelpMessage from "./ui/ContactHelpMessage";
 import { jwtDecode } from "jwt-decode";
 import { setSessionStatus } from "../../../utils/session";
+import { useFailedAttempts } from "../hooks/useFailedAttempts";
 
 const GoogleLogin = lazy(() =>
   import("@react-oauth/google").then((module) => ({
@@ -20,6 +22,8 @@ const clientId =
 function LoginByGoogle(props) {
   const [loginWithGoogle, { isFetching, error, data }] =
     usePostGoogleLoginMutation();
+  
+  const { shouldShowHelp, incrementAttempts } = useFailedAttempts(error);
 
   const dispatch = useDispatch();
   React.useEffect(() => {
@@ -35,12 +39,16 @@ function LoginByGoogle(props) {
 
   return (
     <GoogleOAuthProvider clientId={clientId}>
-      <div className="flex items-center justify-center">
-        {error && (
-          <div className="rounded-md bg-red-50 p-4 text-sm text-red-700">
-            {error?.data?.error}
-          </div>
-        )}
+      <div className="flex flex-col items-center justify-center gap-4">
+        <div className="w-full text-center">
+          {error && (
+            <div className="rounded-md bg-red-50 p-4 text-sm text-red-700 mb-2">
+              {error?.data?.error}
+            </div>
+          )}
+          {shouldShowHelp && <ContactHelpMessage />}
+        </div>
+        
         <Suspense fallback={<LoginByGoogleSkeleton />}>
           <GoogleLogin
             onSuccess={successfulLogin}
@@ -61,8 +69,7 @@ function LoginByGoogle(props) {
     loginWithGoogle({ name, email, googleId });
   }
   function unsuccessfulLogin() {
-    // handle this later
-    // console.log("Login Failed");
+    incrementAttempts();
   }
 }
 
