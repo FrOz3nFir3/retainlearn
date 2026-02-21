@@ -1,6 +1,11 @@
 # RetainLearn
 
+[![CodeQL](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/github-code-scanning/codeql/badge.svg)](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/github-code-scanning/codeql)
+[![Dependabot Updates](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/dependabot/dependabot-updates/badge.svg)](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/dependabot/dependabot-updates)
+[![Deploy to Dokploy](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/deploy.yml/badge.svg)](https://github.com/FrOz3nFir3/retainlearn/actions/workflows/deploy.yml)
+
 RetainLearn is a full-stack spaced repetition and flashcard application designed to help users learn and retain information effectively. It features a modern, responsive frontend and a robust, secure backend with performance optimizations.
+
 
 ## 🚀 Features
 
