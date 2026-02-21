@@ -1,22 +1,13 @@
-import React from "react";
-
-function RetainLearnLogo({ className = "h-13 w-auto", ...props }) {
-  return (
-    <svg
-      xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 544 528"
-      className={className}
-      {...props}
-    >
-      <defs>
-        <linearGradient id="brainGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#4F46E5" />
-          <stop offset="100%" stopColor="#FBBF24" />
-        </linearGradient>
-      </defs>
-      <path
-        fill="url(#brainGradient)"
-        d="M149.598999,111.595963 
+<?xml version="1.0" encoding="utf-8"?>
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 544 528" style="enable-background:new 0 0 544 528;" xml:space="preserve">
+<defs>
+  <linearGradient id="brainGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+    <stop offset="0%" stop-color="#4F46E5" />
+    <stop offset="100%" stop-color="#FBBF24" />
+  </linearGradient>
+</defs>
+<path fill="url(#brainGradient)" d="M149.598999,111.595963 
 	C152.882721,108.497246 155.909485,105.640106 158.956482,102.804733 
 	C162.044754,99.930939 165.774139,98.825638 169.926666,98.727242 
 	C198.235382,98.056442 226.544846,97.408760 254.850815,96.634781 
@@ -169,12 +160,5 @@ M333.645111,387.780670
 	C350.508179,429.689178 347.861053,426.974304 347.066437,424.953644 
 	C344.205353,417.677948 340.870514,410.587708 338.041229,403.300629 
 	C336.198883,398.555542 333.044189,394.148560 333.645111,387.780670 
-z"
-      />
-    </svg>
-  );
-}
-
-export default React.memo(RetainLearnLogo);
-
-// trigger reload
+z" />
+</svg>

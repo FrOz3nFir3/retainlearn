@@ -11,8 +11,8 @@ const Footer = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
           {/* Brand Section */}
           <div className="col-span-1 md:col-span-2 space-y-4">
-            <Link to="/" className="flex items-center gap-3 group w-fit">
-              <div className="w-8 h-8">
+            <Link to="/" className="flex items-center gap-0 group w-fit">
+              <div>
                  <RetainLearnLogo />
               </div>
               <span className="text-xl font-bold bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 dark:from-white dark:via-indigo-100 dark:to-purple-100 bg-clip-text text-transparent group-hover:from-indigo-600 group-hover:to-purple-600 transition-all duration-300">
