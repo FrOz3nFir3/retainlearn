@@ -116,11 +116,15 @@ const router = createBrowserRouter([
   },
 ]);
 
+import { HelmetProvider } from "@dr.pogodin/react-helmet";
+
 function App() {
   return (
-    <ErrorBoundary>
-      <RouterProvider router={router} />
-    </ErrorBoundary>
+    <HelmetProvider>
+      <ErrorBoundary>
+        <RouterProvider router={router} />
+      </ErrorBoundary>
+    </HelmetProvider>
   );
 }
 

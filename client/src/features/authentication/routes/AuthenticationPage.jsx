@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../state/authSlice";
 import { useNavigate } from "react-router-dom";
+import { Helmet } from "@dr.pogodin/react-helmet";
 
 import BenefitsSection from "../components/BenefitsSection";
 import AuthPageHeader from "../components/AuthPageHeader";
@@ -20,6 +21,14 @@ function AuthenticationPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-indigo-50 to-purple-50 dark:from-gray-900 dark:via-indigo-900 dark:to-purple-900">
+      <Helmet>
+        <title>{isLogin ? "Login" : "Sign Up"} - RetainLearn</title>
+        <meta 
+          name="description" 
+          content={isLogin ? "Sign in to RetainLearn to access your personalized flashcards and track your study streaks." : "Create a free RetainLearn account today and start mastering any topic with smart spaced repetition."} 
+        />
+        <meta property="og:title" content={`${isLogin ? "Login" : "Sign Up"} - RetainLearn`} />
+      </Helmet>
       {/* Background Elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-0 right-1/4 w-96 h-96 bg-indigo-300 dark:bg-indigo-600 rounded-full mix-blend-multiply dark:mix-blend-normal filter blur-xl opacity-20 animate-pulse"></div>

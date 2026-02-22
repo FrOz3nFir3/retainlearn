@@ -3,3 +3,7 @@ Allow: /
 
 # Disallow API routes from search indexing
 Disallow: /api/
+
+# Specify the Sitemap location
+Sitemap: https://retainlearn.com/sitemap.xml
+Sitemap: https://api.retainlearn.com/api/sitemap.xml

@@ -12,6 +12,8 @@ import Pagination from "../../../components/ui/Pagination";
 import useCategoriesWithSearch from "../../../hooks/useCategoriesWithSearch";
 import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/24/outline";
 
+import { Helmet } from "@dr.pogodin/react-helmet";
+
 function CategoryPage() {
   const navigate = useNavigate();
   const [showCreateForm, setShowCreateForm] = useState(false);
@@ -46,6 +48,12 @@ function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+      <Helmet>
+        <title>Categories - RetainLearn</title>
+        <meta name="description" content="Browse and explore all flashcard categories to begin studying." />
+        <meta property="og:title" content="Categories - RetainLearn" />
+        <meta property="og:description" content="Browse and explore all flashcard categories to begin studying." />
+      </Helmet>
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-indigo-600/10 rounded-full blur-3xl animate-pulse"></div>
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-purple-400/10 to-pink-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>

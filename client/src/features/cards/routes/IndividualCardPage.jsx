@@ -23,6 +23,7 @@ import {
 const NotFound = lazy(() =>
   import("../../../features/not-found/components/NotFound")
 );
+import { Helmet } from "@dr.pogodin/react-helmet";
 
 function IndividualCardPage() {
   const params = useParams();
@@ -97,6 +98,12 @@ function IndividualCardPage() {
 
   return (
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen">
+      <Helmet>
+        <title>{cardData["main-topic"]} - {cardData["sub-topic"]} - RetainLearn</title>
+        <meta name="description" content={cardData.description || `Study flashcard on ${cardData["main-topic"]} - ${cardData["sub-topic"]}.`} />
+        <meta property="og:title" content={`${cardData["main-topic"]} - ${cardData["sub-topic"]} - RetainLearn`} />
+        <meta property="og:description" content={cardData.description || `Study flashcard on ${cardData["main-topic"]} - ${cardData["sub-topic"]}.`} />
+      </Helmet>
       <div className="container mx-auto 2xl:max-w-7xl p-4">
         <Breadcrumbs card={cardData} cardData={cardData} />
 
