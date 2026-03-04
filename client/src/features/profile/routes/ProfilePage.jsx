@@ -4,7 +4,7 @@ import ProfileContent from "../components/ProfileContent";
 
 const clientId =
   import.meta.env.VITE_GOOGLE_CLIENT_ID ??
-  "650317328714-q5a463tj89sgofpglmp6p4m9697tmcqk.apps.googleusercontent.com";
+  "861201461365-j2s71jmj0i3q5qo2634mfbavoepi53to.apps.googleusercontent.com";
 
 const ProfilePage = () => (
   <GoogleOAuthProvider clientId={clientId}>
