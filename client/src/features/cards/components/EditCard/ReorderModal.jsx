@@ -25,6 +25,7 @@ import {
   AdjustmentsHorizontalIcon,
   CheckIcon,
   XMarkIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/outline";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../../authentication/state/authSlice";
@@ -42,7 +43,6 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
     }
   }, [error]);
 
-  // Reset items when modal opens or items change
   React.useEffect(() => {
     if (isOpen && items) {
       setOrderedItems([...items]);
@@ -61,7 +61,6 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
     [orderedItems]
   );
 
-  // Check if order has changed
   const hasOrderChanged = useMemo(() => {
     if (!items || orderedItems.length !== items.length) return false;
     return !orderedItems.every((item, index) => item._id === items[index]._id);
@@ -69,7 +68,6 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
 
   const handleDragEnd = (event) => {
     const { active, over } = event;
-
     if (active.id !== over?.id) {
       setOrderedItems((items) => {
         const oldIndex = items.findIndex((item) => item._id === active.id);
@@ -143,7 +141,6 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
 
   const handleSave = () => {
     if (!cardId || orderedItems.length === 0 || !hasOrderChanged) return;
-
     const itemIds = orderedItems.map((item) => item._id);
     const updateData = {
       _id: cardId,
@@ -151,7 +148,6 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
         ? { reorderFlashcards: itemIds }
         : { reorderQuizzes: itemIds }),
     };
-
     updateCard(updateData).then((res) => {
       if (res.data) {
         toast.success(res.data.message);
@@ -162,40 +158,44 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
 
   const isFlashcards = contentType === "flashcards";
   const title = isFlashcards ? "Reorder Flashcards" : "Reorder Quizzes";
-  const description = `Drag and drop or click on three dots to reorder your ${
+  const description = `Drag and drop or use the menu to reorder your ${
     isFlashcards ? "flashcards" : "quizzes"
-  }. `;
+  }.`;
 
   return (
-    <Modal className={"!p-0"} isOpen={isOpen} onClose={onClose} maxWidth="7xl">
-      <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden h-[85vh] flex flex-col">
-        {/* Clean Header - Title Only */}
-        <div className="flex px-6 py-6 items-center justify-between relative overflow-hidden bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-700 dark:to-purple-700 flex-shrink-0">
+    <Modal className={"p-0!"} isOpen={isOpen} onClose={onClose} maxWidth="7xl">
+      <div className="bg-white dark:bg-[#14112a] rounded-2xl overflow-hidden h-[85vh] flex flex-col">
+        {/* Header */}
+        <div className="flex px-6 py-5 items-center justify-between border-b border-gray-100 dark:border-white/6 shrink-0">
           <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/20 backdrop-blur-sm rounded-xl">
-              <AdjustmentsHorizontalIcon className="h-8 w-8 text-white" />
+            <div className="p-3 bg-brand-surface dark:bg-white/8 rounded-xl">
+              <AdjustmentsHorizontalIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
             </div>
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold text-white mb-2">{title}</h2>
-              <p className="text-indigo-100 dark:text-purple-100 leading-relaxed">
-                {description}
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+                Organize
               </p>
+              <h2 className="font-heading text-xl text-gray-900 dark:text-white leading-tight">
+                {title}
+              </h2>
             </div>
           </div>
-
           <button
             type="button"
             onClick={onClose}
-            className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 transition-colors duration-150"
           >
-            <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+            <XMarkIcon className="h-5 w-5 text-gray-500 dark:text-white/40" />
           </button>
         </div>
 
         <div ref={errorRef}>
           {error && (
-            <div className="my-4 rounded-md bg-red-100 dark:bg-red-900 p-4 text-sm text-red-700 dark:text-red-200 border border-red-300 dark:border-red-700">
-              Reordering failed: {error.data?.error || "Unknown error"}
+            <div className="mx-6 mt-4 p-3.5 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 flex items-start gap-2.5">
+              <ExclamationTriangleIcon className="h-4 w-4 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+              <p className="text-sm text-red-700 dark:text-red-300">
+                Reordering failed: {error.data?.error || "Unknown error"}
+              </p>
             </div>
           )}
         </div>
@@ -205,14 +205,17 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
           {orderedItems.length === 0 ? (
             <div className="flex-1 flex items-center justify-center">
               <div className="text-center py-8">
-                <AdjustmentsHorizontalIcon className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                <p className="text-gray-500 dark:text-gray-400">
+                <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-surface dark:bg-white/8 rounded-2xl mb-4">
+                  <AdjustmentsHorizontalIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
+                </div>
+                <p className="text-sm text-gray-500 dark:text-white/40">
                   No {isFlashcards ? "flashcards" : "quizzes"} to reorder.
                 </p>
               </div>
             </div>
           ) : (
             <div className="flex-1 min-h-0 px-6 py-4">
+              <p className="text-xs text-gray-400 dark:text-white/30 mb-4">{description}</p>
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
@@ -227,7 +230,7 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
                   items={itemIds}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="h-full overflow-y-auto overscroll-contain px-2 space-y-2">
+                  <div className="h-full overflow-y-auto overscroll-contain space-y-2">
                     {orderedItems.map((item, index) => (
                       <DraggableItem
                         key={item._id}
@@ -253,15 +256,15 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex-shrink-0">
+        <div className="px-6 py-4 bg-gray-50 dark:bg-white/3 border-t border-gray-100 dark:border-white/6 shrink-0">
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="text-sm text-gray-600 dark:text-gray-400">
+            <div className="text-sm text-gray-500 dark:text-white/40">
               {hasOrderChanged ? (
-                <span className="text-orange-600 dark:text-orange-400 font-medium">
-                  Changes detected {!user && "- Login to Save"}
+                <span className="text-amber-600 dark:text-amber-400 font-medium">
+                  Order changed{!user && " — log in to save"}
                 </span>
               ) : (
-                <span>No changes made</span>
+                "No changes made"
               )}
             </div>
             <div className="flex items-center gap-3">
@@ -269,7 +272,7 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
                 type="button"
                 onClick={onClose}
                 disabled={isLoading}
-                className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 border border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 disabled:opacity-50 transition-colors duration-200"
+                className="cursor-pointer px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-white/60 bg-white dark:bg-transparent border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 disabled:opacity-50"
               >
                 Cancel
               </button>
@@ -282,10 +285,10 @@ const ReorderModal = ({ isOpen, onClose, cardId, contentType, items }) => {
                   !hasOrderChanged ||
                   !user
                 }
-                className="cursor-pointer flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="cursor-pointer flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white dark:text-brand-dark bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
                   <CheckIcon className="h-4 w-4" />
                 )}

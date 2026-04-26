@@ -2,7 +2,8 @@ import { useState, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 const useHeaderScroll = () => {
-  const [isScrolled, setIsScrolled] = useState(false);
+  // Initialize from actual scroll position to avoid flash of transparent header on page load
+  const [isScrolled, setIsScrolled] = useState(() => window.scrollY > 10);
   const location = useLocation();
 
   const isFocusedSession =
@@ -10,19 +11,24 @@ const useHeaderScroll = () => {
     location.pathname.includes("/quiz") ||
     location.pathname.includes("/edit");
 
+  // Only allow transparent header on the landing page — other pages have light backgrounds
+  const isLandingPage = location.pathname === "/";
+
   useEffect(() => {
     if (!isFocusedSession) {
-      const handleScroll = () => {
-        setIsScrolled(window.scrollY > 10);
-      };
-      window.addEventListener("scroll", handleScroll);
+      // Re-check scroll on route change (different pages start at different positions)
+      setIsScrolled(window.scrollY > 10);
+      const handleScroll = () => setIsScrolled(window.scrollY > 10);
+      window.addEventListener("scroll", handleScroll, { passive: true });
       return () => window.removeEventListener("scroll", handleScroll);
     } else {
-      setIsScrolled(false); // Reset scroll state in focused sessions
+      setIsScrolled(false);
     }
-  }, [isFocusedSession]);
+  }, [isFocusedSession, location.pathname]);
 
-  return { isScrolled, isFocusedSession };
+  const isTransparent = isLandingPage && !isScrolled && !isFocusedSession;
+
+  return { isScrolled, isFocusedSession, isTransparent };
 };
 
 export default useHeaderScroll;

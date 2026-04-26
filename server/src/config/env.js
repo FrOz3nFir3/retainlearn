@@ -23,7 +23,7 @@ dotenv.config({ path: join(__dirname, "../../../.env") });
 export const env = {
     // Server Configuration
     NODE_ENV: process.env.NODE_ENV || "development",
-    PORT: parseInt(process.env.PORT || "80", 10),
+    PORT: parseInt(process.env.PORT || "3000", 10),
 
     // Authentication & Security
     ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET || "",

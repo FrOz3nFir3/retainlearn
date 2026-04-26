@@ -13,41 +13,26 @@ const LogItem = ({ log }) => {
   const date = new Date(timestamp);
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-orange-200/30 dark:border-orange-700/30 hover:shadow-xl transition-all duration-300 group">
+    <div className="bg-white dark:bg-white/5 rounded-xl border border-gray-200 dark:border-white/8 hover:border-gray-300 dark:hover:border-white/12 transition-colors duration-150">
       <div
-        className={`flex items-start gap-4 p-4 ${
-          hasChanges ? "cursor-pointer" : ""
-        }`}
+        className={`flex items-start gap-3 p-4 ${hasChanges ? "cursor-pointer" : ""}`}
         onClick={() => hasChanges && setIsOpen(!isOpen)}
       >
         {/* Timeline dot */}
-        <div className="animate-pulse flex-shrink-0 w-3 h-3 bg-gradient-to-r from-orange-500 to-amber-500 rounded-full mt-2 shadow-lg"></div>
+        <div className="shrink-0 w-2.5 h-2.5 bg-brand-accent rounded-full mt-2" />
 
         <div className="flex-grow min-w-0">
-          <p className="font-medium text-gray-800 dark:text-gray-200 mb-3 break-word line-clamp-3">
+          <p className="font-medium text-sm text-gray-800 dark:text-white/80 mb-2 wrap-break-word line-clamp-3">
             {summary}
           </p>
 
           {/* User Information */}
-          <div className="flex flex-wrap items-center gap-2 mb-2">
-            <svg
-              className="h-4 w-4 text-blue-500 dark:text-blue-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-              />
-            </svg>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-300  break-all line-clamp-2 ">
+          <div className="flex flex-wrap items-center gap-2 mb-1.5">
+            <span className="text-xs text-gray-500 dark:text-white/40">
               {user?.username ? (
                 <Link
                   to={`/profile/${user.username}`}
-                  className="text-blue-600 dark:text-blue-400 hover:underline"
+                  className="text-brand-primary dark:text-brand-accent hover:underline"
                 >
                   @{user.username}
                 </Link>
@@ -58,52 +43,20 @@ const LogItem = ({ log }) => {
           </div>
 
           {/* Date and Time */}
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1">
-              <svg
-                className="h-3.5 w-3.5 text-green-500 dark:text-green-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                />
-              </svg>
-              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                {date.toLocaleDateString()}
-              </span>
-            </div>
-            <div className="flex items-center gap-1">
-              <svg
-                className="h-3.5 w-3.5 text-purple-500 dark:text-purple-400"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                {date.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </span>
-            </div>
+          <div className="flex items-center gap-3 text-xs text-gray-400 dark:text-white/30">
+            <span>{date.toLocaleDateString()}</span>
+            <span>
+              {date.toLocaleTimeString([], {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
           </div>
         </div>
 
         {hasChanges && (
           <ChevronDownIcon
-            className={`h-5 w-5 text-orange-500 flex-shrink-0 mt-1 transition-transform duration-200 group-hover:text-orange-600 ${
+            className={`h-4 w-4 text-gray-400 dark:text-white/30 shrink-0 mt-1 transition-transform duration-200 ${
               isOpen ? "rotate-180" : ""
             }`}
           />
@@ -111,26 +64,13 @@ const LogItem = ({ log }) => {
       </div>
 
       {isOpen && hasChanges && (
-        <div className="border-t border-orange-200/50 dark:border-orange-700/50 p-4 bg-orange-50/50 dark:bg-orange-900/10">
-          <h4 className="font-semibold text-sm text-orange-800 dark:text-orange-300 mb-3 flex items-center gap-2">
-            <svg
-              className="h-4 w-4 text-orange-600 dark:text-orange-400"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-              />
-            </svg>
+        <div className="border-t border-gray-100 dark:border-white/6 p-4 bg-gray-50 dark:bg-white/3">
+          <h4 className="font-semibold text-xs text-gray-500 dark:text-white/40 mb-3 uppercase tracking-wider">
             Change Details
           </h4>
 
           <Suspense fallback={<CardLogSkeleton />}>
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {changes.map((change, index) => (
                 <LogItemChange key={index} change={change} />
               ))}

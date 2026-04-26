@@ -73,7 +73,7 @@ export default defineConfig(() => {
     },
     server: {
       // increases asset size when perfroming build runs vite file server on same port fix this later
-      port: 80,
+      port: 5173,
     },
   };
 });

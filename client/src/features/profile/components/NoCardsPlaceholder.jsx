@@ -3,7 +3,7 @@ import { RectangleStackIcon } from "@heroicons/react/24/outline";
 
 const NoCardsPlaceholder = ({ username }) => {
   return (
-    <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/30 dark:border-gray-700/30 p-8 text-center">
+    <div className="col-span-1 md:col-span-2 lg:col-span-3 bg-white dark:bg-[#14112a] rounded-2xl border border-gray-200 dark:border-white/8 p-8 text-center">
       <div className="mx-auto h-12 w-12 text-gray-400">
         <RectangleStackIcon />
       </div>

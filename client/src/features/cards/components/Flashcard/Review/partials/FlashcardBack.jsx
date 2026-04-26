@@ -14,7 +14,7 @@ const FlashcardBack = ({
 }) => {
   return (
     <div
-      className="absolute w-full h-full bg-gradient-to-br from-emerald-500 via-teal-600 to-green-700 rounded-3xl shadow-2xl border-4 border-blue-300/40 text-white flex flex-col"
+      className="absolute w-full h-full bg-brand-accent rounded-3xl shadow-xl border-2 border-brand-accent/30 flex flex-col"
       style={{
         backfaceVisibility: "hidden",
         transform: "rotateY(180deg)",
@@ -22,21 +22,21 @@ const FlashcardBack = ({
       }}
     >
       {/* Header */}
-      <div className="flex items-center justify-between p-4 pb-2 flex-shrink-0">
+      <div className="flex items-center justify-between p-4 pb-2 shrink-0">
         <div className="flex items-center gap-2">
-          <div className="p-2 bg-white/25 rounded-xl backdrop-blur-sm border border-white/40">
-            <LightBulbIcon className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
+          <div className="p-2 bg-brand-dark/15 rounded-xl">
+            <LightBulbIcon className="h-4 w-4 sm:h-5 sm:w-5 text-brand-dark" />
           </div>
-          <span className="text-white text-sm font-medium inline">Answer</span>
+          <span className="text-brand-dark/80 text-sm font-medium">Answer</span>
         </div>
 
         {isReviewCard ? (
-          <div className="text-white text-xs sm:text-sm font-bold bg-white/25 px-2 sm:px-3 py-1 rounded-full backdrop-blur-sm border border-white/40">
+          <div className="text-brand-dark/70 text-xs font-semibold bg-brand-dark/10 px-2.5 py-1 rounded-full">
             Review
           </div>
         ) : (
           typeof currentIndex !== "undefined" && (
-            <div className="text-white text-xs sm:text-sm font-bold bg-white/25 px-2 sm:px-3 py-1 rounded-full backdrop-blur-sm border border-white/40 flex-shrink-0">
+            <div className="text-brand-dark/70 text-xs font-semibold bg-brand-dark/10 px-2.5 py-1 rounded-full shrink-0">
               {currentIndex + 1} / {totalCards}
             </div>
           )
@@ -44,9 +44,9 @@ const FlashcardBack = ({
       </div>
 
       {/* Content */}
-      <div className="flex-1 max-h-96 flex items-center justify-center px-2 pl-4">
+      <div className="flex-1 max-h-96 flex items-center justify-center px-4 text-brand-dark">
         {isAnswerEmpty ? (
-          <div className="text-center text-white/70 italic">
+          <div className="text-center text-brand-dark/50 italic">
             <p className="text-lg font-semibold">Back Side Preview</p>
             <p className="text-sm">Content will appear here as you type.</p>
           </div>
@@ -60,13 +60,13 @@ const FlashcardBack = ({
 
       {/* Footer */}
       {!viewOnly && (
-        <div className="flex-shrink-0 mt-auto pt-2 pb-4 text-center">
-          <div className="inline-block text-white/90 text-xs sm:text-sm bg-white/20 px-3 sm:px-4 py-1 sm:py-2 rounded-full backdrop-blur-sm border border-white/30">
+        <div className="shrink-0 mt-auto pt-2 pb-4 text-center">
+          <div className="inline-block text-brand-dark/70 text-xs sm:text-sm bg-brand-dark/10 px-4 py-1.5 rounded-full border border-brand-dark/15">
             Click to see question
           </div>
           {showFeedbackIndicator && (
             <div className="mt-3">
-              <div className="flex items-center justify-center gap-1 text-white/80 text-xs animate-bounce">
+              <div className="flex items-center justify-center gap-1 text-brand-dark/60 text-xs">
                 <span>↓</span>
                 <span>Rate your knowledge below</span>
                 <span>↓</span>

@@ -1,4 +1,3 @@
-import React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 const Pagination = ({
@@ -7,7 +6,6 @@ const Pagination = ({
   onPageChange,
   itemsCount,
   itemsPerPage,
-  activeColorClass = "bg-blue-600", // Default to blue
 }) => {
   if (totalPages <= 1) return null;
 
@@ -21,97 +19,71 @@ const Pagination = ({
   };
 
   const getPageNumbers = () => {
-    const pageNeighbours = 1; // Pages to show on each side of current page
-    const totalNumbers = 3 + pageNeighbours * 2; // e.g., First, ..., Prev, Current, Next, ..., Last
-    const totalBlocks = totalNumbers + 2; // Including ellipses
+    const pageNeighbours = 1;
+    const totalNumbers = 3 + pageNeighbours * 2;
+    const totalBlocks = totalNumbers + 2;
 
     if (totalPages <= totalBlocks) {
       return Array.from({ length: totalPages }, (_, i) => i + 1);
     }
 
     const result = [];
-    const startPage = 1;
-    const endPage = totalPages;
-
     const leftSiblingIndex = Math.max(currentPage - pageNeighbours, 2);
-    const rightSiblingIndex = Math.min(
-      currentPage + pageNeighbours,
-      totalPages - 1
-    );
-
+    const rightSiblingIndex = Math.min(currentPage + pageNeighbours, totalPages - 1);
     const shouldShowLeftDots = leftSiblingIndex > 2;
     const shouldShowRightDots = rightSiblingIndex < totalPages - 1;
 
-    result.push(startPage);
+    result.push(1);
+    if (shouldShowLeftDots) result.push("...");
+    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) result.push(i);
+    if (shouldShowRightDots) result.push("...");
+    if (totalPages !== 1) result.push(totalPages);
 
-    if (shouldShowLeftDots) {
-      result.push("...");
-    }
-
-    for (let i = leftSiblingIndex; i <= rightSiblingIndex; i++) {
-      result.push(i);
-    }
-
-    if (shouldShowRightDots) {
-      result.push("...");
-    }
-
-    if (endPage !== startPage) {
-      result.push(endPage);
-    }
     return result;
   };
 
   const pageNumbers = getPageNumbers();
 
-  const renderButton = (text, onClick, disabled = false, isIcon = false) => (
+  const navBtn = (label, onClick, disabled) => (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 bg-white dark:text-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 ${
-        isIcon ? "w-10 h-10 !px-2" : ""
-      }`}
+      className="cursor-pointer inline-flex items-center justify-center w-9 h-9 text-sm bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-500 dark:text-white/50 rounded-xl hover:border-gray-300 dark:hover:border-white/20 hover:text-gray-700 dark:hover:text-white/70 disabled:opacity-35 disabled:cursor-not-allowed transition-all duration-150"
     >
-      {text}
+      {label}
     </button>
   );
 
   return (
-    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 p-6 bg-white/60 dark:bg-gray-800/60 rounded-2xl border border-gray-200/50 dark:border-gray-700/50 shadow-lg">
-      <div className="text-lg text-gray-600 dark:text-gray-400">
+    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 px-5 py-4 bg-white dark:bg-white/4 border border-gray-200 dark:border-white/8 rounded-2xl">
+      <p className="text-sm text-gray-500 dark:text-white/40">
         Showing{" "}
-        <strong>
-          {startIndex + 1}-{endIndex}
-        </strong>{" "}
-        of {itemsCount} items
-      </div>
+        <span className="font-semibold text-gray-700 dark:text-white/70">
+          {startIndex + 1}–{endIndex}
+        </span>{" "}
+        of {itemsCount}
+      </p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        {renderButton("First", () => handlePageChange(1), currentPage === 1)}
-        {renderButton(
-          <ChevronLeftIcon className="h-8 w-8" />,
-          () => handlePageChange(currentPage - 1),
-          currentPage === 1,
-          true
-        )}
+      <div className="flex items-center gap-1.5">
+        {navBtn(<ChevronLeftIcon className="h-4 w-4" />, () => handlePageChange(currentPage - 1), currentPage === 1)}
 
         <div className="flex gap-1">
           {pageNumbers.map((pageNum, index) =>
             typeof pageNum === "string" ? (
               <span
                 key={`ellipsis-${index}`}
-                className="w-10 h-10 inline-flex items-center justify-center text-gray-500 dark:text-gray-400"
+                className="w-9 h-9 inline-flex items-center justify-center text-sm text-gray-400 dark:text-white/25"
               >
-                ...
+                ···
               </span>
             ) : (
               <button
                 key={pageNum}
                 onClick={() => handlePageChange(pageNum)}
-                className={`cursor-pointer w-10 h-10 rounded-xl font-medium transition-all duration-200 ${
+                className={`cursor-pointer w-9 h-9 rounded-xl text-sm font-medium transition-all duration-150 ${
                   currentPage === pageNum
-                    ? `${activeColorClass} text-white shadow-lg`
-                    : "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    ? "bg-brand-primary dark:bg-brand-accent text-white dark:text-brand-dark shadow-sm"
+                    : "bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/55 hover:border-gray-300 dark:hover:border-white/20"
                 }`}
               >
                 {pageNum}
@@ -120,17 +92,7 @@ const Pagination = ({
           )}
         </div>
 
-        {renderButton(
-          <ChevronRightIcon className="h-8 w-8" />,
-          () => handlePageChange(currentPage + 1),
-          currentPage === totalPages,
-          true
-        )}
-        {renderButton(
-          "Last",
-          () => handlePageChange(totalPages),
-          currentPage === totalPages
-        )}
+        {navBtn(<ChevronRightIcon className="h-4 w-4" />, () => handlePageChange(currentPage + 1), currentPage === totalPages)}
       </div>
     </div>
   );

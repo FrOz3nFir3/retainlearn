@@ -1,14 +1,10 @@
-import React from "react";
-
-const StatBadge = ({ label, value, color, icon: Icon }) => (
-  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 text-center border border-gray-200 dark:border-gray-600">
-    <div className="flex items-center justify-center mb-1">
-      <Icon className={`w-4 h-4 ${color} mr-1`} />
-      <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">
-        {label}
-      </p>
+const StatBadge = ({ label, value, icon: Icon }) => (
+  <div className="bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/6 rounded-xl p-3 text-center">
+    <div className="flex items-center justify-center gap-1 mb-1">
+      <Icon className="w-3.5 h-3.5 text-gray-400 dark:text-white/30" />
+      <p className="text-xs text-gray-400 dark:text-white/30 font-medium">{label}</p>
     </div>
-    <p className={`text-lg font-bold ${color}`}>{value}</p>
+    <p className="text-lg font-heading text-gray-900 dark:text-white">{value}</p>
   </div>
 );
 

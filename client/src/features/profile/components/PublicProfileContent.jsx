@@ -39,20 +39,17 @@ const PublicProfileContent = () => {
     ? Math.ceil(cardsData.total / CARDS_PER_PAGE)
     : 0;
 
-  console.log(currentPage, "page");
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-blue-900 dark:to-indigo-900">
+    <div className="min-h-screen bg-brand-light dark:bg-[#0f0d1a]">
       <div className="container mx-auto 2xl:max-w-7xl p-4">
         <div className="text-center mb-12">
           <div className="flex justify-center mb-6">
-            <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-3xl flex items-center justify-center shadow-2xl">
-              <UserCircleIcon className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-brand-primary dark:bg-brand-accent rounded-3xl flex items-center justify-center">
+              <UserCircleIcon className="w-10 h-10 text-white dark:text-brand-dark" />
             </div>
           </div>
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-4">
-            <span className="bg-gradient-to-r from-gray-900 to-blue-900 dark:from-white dark:to-blue-100 bg-clip-text text-transparent">
-              {user.name}
-            </span>
+          <h1 className="text-4xl sm:text-5xl font-heading tracking-tight mb-4 text-gray-900 dark:text-white">
+            {user.name}
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
             @{user.username}
@@ -60,7 +57,7 @@ const PublicProfileContent = () => {
         </div>
 
         <div className="mt-12">
-          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">
+          <h2 className="text-3xl font-heading text-gray-900 dark:text-white mb-6">
             Cards Created
           </h2>
           {isFetchingCards && !cardsData ? (

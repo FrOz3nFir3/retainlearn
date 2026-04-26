@@ -1,27 +1,25 @@
-import React from "react";
-
 const AuthTabs = ({ isLogin, onTabChange }) => {
   return (
-    <div className="flex border-b border-gray-200 dark:border-gray-700">
+    <div className="flex border-b border-gray-200 dark:border-white/10">
       <button
-        onClick={() => onTabChange(true)} // true for login
-        className={`cursor-pointer w-1/2 py-4 text-center font-medium text-sm transition-colors ${
+        onClick={() => onTabChange(true)}
+        className={`cursor-pointer w-1/2 py-3 text-center font-semibold text-sm transition-colors duration-150 ${
           isLogin
-            ? "border-b-2 border-indigo-600 text-indigo-600"
-            : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+            ? "border-b-2 border-brand-primary dark:border-brand-accent text-brand-primary dark:text-brand-accent"
+            : "text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white/60"
         }`}
       >
-        Sign In
+        Sign in
       </button>
       <button
-        onClick={() => onTabChange(false)} // false for register
-        className={`cursor-pointer w-1/2 py-4 text-center font-medium text-sm transition-colors ${
+        onClick={() => onTabChange(false)}
+        className={`cursor-pointer w-1/2 py-3 text-center font-semibold text-sm transition-colors duration-150 ${
           !isLogin
-            ? "border-b-2 border-indigo-600 text-indigo-600"
-            : "text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-white"
+            ? "border-b-2 border-brand-primary dark:border-brand-accent text-brand-primary dark:text-brand-accent"
+            : "text-gray-400 dark:text-white/30 hover:text-gray-700 dark:hover:text-white/60"
         }`}
       >
-        Sign Up
+        Sign up
       </button>
     </div>
   );

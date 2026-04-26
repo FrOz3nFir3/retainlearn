@@ -1,90 +1,41 @@
 import React from "react";
 import { AcademicCapIcon } from "@heroicons/react/24/outline";
 
+const tips = [
+  { label: "Read carefully", desc: "Take time to understand each question" },
+  { label: "Think first", desc: "Consider your answer before seeing options" },
+  { label: "Eliminate wrong answers", desc: "Rule out obviously incorrect options" },
+  { label: "Trust your instinct", desc: "Your first answer is often correct" },
+];
+
 const QuizTips = ({ className = "" }) => {
   return (
     <div
-      className={`bg-gradient-to-br from-purple-50 via-pink-50 to-purple-50 dark:from-blue-900/10 dark:via-indigo-900/10 dark:to-purple-900/10 rounded-2xl border border-purple-200 dark:border-purple-700/50 overflow-hidden ${className}`}
+      className={`bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/6 rounded-2xl p-5 ${className}`}
     >
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 bg-gradient-to-br from-purple-500 via-pink-500 to-purple-500 rounded-lg">
-            <AcademicCapIcon className="h-5 w-5 text-white" />
-          </div>
-          <h4 className="text-lg font-bold bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 dark:from-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
-            Quiz Taking Tips
-          </h4>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2 bg-brand-surface dark:bg-white/8 rounded-xl">
+          <AcademicCapIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
         </div>
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-white/70">
+          Quiz taking tips
+        </h4>
+      </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 bg-green-100 dark:bg-green-900/50 rounded-full flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-green-600 dark:text-green-400">
-                  📖
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Read carefully
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Take your time to understand each question
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 bg-blue-100 dark:bg-blue-900/50 rounded-full flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
-                  🤔
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Think first
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Consider your answer before looking at options
-                </p>
-              </div>
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        {tips.map((tip) => (
+          <div key={tip.label} className="flex items-start gap-2.5">
+            <div className="mt-0.5 shrink-0 w-1.5 h-1.5 rounded-full bg-brand-accent" />
+            <div>
+              <p className="text-xs font-semibold text-gray-700 dark:text-white/70">
+                {tip.label}
+              </p>
+              <p className="text-xs text-gray-400 dark:text-white/30">
+                {tip.desc}
+              </p>
             </div>
           </div>
-
-          <div className="space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 bg-purple-100 dark:bg-purple-900/50 rounded-full flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-purple-600 dark:text-purple-400">
-                  ❌
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Eliminate wrong answers
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Rule out obviously incorrect options first
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-6 h-6 bg-orange-100 dark:bg-orange-900/50 rounded-full flex items-center justify-center mt-0.5">
-                <span className="text-xs font-bold text-orange-600 dark:text-orange-400">
-                  🎯
-                </span>
-              </div>
-              <div>
-                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">
-                  Trust your instinct
-                </p>
-                <p className="text-xs text-gray-600 dark:text-gray-400">
-                  Your first answer is often correct
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+        ))}
       </div>
     </div>
   );

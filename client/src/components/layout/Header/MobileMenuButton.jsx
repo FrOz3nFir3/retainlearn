@@ -1,18 +1,21 @@
-import React from "react";
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
-const MobileMenuButton = ({ isOpen, onClick }) => {
+const MobileMenuButton = ({ isOpen, onClick, isTransparent }) => {
   return (
     <div className="md:hidden">
       <button
         onClick={onClick}
-        className="cursor-pointer inline-flex items-center justify-center p-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+        className={`cursor-pointer inline-flex items-center justify-center p-2 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 ${
+          isTransparent
+            ? "text-white/60 hover:text-white hover:bg-white/8"
+            : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
+        }`}
       >
         <span className="sr-only">Open main menu</span>
         {isOpen ? (
-          <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
+          <XMarkIcon className="h-5 w-5" aria-hidden="true" />
         ) : (
-          <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
+          <Bars3Icon className="h-5 w-5" aria-hidden="true" />
         )}
       </button>
     </div>

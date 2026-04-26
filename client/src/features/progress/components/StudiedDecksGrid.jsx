@@ -1,4 +1,3 @@
-import React from "react";
 import { MagnifyingGlassIcon } from "@heroicons/react/24/outline";
 import StudiedCardGridItem from "../../cards/components/StudiedCardGridItem";
 import Pagination from "../../../components/ui/Pagination";
@@ -16,14 +15,14 @@ const StudiedDecksGrid = ({
   if (filteredCount === 0) {
     return (
       <div className="text-center py-16">
-        <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full mb-6">
-          <MagnifyingGlassIcon className="h-10 w-10 text-gray-400" />
+        <div className="inline-flex items-center justify-center w-14 h-14 bg-gray-100 dark:bg-white/8 rounded-2xl mb-5">
+          <MagnifyingGlassIcon className="h-6 w-6 text-gray-400 dark:text-white/30" />
         </div>
-        <h3 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+        <h3 className="font-heading text-xl text-gray-700 dark:text-white mb-2">
           No cards found
         </h3>
-        <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-          Try adjusting your search or filter criteria.
+        <p className="text-sm text-gray-500 dark:text-white/40 max-w-xs mx-auto leading-relaxed">
+          Try adjusting your search term.
         </p>
       </div>
     );
@@ -34,30 +33,23 @@ const StudiedDecksGrid = ({
       {isFetching ? (
         <CardSkeleton showHeader={false} />
       ) : (
-        <div className="bg-white/40 dark:bg-gray-800/40 rounded-3xl border border-gray-200/50 dark:border-gray-700/50 shadow-xl sm:p-8 mb-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-            {paginatedCards.map((card, index) => (
-              <div
-                key={card._id}
-                className="animate-fade-in"
-                style={{ animationDelay: `${index * 50}ms` }}
-              >
-                <StudiedCardGridItem card={card} />
-              </div>
-            ))}
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+          {paginatedCards.map((card) => (
+            <StudiedCardGridItem key={card._id} card={card} />
+          ))}
         </div>
       )}
 
       {totalPages > 1 && (
-        <Pagination
-          currentPage={currentPage}
-          totalPages={totalPages}
-          onPageChange={onPageChange}
-          itemsCount={filteredCount}
-          itemsPerPage={itemsPerPage}
-          activeColorClass="bg-green-600"
-        />
+        <div className="mb-6">
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={onPageChange}
+            itemsCount={filteredCount}
+            itemsPerPage={itemsPerPage}
+          />
+        </div>
       )}
     </>
   );

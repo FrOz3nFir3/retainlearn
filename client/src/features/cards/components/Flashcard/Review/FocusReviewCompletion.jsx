@@ -4,9 +4,9 @@ import { useDispatch } from "react-redux";
 import { apiSlice } from "../../../../../api/apiSlice";
 import {
   FireIcon,
-  SparklesIcon,
   CheckBadgeIcon,
-} from "@heroicons/react/24/solid";
+  ArrowPathIcon,
+} from "@heroicons/react/24/outline";
 
 const FocusReviewCompletion = ({
   completedCardsCount,
@@ -25,122 +25,103 @@ const FocusReviewCompletion = ({
   };
 
   const handleRetryFocusReview = () => {
-    // Invalidate focus review cache to refetch latest data
     dispatch(
       apiSlice.util.invalidateTags([
         { type: "FocusReviewData", id: id },
         { type: "FocusReviewData", id: "LIST" },
       ])
     );
-
-    // Reset the focus review state
-    if (restartFocusReview) {
-      restartFocusReview();
-    }
+    if (restartFocusReview) restartFocusReview();
   };
 
-  // Calculate perfect score count from Set
   const perfectScore = perfectCards.size;
-  
-  // Determine if user mastered all their weak cards during this session
   const masteredAllCards =
     allWeakCardsMastered || completedCardsCount === totalFocusCards;
-
-  // Detect low completion scenarios:
-  // 1. User studied fewer cards than total available weak cards
-  // 2. User got fewer perfect scores than total weak cards available
-  const hasLowCompletion = totalWeakCards > 0 && (
-    completedCardsCount < totalWeakCards || 
-    perfectScore < totalWeakCards
-  );
-
-  // Show retry button when there are remaining cards to practice
+  const hasLowCompletion =
+    totalWeakCards > 0 &&
+    (completedCardsCount < totalWeakCards || perfectScore < totalWeakCards);
   const showRetryButton = hasLowCompletion && restartFocusReview;
 
+  const headingText = masteredAllCards
+    ? "Outstanding!"
+    : hasLowCompletion
+    ? "Good progress!"
+    : "Focus session complete!";
+
   return (
-    <div className="flex justify-center mb-6 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-gradient-to-br from-orange-50 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-xl border border-orange-200/50 dark:border-orange-700/50 max-w-md text-center">
+    <div className="px-6 pb-6 flex justify-center">
+      <div className="bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/6 rounded-2xl p-8 max-w-md w-full text-center">
         <div className="flex justify-center mb-4">
-          <div className="relative">
+          <div className="p-4 bg-brand-surface dark:bg-white/8 rounded-2xl">
             {masteredAllCards ? (
-              <CheckBadgeIcon className="h-16 w-16 text-green-500 animate-bounce" />
+              <CheckBadgeIcon className="h-10 w-10 text-emerald-500" />
             ) : (
-              <FireIcon className="h-16 w-16 text-orange-500 animate-bounce" />
+              <FireIcon className="h-10 w-10 text-brand-accent" />
             )}
-            <SparklesIcon className="h-6 w-6 text-yellow-400 absolute -top-1 -right-1 animate-pulse" />
           </div>
         </div>
 
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          {masteredAllCards ? "🎉 Outstanding!" : hasLowCompletion ? "📚 Good Progress!" : "🔥 Focus Session Complete!"}
+        <h3 className="font-heading text-2xl text-gray-900 dark:text-white mb-2">
+          {headingText}
         </h3>
 
-        <p className="text-gray-600 dark:text-gray-300 mb-4">
+        <div className="text-sm text-gray-500 dark:text-white/40 mb-6 space-y-1">
           {masteredAllCards ? (
             <>
-              Incredible work! You've mastered all your challenging cards in
-              this focused practice session.
+              <p>You've mastered all your challenging cards in this session.</p>
               {completedCardsCount > 0 && (
-                <span className="block mt-2 text-sm font-medium text-green-600 dark:text-green-400">
-                  ✨ {completedCardsCount} cards mastered and removed from your
-                  focus list!
-                </span>
+                <p className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {completedCardsCount} cards mastered and removed from your focus list.
+                </p>
               )}
             </>
           ) : hasLowCompletion ? (
             <>
-              You've made progress on your challenging cards! 
+              <p>You've made progress on your challenging cards.</p>
               {perfectScore > 0 && (
-                <span className="block mt-1 text-sm font-medium text-green-600 dark:text-green-400">
-                  ✨ {perfectScore} cards mastered perfectly!
-                </span>
+                <p className="font-semibold text-emerald-600 dark:text-emerald-400">
+                  {perfectScore} cards mastered perfectly!
+                </p>
               )}
               {totalWeakCards > completedCardsCount && (
-                <span className="block mt-1 text-sm text-orange-600 dark:text-orange-400">
-                  📚 {totalWeakCards - completedCardsCount} more cards available to practice
-                </span>
+                <p className="text-brand-accent">
+                  {totalWeakCards - completedCardsCount} more cards available to practise
+                </p>
               )}
             </>
           ) : (
             <>
-              Great work on your targeted practice session! You've made solid
-              progress on your challenging cards.
+              <p>Great work on your targeted practice session.</p>
               {completedCardsCount > 0 && (
-                <span className="block mt-1 text-sm">
-                  You worked through {completedCardsCount} challenging cards
-                </span>
+                <p>You worked through {completedCardsCount} challenging cards.</p>
               )}
             </>
           )}
-        </p>
+        </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {showRetryButton && (
             <button
               onClick={handleRetryFocusReview}
-              className="cursor-pointer w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-semibold rounded-xl hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors duration-150"
             >
-              <FireIcon className="animate-pulse h-5 w-5" />
+              <ArrowPathIcon className="h-4 w-4" />
               Review Again
             </button>
           )}
-          
+
           <button
             onClick={handleStartNormalReview}
-            className="cursor-pointer w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 text-white dark:text-brand-dark text-sm font-semibold rounded-xl transition-colors duration-150"
           >
-            {masteredAllCards
-              ? "Continue with Regular Review"
-              : "Switch to Regular Review"}
+            {masteredAllCards ? "Continue Regular Review" : "Switch to Regular Review"}
           </button>
         </div>
 
-        <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
+        <p className="text-xs text-gray-400 dark:text-white/30 mt-4">
           {masteredAllCards
-            ? "🌟 Excellent progress! Keep up the regular practice to maintain your mastery."
-            : hasLowCompletion
-            ? "💪 Keep reviewing to master all your challenging cards! Every practice session counts."
-            : "💡 Keep practicing regularly to master all your challenging cards!"}
+            ? "Keep up the regular practice to maintain your mastery."
+            : "Keep practising regularly to master all your challenging cards."}
         </p>
       </div>
     </div>

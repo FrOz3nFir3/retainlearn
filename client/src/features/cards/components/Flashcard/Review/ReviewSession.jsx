@@ -74,7 +74,7 @@ const ReviewSession = ({ review, session, cardId }) => {
       {!!sessionCards.length && !showCompletion && (
         <>
           <div className="text-center mt-6 mb-4">
-            <div className="hidden md:flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl px-4 py-2">
+            <div className="hidden md:flex items-center justify-center gap-2 text-sm text-gray-500 dark:text-white/40 bg-gray-50 dark:bg-white/3 rounded-xl px-4 py-2">
               <ArrowsRightLeftIcon className="h-4 w-4" />
               Use Left/Right arrow keys to navigate
             </div>

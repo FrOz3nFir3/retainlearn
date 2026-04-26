@@ -17,8 +17,8 @@ const ToolbarButton = ({
         editor?.isEditable ? "" : "pointer-events-none"
       } peer h-8 w-8 flex items-center justify-center rounded-md cursor-pointer transition-all duration-150 ${
         isActive
-          ? "bg-indigo-500 text-white shadow-sm"
-          : "bg-gray-100 text-gray-700 hover:bg-gray-200 hover:shadow-sm dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          ? "bg-brand-primary dark:bg-brand-accent text-white dark:text-brand-dark shadow-sm"
+          : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-white/8 dark:text-white/60 dark:hover:bg-white/12"
       } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-100 dark:disabled:hover:bg-gray-700`}
     >
       {children}

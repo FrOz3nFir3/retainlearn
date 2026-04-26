@@ -1,10 +1,5 @@
-import React from "react";
 import { NavLink, Link } from "react-router-dom";
-import {
-  ChartBarIcon,
-  HomeIcon,
-  RectangleStackIcon,
-} from "@heroicons/react/24/outline";
+import { HomeIcon, RectangleStackIcon } from "@heroicons/react/24/outline";
 import UserInfo from "./UserInfo";
 import UserMenuItems from "./UserMenuItems";
 import MobileMenuSkeleton from "../../ui/skeletons/MobileMenuSkeleton";
@@ -14,12 +9,8 @@ const MobileMenu = ({ isOpen, navigation, user, setIsOpen, isLoading }) => {
 
   const getNavIcon = (name) => {
     switch (name) {
-      case "Home":
-        return HomeIcon;
-      case "Categories":
-        return RectangleStackIcon;
-      default:
-        return HomeIcon;
+      case "Categories": return RectangleStackIcon;
+      default: return HomeIcon;
     }
   };
 
@@ -27,34 +18,30 @@ const MobileMenu = ({ isOpen, navigation, user, setIsOpen, isLoading }) => {
 
   return (
     <div className="md:hidden">
-      <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-t border-gray-200/20 dark:border-gray-700/20 shadow-lg">
-        {/* Navigation Links */}
-        <div className="px-4 py-3 space-y-1">
+      <div className="bg-white/98 dark:bg-brand-dark/98 backdrop-blur-xl border-t border-gray-100 dark:border-white/8">
+        {/* Nav links */}
+        <div className="px-3 py-2 space-y-0.5">
           {navigation.map((item) => {
-            const IconComponent = getNavIcon(item.name);
+            const Icon = getNavIcon(item.name);
             return (
               <NavLink
                 key={item.name}
                 to={item.href}
                 onClick={closeMenu}
                 className={({ isActive }) =>
-                  `flex items-center space-x-3 px-4 py-3 rounded-xl text-base font-medium transition-all duration-300 ${
+                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-colors duration-200 ${
                     isActive
-                      ? "bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/30 dark:to-purple-900/30 text-indigo-600 dark:text-indigo-400"
-                      : "text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-indigo-600 dark:hover:text-indigo-400"
+                      ? "bg-brand-primary/6 dark:bg-brand-accent/8 text-brand-primary dark:text-brand-accent"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5"
                   }`
                 }
               >
                 {({ isActive }) => (
                   <>
-                    <IconComponent
-                      className={`w-5 h-5 ${
-                        isActive ? "scale-110" : ""
-                      } transition-transform duration-300`}
-                    />
+                    <Icon className="w-4 h-4" />
                     <span>{item.name}</span>
                     {isActive && (
-                      <div className="ml-auto w-2 h-2 bg-indigo-600 dark:bg-indigo-400 rounded-full"></div>
+                      <div className="ml-auto w-1.5 h-1.5 rounded-full bg-brand-primary dark:bg-brand-accent" />
                     )}
                   </>
                 )}
@@ -63,17 +50,14 @@ const MobileMenu = ({ isOpen, navigation, user, setIsOpen, isLoading }) => {
           })}
         </div>
 
-        {/* User Section */}
-        <div className="border-t border-gray-200/50 dark:border-gray-700/50 px-4 py-4">
+        {/* User section */}
+        <div className="border-t border-gray-100 dark:border-white/8 px-3 py-3">
           {user ? (
             <>
-              {/* User Info */}
-              <div className="px-4 py-3 mb-3 bg-gradient-to-r from-gray-50 to-indigo-50 dark:from-gray-800/50 dark:to-indigo-900/20 rounded-xl">
+              <div className="px-4 py-3 mb-1.5 bg-gray-50 dark:bg-white/4 rounded-xl">
                 <UserInfo user={user} />
               </div>
-
-              {/* User Menu Items */}
-              <div className="space-y-1">
+              <div className="space-y-0.5">
                 <UserMenuItems isMobile={true} closeMenu={closeMenu} />
               </div>
             </>
@@ -83,9 +67,9 @@ const MobileMenu = ({ isOpen, navigation, user, setIsOpen, isLoading }) => {
             <Link
               to="/authenticate"
               onClick={closeMenu}
-              className="flex items-center justify-center space-x-2 w-full px-4 py-3 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium text-base hover:from-indigo-700 hover:to-purple-700 transform hover:scale-105 transition-all duration-300 shadow-lg"
+              className="flex items-center justify-center w-full px-4 py-3 rounded-xl bg-brand-accent hover:bg-amber-400 text-brand-dark font-semibold text-sm transition-colors duration-150"
             >
-              <span>Register / Login</span>
+              Register / Login
             </Link>
           )}
         </div>

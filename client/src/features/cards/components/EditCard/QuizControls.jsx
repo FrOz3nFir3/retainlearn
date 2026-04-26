@@ -17,51 +17,41 @@ const QuizControls = ({
   isLoadingFlashcards,
   onFlashcardDropdownOpen,
 }) => {
-  const handleSearchChange = (e) => {
-    onSearchChange(e);
-  };
-
   return (
     <div>
       {/* Search Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-xl font-bold bg-gradient-to-r from-gray-900 to-purple-600 dark:from-white dark:to-purple-300 bg-clip-text text-transparent">
-            Quiz Explorer
-          </h2>
-        </div>
-        <p className="text-sm text-gray-600 dark:text-gray-400">
-          Search through your quiz collection or filter by specific flashcards
-          to find what you need.
+      <div className="mb-5">
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+          Explore
+        </p>
+        <h2 className="font-heading text-xl text-gray-900 dark:text-white">
+          Quiz Explorer
+        </h2>
+        <p className="text-sm text-gray-500 dark:text-white/40 mt-1">
+          Search your quizzes or filter by flashcard.
         </p>
       </div>
 
-      {/* Enhanced Search and Filter Section */}
-      <div className="space-y-4">
-        <div className="flex flex-col x gap-4">
+      <div className="space-y-3">
+        <div className="flex flex-col gap-3">
           {/* Search Input */}
-          <div className="relative group flex-1">
-            <div className="absolute inset-0 bg-gradient-to-r from-purple-500/20 to-pink-500/20 rounded-2xl blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-            <div className="relative">
-              <input
-                type="text"
-                placeholder="Search quiz questions, answers, or options..."
-                value={searchTerm}
-                onChange={handleSearchChange}
-                className="w-full pl-14 pr-12 py-4 text-lg border-2 border-gray-200 dark:border-gray-700 rounded-2xl bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm text-gray-900 dark:text-gray-200 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:border-purple-500 dark:focus:border-purple-400 focus:ring-4 focus:ring-purple-500/20 shadow-lg hover:shadow-xl transition-all duration-300"
-              />
-              <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50 rounded-xl">
-                  <MagnifyingGlassIcon className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-                </div>
-              </div>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 dark:text-white/30" />
             </div>
+            <input
+              type="text"
+              placeholder="Search quiz questions, answers, or options..."
+              value={searchTerm}
+              onChange={onSearchChange}
+              className="w-full pl-11 pr-4 py-3 text-sm border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:focus:ring-brand-accent/20 transition-all duration-150"
+            />
           </div>
 
-          {/* Filter Dropdown make this ui better later*/}
-          <div className="flex  gap-3 px-4">
-            <div className="self-center p-3 bg-gradient-to-br from-indigo-100 to-purple-100 dark:from-indigo-900/50 dark:to-purple-900/50 rounded-xl shadow-md">
-              <FunnelIcon className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
+          {/* Filter Dropdown */}
+          <div className="flex gap-3 items-center">
+            <div className="p-2 bg-brand-surface dark:bg-white/8 rounded-lg shrink-0">
+              <FunnelIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
             </div>
             <div className="flex-1">
               <SearchableDropdown
@@ -76,17 +66,14 @@ const QuizControls = ({
           </div>
         </div>
 
-        {/* Search Results and Actions */}
+        {/* Active Filters */}
         {(searchTerm || selectedFlashcardId) && (
           <div className="flex flex-wrap items-center justify-center sm:justify-between gap-3">
-            <div className="flex items-center gap-2 px-4 py-2 bg-purple-50 dark:bg-purple-900/30 rounded-xl border border-purple-200 dark:border-purple-700">
-              <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
-              <span className="text-sm font-medium text-purple-700 dark:text-purple-300">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-brand-surface dark:bg-brand-accent/10 rounded-lg border border-brand-primary/15 dark:border-brand-accent/15">
+              <span className="text-sm font-medium text-brand-primary dark:text-brand-accent">
                 {filteredCount === 0
                   ? "No quizzes found"
-                  : `Found ${filteredCount} quiz${
-                      filteredCount !== 1 ? "es" : ""
-                    }`}
+                  : `Found ${filteredCount} quiz${filteredCount !== 1 ? "es" : ""}`}
                 {searchTerm && ` for "${searchTerm}"`}
               </span>
             </div>
@@ -95,10 +82,10 @@ const QuizControls = ({
                 onFlashcardSelect(null);
                 onReset();
               }}
-              className="cursor-pointer flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-all duration-200 group"
+              className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-500 hover:text-red-500 dark:text-white/40 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors duration-150"
             >
-              <XMarkIcon className="h-4 w-4 group-hover:rotate-90 transition-transform duration-200" />
-              Clear all filters
+              <XMarkIcon className="h-3.5 w-3.5" />
+              Clear filters
             </button>
           </div>
         )}

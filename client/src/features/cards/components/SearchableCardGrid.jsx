@@ -25,10 +25,10 @@ const SearchableCardGrid = ({
 
   return (
     <div className="space-y-8">
-      {/* Enhanced Search Bar */}
+      {/* Search Bar */}
       <div className="relative max-w-2xl mx-auto">
         <div className="absolute inset-y-0 left-0 flex items-center pl-4 pointer-events-none">
-          <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+          <MagnifyingGlassIcon className="h-4 w-4 text-gray-400 dark:text-white/30" />
         </div>
         <input
           type="text"
@@ -36,26 +36,16 @@ const SearchableCardGrid = ({
           value={searchValue}
           onInput={handleSearchChange}
           disabled={cards.length === 0}
-          className="w-full pl-12 pr-4 py-4 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-600 rounded-2xl shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 text-lg"
+          className="w-full pl-11 pr-4 py-3.5 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:focus:ring-brand-accent/20 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-150 text-sm"
         />
         {searchValue && (
-          <div className="absolute inset-y-0 right-0 flex items-center pr-4">
+          <div className="absolute inset-y-0 right-0 flex items-center pr-3">
             <button
               onClick={() => setSearchValue("")}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors duration-200"
+              className="cursor-pointer p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white/60 transition-colors duration-150"
             >
-              <svg
-                className="h-5 w-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
@@ -65,30 +55,28 @@ const SearchableCardGrid = ({
       {/* Search Results Info */}
       {searchValue && (
         <div className="text-center">
-          <p className="text-sm text-gray-600 dark:text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-white/30">
             {filteredCards.length === 0
               ? "No cards match your search"
-              : `Found ${filteredCards.length} card${
-                  filteredCards.length !== 1 ? "s" : ""
-                } matching "${searchValue}"`}
+              : `Found ${filteredCards.length} card${filteredCards.length !== 1 ? "s" : ""} matching "${searchValue}"`}
           </p>
         </div>
       )}
 
       {/* Cards Grid or Empty State */}
       {filteredCards.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-full mb-6">
+        <div className="text-center py-12">
+          <div className="inline-flex items-center justify-center w-14 h-14 bg-brand-surface dark:bg-white/8 rounded-2xl mb-4">
             {cards.length === 0 ? (
-              <SparklesIcon className="h-10 w-10 text-gray-400" />
+              <SparklesIcon className="h-7 w-7 text-brand-primary dark:text-brand-accent/70" />
             ) : (
-              <FaceFrownIcon className="h-10 w-10 text-gray-400" />
+              <FaceFrownIcon className="h-7 w-7 text-brand-primary dark:text-brand-accent/70" />
             )}
           </div>
-          <h2 className="text-2xl font-bold text-gray-700 dark:text-gray-300 mb-2">
+          <h2 className="font-heading text-xl text-gray-900 dark:text-white mb-1">
             {cards.length === 0 ? "No Cards Yet" : "No Cards Found"}
           </h2>
-          <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+          <p className="text-sm text-gray-500 dark:text-white/40 max-w-md mx-auto">
             {cards.length === 0
               ? "Create your first card to start building your knowledge collection."
               : "Try adjusting your search terms or browse all available cards."}
@@ -100,9 +88,7 @@ const SearchableCardGrid = ({
             <div
               key={card._id}
               className="animate-fade-in"
-              style={{
-                animationDelay: `${index * 50}ms`,
-              }}
+              style={{ animationDelay: `${index * 50}ms` }}
             >
               <CardDetails
                 {...card}

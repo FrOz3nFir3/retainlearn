@@ -112,31 +112,9 @@ const EditCardView = () => {
   // Show error state
   if (overviewError || viewError) {
     return (
-      <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
-        <div className="text-center py-12">
-          <div className="text-red-500 dark:text-red-400 mb-4">
-            <svg
-              className="mx-auto h-12 w-12"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-          </div>
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
-            Failed to load card data
-          </h3>
-          <p className="text-gray-500 dark:text-gray-400">
-            There was an error loading the card data. Please try refreshing the
-            page.
-          </p>
-        </div>
+      <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl p-8 text-center">
+        <p className="font-heading text-xl text-gray-900 dark:text-white mb-2">Failed to load card data</p>
+        <p className="text-sm text-gray-500 dark:text-white/40">There was an error loading the card data. Please try refreshing the page.</p>
       </div>
     );
   }
@@ -152,7 +130,7 @@ const EditCardView = () => {
   const displayReviewQueue = displayCard?.reviewQueue || reviewQueue || [];
 
   return (
-    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700">
+    <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl p-6">
       <EditCardHeader
         flashcardId={displayCard?._id || _id}
         view={view}

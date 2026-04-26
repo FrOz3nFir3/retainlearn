@@ -87,27 +87,23 @@ const ReviewQueueView = ({ cardId, reviewQueue, reviewQueueLength }) => {
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-r from-indigo-500 to-blue-500 rounded-xl shadow-lg">
-              <ClipboardDocumentCheckIcon className="h-6 w-6 text-white" />
+            <div className="p-2.5 bg-brand-surface dark:bg-white/8 rounded-xl">
+              <ClipboardDocumentCheckIcon className="h-5 w-5 text-brand-primary dark:text-brand-accent/70" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-blue-700 dark:from-indigo-300 dark:to-blue-300 bg-clip-text text-transparent">
+              <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+                Collaborative edits
+              </p>
+              <h2 className="font-heading text-xl text-gray-900 dark:text-white">
                 Review Queue
               </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                {reviewQueueLength > 0
-                  ? `${reviewQueueLength} pending collaborative change${
-                      reviewQueueLength > 1 ? "s" : ""
-                    }`
-                  : "No pending changes"}
-              </p>
             </div>
           </div>
 
           {hasMoreItems && (
             <button
               onClick={() => setIsListModalOpen(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors duration-200"
+              className="cursor-pointer inline-flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-sm font-semibold rounded-xl hover:border-brand-primary/30 dark:hover:border-brand-accent/30 hover:text-brand-primary dark:hover:text-brand-accent transition-colors duration-150"
             >
               <EyeIcon className="h-4 w-4" />
               View All ({reviewQueueLength})
@@ -118,43 +114,14 @@ const ReviewQueueView = ({ cardId, reviewQueue, reviewQueueLength }) => {
 
       {/* Error Display */}
       {actionError && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50 rounded-lg p-4 mb-4">
-          <div className="flex items-center gap-2">
-            <svg
-              className="h-5 w-5 text-red-500"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z"
-              />
-            </svg>
-            <p className="text-red-700 dark:text-red-300 text-sm font-medium">
-              {actionError}
-            </p>
-            <button
-              onClick={() => setActionError(null)}
-              className="ml-auto text-red-500 hover:text-red-700 dark:hover:text-red-300"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
-            </button>
-          </div>
+        <div className="flex items-center gap-3 p-4 mb-4 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20 rounded-xl">
+          <p className="text-sm text-red-700 dark:text-red-400 flex-1">{actionError}</p>
+          <button
+            onClick={() => setActionError(null)}
+            className="cursor-pointer shrink-0 text-red-400 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+          >
+            <span className="text-lg leading-none">×</span>
+          </button>
         </div>
       )}
 
@@ -175,15 +142,14 @@ const ReviewQueueView = ({ cardId, reviewQueue, reviewQueueLength }) => {
         </div>
       ) : (
         <div className="text-center py-12">
-          <div className="p-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-xl inline-block mb-4">
-            <ClipboardDocumentCheckIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-surface dark:bg-white/8 rounded-2xl mb-4">
+            <ClipboardDocumentCheckIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
           </div>
-          <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">
+          <h3 className="font-heading text-xl text-gray-900 dark:text-white mb-1">
             No pending reviews
           </h3>
-          <p className="text-gray-500 dark:text-gray-500 text-sm max-w-md mx-auto">
-            All changes have been reviewed! New collaborative edits will appear
-            here for your approval.
+          <p className="text-sm text-gray-500 dark:text-white/40 max-w-sm mx-auto">
+            All changes have been reviewed. New collaborative edits will appear here for your approval.
           </p>
         </div>
       )}

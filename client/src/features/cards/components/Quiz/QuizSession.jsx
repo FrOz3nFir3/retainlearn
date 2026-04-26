@@ -1,5 +1,4 @@
 import React from "react";
-import { LightBulbIcon } from "@heroicons/react/24/solid";
 import QuizHeader from "./QuizHeader";
 import QuizQuestion from "./QuizQuestion";
 import QuizOptions from "./QuizOptions";
@@ -55,7 +54,9 @@ const QuizSession = ({ session, cardId }) => {
         </div>
       )}
 
-      <FunFactToggle showFacts={showFacts} onToggle={handleRandomFactToggle} />
+      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/6">
+        <FunFactToggle showFacts={showFacts} onToggle={handleRandomFactToggle} />
+      </div>
     </div>
   );
 };

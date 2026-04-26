@@ -146,16 +146,11 @@ function DetailedReportModal({ cardId, isOpen, onClose }) {
 
   return (
     <Modal
-      className="!w-full sm:!max-w-7xl bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-purple-950 shadow-2xl w-full max-w-7xl !px-0"
+      className="w-full! sm:max-w-7xl! bg-gray-50 dark:bg-[#14112a] max-w-7xl px-0!"
       isOpen={isOpen}
       onClose={onClose}
     >
-      <div className="relative ">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-purple-400/10 to-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-indigo-400/10 to-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
-
+      <div className="relative">
         {isLoading ? (
           <div className="p-3 sm:p-6">
             <DetailedReportModalSkeleton />
@@ -167,7 +162,7 @@ function DetailedReportModal({ cardId, isOpen, onClose }) {
               {isError && (
                 <div className="flex items-center justify-center py-8 sm:py-16 px-3 sm:px-6">
                   <div className="text-center">
-                    <div className="p-3 sm:p-4 bg-red-100 dark:bg-red-900/50 rounded-2xl inline-block mb-4">
+                    <div className="p-3 sm:p-4 bg-red-50 dark:bg-red-500/10 rounded-2xl inline-block mb-4">
                       <XMarkIcon className="h-8 w-8 sm:h-12 sm:w-12 text-red-600 dark:text-red-400" />
                     </div>
                     <p className="text-lg sm:text-xl font-semibold text-red-600 dark:text-red-400">
@@ -180,10 +175,10 @@ function DetailedReportModal({ cardId, isOpen, onClose }) {
               {!isError && mergedReport.length === 0 && (
                 <div className="flex items-center justify-center py-8 sm:py-16 px-3 sm:px-6">
                   <div className="text-center">
-                    <div className="p-3 sm:p-4 bg-gradient-to-br from-gray-400 to-gray-600 rounded-2xl shadow-lg inline-block mb-4 sm:mb-6">
-                      <ChartBarIcon className="h-8 w-8 sm:h-12 sm:w-12 text-white" />
+                    <div className="p-3 sm:p-4 bg-brand-surface dark:bg-white/8 rounded-2xl inline-block mb-4 sm:mb-6">
+                      <ChartBarIcon className="h-8 w-8 sm:h-12 sm:w-12 text-brand-primary dark:text-brand-accent/70" />
                     </div>
-                    <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    <h3 className="text-xl sm:text-2xl font-heading text-gray-900 dark:text-white mb-2">
                       No Report Data Available
                     </h3>
                     <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">

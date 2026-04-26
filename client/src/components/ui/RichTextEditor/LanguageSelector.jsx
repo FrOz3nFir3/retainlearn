@@ -95,7 +95,7 @@ const LanguageSelector = ({ editor, currentLanguage = "plaintext" }) => {
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-sm bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300 rounded border border-indigo-200 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-colors min-w-0"
+        className="cursor-pointer flex items-center gap-2 px-3 py-1.5 text-sm bg-brand-surface dark:bg-white/8 text-brand-primary dark:text-brand-accent/80 rounded border border-amber-200 dark:border-white/10 hover:bg-amber-100 dark:hover:bg-white/12 transition-colors min-w-0"
         disabled={!editor.isEditable}
         title={`Current language: ${currentLanguageLabel}`}
       >
@@ -117,7 +117,7 @@ const LanguageSelector = ({ editor, currentLanguage = "plaintext" }) => {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-white/10 rounded bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:focus:ring-brand-accent/20"
             />
           </div>
 

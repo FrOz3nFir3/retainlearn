@@ -4,19 +4,19 @@ import HtmlRenderer from "../../../../components/ui/HtmlRenderer";
 
 const QuizQuestion = ({ questionText, current }) => {
   return (
-    <div className="relative mb-4">
-      <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-3xl border border-purple-200/50 dark:border-purple-700/50 shadow-2xl py-4 p-5">
+    <div className="mb-5">
+      <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-5">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-2">
-          <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
-            <QuestionMarkCircleIcon className="h-5 w-5 text-white" />
+        <div className="flex items-center gap-2.5 mb-3">
+          <div className="p-1.5 bg-brand-surface dark:bg-white/8 rounded-lg">
+            <QuestionMarkCircleIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
           </div>
           <div>
-            <span className="text-purple-600 dark:text-purple-400 text-lg font-bold">
+            <span className="text-xs font-semibold uppercase tracking-widest text-brand-accent">
               Question {current}
             </span>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Select from options below
+            <p className="text-xs text-gray-400 dark:text-white/30">
+              Select from the options below
             </p>
           </div>
         </div>

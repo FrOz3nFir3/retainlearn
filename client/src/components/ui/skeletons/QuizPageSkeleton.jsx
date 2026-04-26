@@ -1,44 +1,49 @@
-import React from "react";
-
 const QuizPageSkeleton = () => {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-purple-950 shadow-2xl animate-pulse">
-      <div className="relative z-10 p-6 sm:p-8">
-        {/* Header Skeleton */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded-lg w-36"></div>
-          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded-lg w-28"></div>
+    <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl overflow-hidden animate-pulse">
+      {/* QuizHeader (px-6 pt-6 pb-4 mb-2: icon tile + amber label + heading + Focus Quiz button + progress counter) */}
+      <div className="px-6 pt-6 pb-4 mb-2">
+        <div className="flex flex-wrap gap-3 items-center justify-between mb-5">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-gray-200 dark:bg-white/8 rounded-xl w-11 h-11"></div>
+            <div>
+              <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-28 mb-2"></div>
+              <div className="h-7 bg-gray-200 dark:bg-white/8 rounded w-16"></div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="h-9 bg-gray-200 dark:bg-white/8 rounded-xl w-28"></div>
+            <div className="h-9 bg-gray-200 dark:bg-white/8 rounded-xl w-20"></div>
+          </div>
         </div>
+        {/* Progress bar */}
+        <div className="h-1.5 bg-gray-200 dark:bg-white/8 rounded-full w-full mb-2"></div>
+        <div className="flex justify-between">
+          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-8"></div>
+          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-16"></div>
+        </div>
+      </div>
 
-        {/* Question Skeleton */}
+      <div className="p-6 sm:p-8 pt-2">
+        {/* Question */}
         <div className="text-center my-8">
-          <div className="h-6 bg-gray-300 dark:bg-gray-700 rounded-lg w-3/4 mx-auto mb-4"></div>
-          <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded-lg w-1/2 mx-auto"></div>
+          <div className="h-4 bg-gray-200 dark:bg-white/8 rounded w-3/4 mx-auto mb-3"></div>
+          <div className="h-8 bg-gray-200 dark:bg-white/8 rounded-lg w-1/2 mx-auto"></div>
         </div>
 
-        {/* Hint Skeleton */}
-        <div className="text-center mb-6">
-          <div className="h-10 bg-gray-300 dark:bg-gray-700 rounded-xl w-80 mx-auto"></div>
-        </div>
-
-        {/* Options Skeleton */}
+        {/* Options grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="h-16 bg-gray-300 dark:bg-gray-700 rounded-2xl"
-            ></div>
+            <div key={i} className="h-16 bg-gray-200 dark:bg-white/8 rounded-2xl"></div>
           ))}
         </div>
 
-        {/* Fun Facts Toggle Skeleton */}
-        <div className="mt-8 mb-6 flex justify-center items-center">
-          <div className="bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl px-6 py-4 shadow-lg">
-            <div className="flex items-center space-x-4">
-              <div className="h-6 w-6 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-24"></div>
-              <div className="h-7 w-12 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-            </div>
+        {/* Fun fact toggle */}
+        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/6">
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 bg-gray-200 dark:bg-white/8 rounded-full"></div>
+            <div className="h-4 bg-gray-200 dark:bg-white/8 rounded w-24"></div>
+            <div className="h-6 w-11 bg-gray-200 dark:bg-white/8 rounded-full"></div>
           </div>
         </div>
       </div>

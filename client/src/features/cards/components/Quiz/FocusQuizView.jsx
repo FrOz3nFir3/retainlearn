@@ -40,11 +40,7 @@ function FocusQuizView({ card, onQuizMastered }) {
   }
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-red-50 via-orange-50/30 to-pink-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-red-950 shadow-2xl">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-red-400/10 to-orange-500/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-orange-400/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-      </div>
+    <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl overflow-hidden">
       <FocusQuizSession
         focusQuizzes={session.focusQuizzes}
         session={session}

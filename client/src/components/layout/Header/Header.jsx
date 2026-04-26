@@ -1,19 +1,18 @@
-import React, { useState, useRef, Suspense } from "react";
+import { useState, useRef, Suspense } from "react";
 import { useSelector } from "react-redux";
 import { usePostAuthDetailsMutation } from "../../../api/apiSlice";
 import { selectCurrentUser } from "../../../features/authentication/state/authSlice";
 
-// Hooks
 import useAuthEffect from "../../../hooks/useAuthEffect";
 import useClickOutside from "../../../hooks/useClickOutside";
 import useHeaderScroll from "../../../hooks/useHeaderScroll";
 
-// Components
 import ThemeToggler from "./ThemeToggler";
 import ProfileMenuSkeleton from "../../ui/skeletons/ProfileMenuSkeleton";
 import DesktopNav from "./DesktopNav";
 import HeaderLogo from "./HeaderLogo";
 import MobileMenuButton from "./MobileMenuButton";
+import React from "react";
 
 const ProfileMenu = React.lazy(() => import("./ProfileMenu"));
 const MobileMenu = React.lazy(() => import("./MobileMenu"));
@@ -25,10 +24,9 @@ function Header() {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef(null);
 
-  // Custom Hooks for logic and side effects
   useAuthEffect(postAuthDetails);
   useClickOutside(profileMenuRef, () => setIsProfileOpen(false));
-  const { isScrolled, isFocusedSession } = useHeaderScroll();
+  const { isScrolled, isFocusedSession, isTransparent } = useHeaderScroll();
 
   const toggleMobileMenu = () => setIsOpen(!isOpen);
 
@@ -39,29 +37,27 @@ function Header() {
 
   return (
     <nav
-      className={`${
-        isFocusedSession ? "static" : "sticky"
-      } top-0 z-50 transition-all duration-300 ${
+      className={`font-sans sticky top-0 z-50 transition-all duration-300 ${
         isFocusedSession
-          ? "bg-white dark:bg-gray-900 shadow-md border-b border-gray-200 dark:border-gray-700"
+          ? "bg-white dark:bg-brand-dark border-b border-gray-200 dark:border-white/8"
           : isScrolled
-          ? "bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg border-b border-gray-200/20 dark:border-gray-700/20"
-          : "bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm"
+          ? "bg-white dark:bg-brand-dark backdrop-blur-lg border-b border-gray-200 dark:border-white/8 shadow-sm"
+          : isTransparent
+          ? "bg-brand-dark"
+          : "bg-white dark:bg-brand-dark border-b border-gray-200 dark:border-white/8"
       }`}
     >
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 sm:h-18 items-center justify-between">
-          {/* Logo Section */}
+          {/* Logo + Nav */}
           <div className="flex items-center">
-            <HeaderLogo />
-
-            {/* Desktop Navigation */}
-            <DesktopNav navigation={navigation} />
+            <HeaderLogo isTransparent={isTransparent} />
+            <DesktopNav navigation={navigation} isTransparent={isTransparent} />
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center space-x-3">
-            <ThemeToggler />
+          {/* Right */}
+          <div className="flex items-center gap-1.5">
+            <ThemeToggler isTransparent={isTransparent} />
             {isLoading ? (
               <ProfileMenuSkeleton />
             ) : (
@@ -71,17 +67,19 @@ function Header() {
                   isProfileOpen={isProfileOpen}
                   setIsProfileOpen={setIsProfileOpen}
                   profileMenuRef={profileMenuRef}
+                  isTransparent={isTransparent}
                 />
               </Suspense>
             )}
-
-            {/* Mobile Menu Button */}
-            <MobileMenuButton isOpen={isOpen} onClick={toggleMobileMenu} />
+            <MobileMenuButton
+              isOpen={isOpen}
+              onClick={toggleMobileMenu}
+              isTransparent={isTransparent}
+            />
           </div>
         </div>
       </div>
 
-      {/* Mobile Menu */}
       <Suspense fallback={null}>
         <MobileMenu
           isOpen={isOpen}

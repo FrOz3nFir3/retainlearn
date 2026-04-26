@@ -16,7 +16,7 @@ const SearchComponent = ({
         placeholder="Search cards..."
         value={searchTerm}
         onChange={handleSearchChange}
-        className="w-full pl-12 pr-12 py-3 border-2 border-gray-200/60 dark:border-gray-700/60 rounded-xl bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 shadow-lg hover:shadow-xl transition-all duration-300 text-sm font-medium"
+        className="w-full pl-12 pr-12 py-3 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary/20 dark:focus:ring-brand-accent/20 transition-all duration-200 text-sm font-medium"
       />
       {searchTerm && (
         <button

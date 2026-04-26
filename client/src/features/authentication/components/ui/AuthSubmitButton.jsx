@@ -1,21 +1,18 @@
-import React from "react";
-import { ArrowPathIcon } from "@heroicons/react/24/solid";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 const AuthSubmitButton = ({ isLoading, loadingText, buttonText, Icon }) => {
   return (
-    <div className="pt-2">
+    <div className="pt-1">
       <button
         type="submit"
         disabled={isLoading}
-        className="cursor-pointer group relative w-full flex justify-center py-4 px-4 border border-transparent rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] shadow-lg hover:shadow-xl"
+        className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-3 bg-brand-primary hover:bg-indigo-700 disabled:bg-gray-200 disabled:text-gray-400 disabled:cursor-not-allowed dark:bg-brand-accent dark:hover:bg-amber-400 dark:text-brand-dark dark:disabled:bg-white/10 dark:disabled:text-white/25 text-white font-semibold text-sm rounded-xl transition-colors duration-150"
       >
-        <span className="absolute left-0 inset-y-0 flex items-center pl-3">
-          {isLoading ? (
-            <ArrowPathIcon className="h-5 w-5 animate-spin" />
-          ) : (
-            <Icon className="h-5 w-5 group-hover:translate-x-0.5 transition-transform" />
-          )}
-        </span>
+        {isLoading ? (
+          <ArrowPathIcon className="h-4 w-4 animate-spin" />
+        ) : (
+          <Icon className="h-4 w-4" />
+        )}
         {isLoading ? loadingText : buttonText}
       </button>
     </div>

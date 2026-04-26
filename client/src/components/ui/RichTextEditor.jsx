@@ -52,7 +52,7 @@ const RichTextEditor = forwardRef(
       <div
         className={`${
           editable ? "" : " !bg-gray-100 dark:!bg-gray-500"
-        } break-word custom-rich-text-editor bg-white dark:bg-gray-700 dark:text-white flex flex-col w-full mt-1 rounded-md border border-gray-300 dark:border-gray-600 shadow-sm focus-within:border-indigo-500 focus-within:ring-1 focus-within:ring-indigo-500 max-h-96 ${className}`}
+        } wrap-break-word custom-rich-text-editor bg-white dark:bg-white/5 dark:text-white flex flex-col w-full mt-1 rounded-xl border border-gray-200 dark:border-white/10 focus-within:border-brand-primary dark:focus-within:border-brand-accent focus-within:ring-1 focus-within:ring-brand-primary/20 dark:focus-within:ring-brand-accent/20 max-h-96 ${className}`}
       >
         <MenuBar editor={editor} />
         <div className="p-4 overflow-y-auto cursor-text" onClick={handleClick}>

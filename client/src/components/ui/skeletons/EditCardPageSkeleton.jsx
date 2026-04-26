@@ -1,41 +1,43 @@
-import React from "react";
-
 const EditCardPageSkeleton = () => {
   return (
-    <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 animate-pulse">
-      {/* Header Skeleton */}
-      <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-200 dark:border-gray-700">
-        <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-48"></div>
-        <div className="flex gap-2">
-          <div className="h-10 w-24 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-          <div className="h-10 w-10 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
+    <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl p-6 animate-pulse">
+      {/* EditCardHeader (amber label + heading, no border-b + Manage Reviewers + New Flashcard buttons) */}
+      <div className="flex gap-3 flex-wrap justify-between items-center mb-5">
+        <div>
+          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-24 mb-2"></div>
+          <div className="h-7 bg-gray-200 dark:bg-white/8 rounded w-40"></div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="h-10 w-36 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+          <div className="h-10 w-32 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
         </div>
       </div>
 
-      {/* View Switcher Skeleton */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
-        <div className="h-12 w-36 bg-gray-300 dark:bg-gray-700 rounded-t-lg mr-2"></div>
-        <div className="h-12 w-36 bg-gray-300 dark:bg-gray-700 rounded-t-lg"></div>
+      {/* ViewSwitcher (3 tabs: Flashcards / Quizzes / Review Queue with border-b) */}
+      <div className="mb-6 border-b border-gray-200 dark:border-white/8">
+        <div className="flex gap-4 -mb-px">
+          <div className="h-11 w-28 bg-gray-200 dark:bg-white/8 rounded-t-lg"></div>
+          <div className="h-11 w-24 bg-gray-200 dark:bg-white/8 rounded-t-lg"></div>
+          <div className="h-11 w-32 bg-gray-200 dark:bg-white/8 rounded-t-lg"></div>
+        </div>
       </div>
 
-      {/* Management View Skeleton */}
+      {/* Content area (search + card viewer + navigation) */}
       <div>
-        {/* Search and Controls Skeleton */}
         <div className="flex justify-between items-center mb-6">
-          <div className="h-12 w-2/5 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-          <div className="flex gap-2">
-            <div className="h-10 w-20 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-            <div className="h-10 w-20 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
+          <div className="h-11 flex-1 max-w-xs bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+          <div className="flex gap-2 ml-3">
+            <div className="h-10 w-20 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+            <div className="h-10 w-20 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
           </div>
         </div>
 
-        {/* Item Skeleton */}
-        <div className="aspect-video bg-gray-300 dark:bg-gray-700 rounded-2xl mb-6"></div>
+        <div className="aspect-video bg-gray-200 dark:bg-white/8 rounded-2xl mb-6"></div>
 
-        {/* Navigation Skeleton */}
         <div className="flex justify-center items-center gap-4">
-          <div className="h-10 w-24 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-          <div className="h-10 w-24 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
+          <div className="h-10 w-24 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+          <div className="h-4 w-16 bg-gray-200 dark:bg-white/8 rounded"></div>
+          <div className="h-10 w-24 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
         </div>
       </div>
     </div>

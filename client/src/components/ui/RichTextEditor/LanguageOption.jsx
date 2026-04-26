@@ -14,7 +14,7 @@ const LanguageOption = ({
     onClick={() => onSelect(language)}
     className={`cursor-pointer w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center justify-between group ${
       language.value === currentLanguage
-        ? "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-300"
+        ? "bg-brand-surface dark:bg-white/8 text-brand-primary dark:text-brand-accent"
         : "text-gray-700 dark:text-gray-300"
     }`}
   >
@@ -28,7 +28,7 @@ const LanguageOption = ({
     </div>
     <div
       onClick={(e) => onToggleFavorite(language.value, e)}
-      className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex-shrink-0 cursor-pointer"
+      className="ml-2 p-1 rounded hover:bg-gray-200 dark:hover:bg-gray-600 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shrink-0 cursor-pointer"
       title={isFavorite ? "Remove from favorites" : "Add to favorites"}
       role="button"
       tabIndex={0}

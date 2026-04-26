@@ -15,7 +15,7 @@ const LandingPage = () => {
   };
 
   return (
-    <div className="bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-900 text-slate-800 dark:text-slate-200 min-h-screen">
+    <div className="min-h-screen font-sans">
       <Helmet>
         <title>RetainLearn - Master Your Learning with Smart Flashcards</title>
         <meta 

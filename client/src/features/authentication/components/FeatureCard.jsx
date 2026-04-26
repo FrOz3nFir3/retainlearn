@@ -1,85 +1,61 @@
-import React from "react";
-import {
-  CheckCircleIcon,
-  XMarkIcon,
-  LockClosedIcon,
-} from "@heroicons/react/24/outline";
+import { CheckCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
-const FeatureCard = ({
-  title,
-  subtitle,
-  icon: Icon,
-  features,
-  isHighlight = false,
-}) => {
-  const cardClasses = isHighlight
-    ? "bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/50 dark:to-purple-900/50 backdrop-blur-sm rounded-2xl p-6 border-2 border-indigo-200 dark:border-indigo-700 relative overflow-hidden h-fit"
-    : "bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl p-6 border border-gray-200 dark:border-gray-700 h-fit";
-
-  const iconContainerClasses = isHighlight
-    ? "w-12 h-12 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl flex items-center justify-center mr-4"
-    : "w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center mr-4";
-
-  const iconClasses = isHighlight
-    ? "w-6 h-6 text-white"
-    : "w-6 h-6 text-gray-600 dark:text-gray-300";
-
+const FeatureCard = ({ title, subtitle, icon: Icon, features, isHighlight = false }) => {
   return (
-    <div className={cardClasses}>
+    <div
+      className={`relative rounded-2xl p-6 h-fit overflow-hidden ${
+        isHighlight
+          ? "bg-white dark:bg-[#14112a] border-2 border-brand-primary dark:border-brand-accent"
+          : "bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8"
+      }`}
+    >
       {isHighlight && (
-        <div className="absolute top-0 right-0 bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
-          UNLOCK ALL
+        <div className="absolute top-0 right-0 px-3 py-1 bg-brand-accent text-brand-dark text-xs font-bold rounded-bl-xl">
+          Full access
         </div>
       )}
-      <div className="flex items-center mb-6">
-        <div className={iconContainerClasses}>
-          <Icon className={iconClasses} />
+
+      <div className="flex items-center gap-3 mb-5">
+        <div
+          className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+            isHighlight
+              ? "bg-brand-surface dark:bg-brand-accent/15"
+              : "bg-gray-100 dark:bg-white/6"
+          }`}
+        >
+          <Icon
+            className={`w-5 h-5 ${
+              isHighlight
+                ? "text-brand-primary dark:text-brand-accent"
+                : "text-gray-500 dark:text-white/40"
+            }`}
+          />
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-            {title}
-          </h3>
-          <p
-            className={`text-sm ${
-              isHighlight
-                ? "text-indigo-600 dark:text-indigo-400"
-                : "text-gray-500 dark:text-gray-400"
-            }`}
-          >
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">{title}</h3>
+          <p className={`text-xs ${isHighlight ? "text-brand-primary dark:text-brand-accent" : "text-gray-400 dark:text-white/30"}`}>
             {subtitle}
           </p>
         </div>
       </div>
-      <div className="space-y-3">
-        {features.map((feature, index) => (
-          <div key={index} className="flex items-start">
-            <div className="flex-shrink-0 mr-3 mt-0.5">
-              {feature.available ? (
-                <CheckCircleIcon className="w-5 h-5 text-green-500" />
-              ) : (
-                <XMarkIcon className="w-5 h-5 text-red-400" />
-              )}
-            </div>
-            <div className={feature.available ? "" : "opacity-60"}>
-              <div className="flex items-center mb-1">
-                <feature.icon
-                  className={`w-4 h-4 mr-2 ${
-                    isHighlight
-                      ? "text-indigo-600 dark:text-indigo-400"
-                      : "text-gray-600 dark:text-gray-300"
-                  }`}
-                />
-                <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-                  {feature.title}
-                </h4>
-                {!feature.available && (
-                  <LockClosedIcon className="w-3 h-3 ml-2 text-red-400" />
-                )}
-              </div>
-              <p className="text-xs text-gray-500 dark:text-gray-400 ml-6">
-                {feature.description}
-              </p>
-            </div>
+
+      <div className="space-y-2.5">
+        {features.map((feature, i) => (
+          <div key={i} className="flex items-start gap-2.5">
+            {feature.available ? (
+              <CheckCircleIcon className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+            ) : (
+              <XMarkIcon className="w-4 h-4 text-gray-300 dark:text-white/20 shrink-0 mt-0.5" />
+            )}
+            <span
+              className={`text-xs leading-relaxed ${
+                feature.available
+                  ? "text-gray-700 dark:text-white/70"
+                  : "text-gray-400 dark:text-white/25"
+              }`}
+            >
+              {feature.title}
+            </span>
           </div>
         ))}
       </div>

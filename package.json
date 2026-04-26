@@ -10,7 +10,7 @@
     "client": "npm run build --prefix client",
     "server-dev": "npm run watch --prefix server",
     "client-dev": "npm run watch --prefix client",
-    "dev": "cross-env PORT=3000 concurrently \"npm:server-dev\" \"npm:client-dev\"",
+    "dev": "concurrently \"npm:server-dev\" \"npm:client-dev\"",
     "deploy": "npm run client && npm run server"
   },
   "keywords": [],
@@ -20,7 +20,6 @@
     "node": "22.x"
   },
   "devDependencies": {
-    "concurrently": "^9.2.0",
-    "cross-env": "^10.0.0"
+    "concurrently": "^9.2.0"
   }
 }

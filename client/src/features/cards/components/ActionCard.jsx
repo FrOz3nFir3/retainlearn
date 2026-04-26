@@ -1,6 +1,4 @@
-import React from "react";
 import { Link, useLocation, useSearchParams } from "react-router-dom";
-import { SparklesIcon, FireIcon, StarIcon } from "@heroicons/react/24/outline";
 
 const ActionCard = ({
   to,
@@ -9,11 +7,8 @@ const ActionCard = ({
   title,
   subtitle,
   description,
-  bgGradient,
-  hoverGradient,
   layout = "vertical",
   stats,
-  color,
   className,
 }) => {
   const location = useLocation();
@@ -21,7 +16,6 @@ const ActionCard = ({
   const view = searchParams.get("view");
 
   let toName = to;
-  // is relative route
   if (to.includes("..")) {
     const [, routeName] = to.split("/");
     toName = routeName;
@@ -35,103 +29,53 @@ const ActionCard = ({
     return (
       <Link to={to} className={`group block ${className || ""}`}>
         <div
-          className={`
-          relative overflow-hidden rounded-2xl p-6 h-full
-          transition-all duration-500 ease-out
-          transform hover:scale-[1.02] hover:-translate-y-1
-          ${
+          className={`relative rounded-2xl p-5 h-full overflow-hidden transition-all duration-200 ${
             isActive
-              ? `${bgGradient} shadow-2xl ring-2 ring-white/50`
-              : `bg-white dark:bg-gray-800 hover:${hoverGradient} shadow-lg hover:shadow-2xl border border-gray-200 dark:border-gray-700`
-          }
-        `}
+              ? "bg-brand-primary dark:bg-brand-dark border-2 border-brand-primary dark:border-brand-accent shadow-lg"
+              : "bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 hover:border-gray-300 dark:hover:border-white/15 hover:shadow-sm"
+          }`}
         >
-          {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-10">
-            <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/20 -translate-y-16 translate-x-16" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/10 translate-y-12 -translate-x-12" />
-          </div>
+          {/* Amber accent bar */}
+          {!isActive && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+          )}
 
-          <div className="relative z-10 flex items-start gap-4 h-full">
-            {/* Icon */}
+          <div className="flex items-start gap-4 h-full">
             <div
-              className={`
-              flex-shrink-0 p-3 rounded-xl transition-all duration-300
-              ${
+              className={`shrink-0 p-2.5 rounded-xl transition-colors duration-150 ${
                 isActive
-                  ? "bg-white/20 backdrop-blur-sm"
-                  : `bg-${color}-100 dark:bg-${color}-900/30 group-hover:bg-white group-hover:shadow-lg`
-              }
-            `}
+                  ? "bg-white/15"
+                  : "bg-brand-surface dark:bg-white/8 group-hover:bg-brand-surface dark:group-hover:bg-white/10"
+              }`}
             >
               {isActive ? (
-                <SolidIcon
-                  className={`w-7 h-7 ${
-                    isActive
-                      ? "text-white"
-                      : `text-${color}-600 dark:text-${color}-400`
-                  }`}
-                />
+                <SolidIcon className="w-6 h-6 text-white dark:text-brand-accent" />
               ) : (
-                <Icon
-                  className={`w-7 h-7 text-${color}-600 dark:text-${color}-400 group-hover:text-${color}-700`}
-                />
+                <Icon className="w-6 h-6 text-brand-primary dark:text-brand-accent/70" />
               )}
             </div>
 
-            {/* Content */}
             <div className="flex-1 min-w-0">
-              <div className="flex justify-center items-center gap-2 mb-1">
-                <h3
-                  className={`
-                  font-bold text-lg leading-tight
-                  ${isActive ? "text-white" : "text-gray-900 dark:text-white"}
-                `}
-                >
-                  {title}
-                </h3>
-                {isActive && <StarIcon className="w-4 h-4 text-yellow-300" />}
-              </div>
-
-              <p
-                className={`
-                text-sm font-medium mb-2
-                ${
-                  isActive
-                    ? "text-white/80"
-                    : `text-${color}-600 dark:text-${color}-400`
-                }
-              `}
-              >
+              <h3 className={`font-heading text-base leading-tight mb-0.5 ${isActive ? "text-white" : "text-gray-900 dark:text-white"}`}>
+                {title}
+              </h3>
+              <p className={`text-xs mb-1 ${isActive ? "text-white/70" : "text-brand-primary dark:text-brand-accent/70"}`}>
                 {subtitle}
               </p>
-
-              <p
-                className={`
-                text-sm leading-relaxed
-                ${
-                  isActive
-                    ? "text-white/70"
-                    : "text-gray-600 dark:text-gray-400"
-                }
-              `}
-              >
+              <p className={`text-xs leading-relaxed ${isActive ? "text-white/60" : "text-gray-500 dark:text-white/40"}`}>
                 {description}
               </p>
 
-              {/* Stats */}
               {stats && (
-                <div className="flex justify-center items-center gap-4 mt-auto pt-3 border-t border-white/20">
-                  {stats.map((stat, index) => (
-                    <div key={index} className="flex items-center gap-1.5">
-                      <stat.icon
-                        className={`w-5 h-5 text-${color}-600 dark:text-${color}-400`}
-                      />
-                      <span
-                        className={`text-sm font-medium dark:text-white
-                        `}
-                      >
-                        <strong>{stat.value}</strong> {stat.label}
+                <div className="flex items-center gap-3 mt-2 pt-2 border-t border-white/10">
+                  {stats.map((stat, i) => (
+                    <div key={i} className="flex items-center gap-1">
+                      <stat.icon className={`w-3.5 h-3.5 ${isActive ? "text-white/70" : "text-gray-400 dark:text-white/30"}`} />
+                      <span className={`text-xs font-semibold ${isActive ? "text-white" : "text-gray-700 dark:text-white/70"}`}>
+                        {stat.value}
+                      </span>
+                      <span className={`text-xs ${isActive ? "text-white/60" : "text-gray-400 dark:text-white/30"}`}>
+                        {stat.label}
                       </span>
                     </div>
                   ))}
@@ -139,146 +83,68 @@ const ActionCard = ({
               )}
             </div>
           </div>
-
-          {/* Hover Shine Effect */}
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
         </div>
       </Link>
     );
   }
 
-  // Vertical layout - Big, Bold, Beautiful
+  // Vertical layout (overview page)
   return (
     <Link to={to} className={`group block ${className || ""}`}>
       <div
-        className={`
-        relative overflow-hidden rounded-3xl p-8 text-center h-full min-h-[280px]
-        transition-all duration-500 ease-out
-        transform hover:scale-105 hover:-translate-y-2
-        ${
+        className={`relative rounded-2xl p-8 text-center h-full min-h-[220px] overflow-hidden transition-all duration-200 flex flex-col items-center justify-center gap-4 ${
           isActive
-            ? `${bgGradient} shadow-2xl ring-4 ring-white/30`
-            : `bg-white dark:bg-gray-800 hover:${hoverGradient} shadow-xl hover:shadow-2xl border-2 border-gray-100 dark:border-gray-700`
-        }
-      `}
+            ? "bg-brand-primary dark:bg-brand-dark border-2 border-brand-primary dark:border-brand-accent shadow-lg"
+            : "bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 hover:border-gray-300 dark:hover:border-white/15 hover:shadow-sm"
+        }`}
       >
-        {/* Animated Background Elements */}
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/30 -translate-y-20 translate-x-20 group-hover:scale-110 transition-transform duration-700" />
-          <div className="absolute bottom-0 left-0 w-32 h-32 rounded-full bg-white/20 translate-y-16 -translate-x-16 group-hover:scale-110 transition-transform duration-700" />
-          <div className="absolute top-1/2 left-1/2 w-24 h-24 rounded-full bg-white/10 -translate-x-12 -translate-y-12 group-hover:rotate-45 transition-transform duration-1000" />
-        </div>
+        {/* Amber accent bar */}
+        {!isActive && (
+          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left" />
+        )}
 
-        <div className="relative z-10 flex flex-col items-center h-full">
-          {/* Icon */}
-          <div
-            className={`
-            relative p-6 rounded-2xl mb-6 transition-all duration-500
-            ${
-              isActive
-                ? "bg-white/20 backdrop-blur-sm shadow-lg"
-                : `bg-${color}-100 dark:bg-${color}-900/30 group-hover:bg-white group-hover:shadow-xl group-hover:scale-110`
-            }
-          `}
-          >
-            {isActive ? (
-              <SolidIcon className="w-12 h-12 text-white" />
-            ) : (
-              <Icon
-                className={`w-12 h-12 text-${color}-600 dark:text-${color}-400 group-hover:text-${color}-700`}
-              />
-            )}
-
-            {/* Icon Glow Effect */}
-            {isActive && (
-              <div className="absolute inset-0 rounded-2xl bg-white/10 animate-pulse" />
-            )}
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 flex flex-col justify-center">
-            <div className="flex items-center justify-center gap-2 mb-2">
-              <h3
-                className={`
-                font-bold text-2xl
-                ${isActive ? "text-white" : "text-gray-900 dark:text-white"}
-              `}
-              >
-                {title}
-              </h3>
-              {isActive && (
-                <FireIcon className="w-6 h-6 text-yellow-300 animate-bounce" />
-              )}
-            </div>
-
-            <p
-              className={`
-              text-base font-semibold mb-3
-              ${
-                isActive
-                  ? "text-white/90"
-                  : `text-${color}-600 dark:text-${color}-400`
-              }
-            `}
-            >
-              {subtitle}
-            </p>
-
-            <p
-              className={`
-              text-sm leading-relaxed max-w-xs mx-auto
-              ${isActive ? "text-white/80" : "text-gray-600 dark:text-gray-400"}
-            `}
-            >
-              {description}
-            </p>
-          </div>
-
-          {/* Stats */}
-          {stats && (
-            <div className="flex justify-center gap-6 mt-0 pt-4 border-t border-white/20">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center">
-                  <div className="flex items-center justify-center gap-1 mb-1">
-                    <stat.icon
-                      className={`w-5 h-5 ${
-                        isActive
-                          ? "text-white"
-                          : `text-${color}-600 dark:text-${color}-400`
-                      }`}
-                    />
-                  </div>
-                  <span
-                    className={`text-lg font-bold ${
-                      isActive
-                        ? "text-white"
-                        : "text-gray-800 dark:text-gray-200"
-                    }`}
-                  >
-                    {stat.value}
-                  </span>
-                  <span
-                    className={`block text-xs font-medium ${
-                      isActive
-                        ? "text-white/80"
-                        : "text-gray-500 dark:text-gray-400"
-                    }`}
-                  >
-                    {stat.label}
-                  </span>
-                </div>
-              ))}
-            </div>
+        {/* Icon */}
+        <div
+          className={`p-4 rounded-2xl transition-colors duration-150 ${
+            isActive
+              ? "bg-white/15"
+              : "bg-brand-surface dark:bg-white/8 group-hover:bg-brand-surface dark:group-hover:bg-white/10"
+          }`}
+        >
+          {isActive ? (
+            <SolidIcon className="w-8 h-8 text-white dark:text-brand-accent" />
+          ) : (
+            <Icon className="w-8 h-8 text-brand-primary dark:text-brand-accent/70" />
           )}
         </div>
 
-        {/* Magical Hover Effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+        {/* Text */}
+        <div>
+          <h3 className={`font-heading text-xl mb-1 ${isActive ? "text-white" : "text-gray-900 dark:text-white"}`}>
+            {title}
+          </h3>
+          <p className={`text-xs font-semibold mb-2 ${isActive ? "text-white/70" : "text-brand-primary dark:text-brand-accent/70"}`}>
+            {subtitle}
+          </p>
+          <p className={`text-sm leading-relaxed max-w-xs mx-auto ${isActive ? "text-white/60" : "text-gray-500 dark:text-white/40"}`}>
+            {description}
+          </p>
+        </div>
 
-        {/* Sparkle Effect for Active State */}
-        {isActive && (
-          <div className="absolute top-4 right-4">
-            <SparklesIcon className="w-6 h-6 text-yellow-300 animate-pulse" />
+        {/* Stats */}
+        {stats && (
+          <div className="flex justify-center gap-6 pt-3 border-t border-white/10 w-full">
+            {stats.map((stat, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <stat.icon className={`w-4 h-4 ${isActive ? "text-white/70" : "text-gray-400 dark:text-white/30"}`} />
+                <span className={`text-sm font-semibold ${isActive ? "text-white" : "text-gray-700 dark:text-white/70"}`}>
+                  {stat.value}
+                </span>
+                <span className={`text-xs ${isActive ? "text-white/60" : "text-gray-400 dark:text-white/30"}`}>
+                  {stat.label}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </div>

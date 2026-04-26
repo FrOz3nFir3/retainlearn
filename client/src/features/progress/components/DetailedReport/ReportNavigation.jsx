@@ -22,27 +22,22 @@ const ReportNavigation = ({
   };
 
   return (
-    <div className="sticky top-0 z-[100] bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-purple-950 border-b border-white/20 dark:border-gray-700/20">
+    <div className="sticky top-0 z-[100] bg-gray-50 dark:bg-[#14112a] border-b border-gray-200 dark:border-white/6">
       <div className="px-3 sm:px-6 py-3">
-        <div className="bg-white/90 dark:bg-gray-800/90 backdrop-blur-xl rounded-2xl p-3 sm:p-4 border border-white/40 dark:border-gray-700/40 shadow-2xl">
+        <div className="bg-white dark:bg-white/5 rounded-2xl p-3 sm:p-4 border border-gray-200 dark:border-white/8">
           <div className="flex flex-col lg:flex-row items-center justify-between gap-4">
             {/* Left: Navigation Buttons */}
             <div className="flex items-center gap-4">
               <button
                 onClick={onPrev}
                 disabled={currentIndex === 0}
-                className="cursor-pointer group relative p-2 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                className="cursor-pointer p-2 rounded-xl bg-brand-primary dark:bg-brand-accent text-white dark:text-brand-dark disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 dark:hover:bg-amber-400 transition-colors duration-150"
               >
-                <ChevronLeftIcon className="h-6 w-6 text-white group-hover:scale-110 transition-transform duration-200" />
-                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded-lg shadow-lg">
-                    Previous
-                  </span>
-                </div>
+                <ChevronLeftIcon className="h-6 w-6" />
               </button>
 
-              <div className="px-4 py-2 bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-xl border border-purple-200 dark:border-purple-700">
-                <span className="text-sm font-bold text-purple-700 dark:text-purple-300">
+              <div className="px-4 py-2 bg-brand-surface dark:bg-white/8 rounded-xl border border-amber-200 dark:border-white/10">
+                <span className="text-sm font-bold text-gray-800 dark:text-white/80">
                   {currentIndex + 1} of {totalQuestions}
                 </span>
               </div>
@@ -50,20 +45,15 @@ const ReportNavigation = ({
               <button
                 onClick={onNext}
                 disabled={currentIndex === totalQuestions - 1}
-                className="cursor-pointer group relative p-2 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 disabled:opacity-40 disabled:cursor-not-allowed shadow-md hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+                className="cursor-pointer p-2 rounded-xl bg-brand-primary dark:bg-brand-accent text-white dark:text-brand-dark disabled:opacity-40 disabled:cursor-not-allowed hover:bg-indigo-700 dark:hover:bg-amber-400 transition-colors duration-150"
               >
-                <ChevronRightIcon className="h-6 w-6 text-white group-hover:scale-110 transition-transform duration-200" />
-                <div className="absolute -bottom-6 left-1/2 transform -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400 bg-white dark:bg-gray-800 px-2 py-1 rounded-lg shadow-lg">
-                    Next
-                  </span>
-                </div>
+                <ChevronRightIcon className="h-6 w-6" />
               </button>
             </div>
 
             {/* Right: Go to Question Dropdown */}
             <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-gray-600 dark:text-gray-400">
+              <span className="text-sm font-medium text-gray-600 dark:text-white/40">
                 Go to:
               </span>
               <NavigationDropdown

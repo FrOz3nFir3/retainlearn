@@ -3,8 +3,7 @@ import {
   ChevronLeftIcon,
   ChevronRightIcon,
   PencilSquareIcon,
-  ChartBarIcon,
-} from "@heroicons/react/24/solid";
+} from "@heroicons/react/24/outline";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 
 const Navigation = ({
@@ -24,65 +23,56 @@ const Navigation = ({
   };
 
   return (
-    <div className="mt-6 mb-8">
-      <div className="flex flex-wrap gap-4 justify-center sm:justify-between items-center mb-6">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm rounded-2xl px-4 py-3 shadow-lg">
-            <div className="p-2 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl">
-              <ChartBarIcon className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">
-                Card {currentIndex + 1} of {filteredReviewLength}
-              </p>
-              <p className="text-sm text-gray-600 dark:text-gray-400">
-                {Math.round(progressPercentage)}% Complete
-              </p>
-            </div>
+    <div className="px-6 pb-6 mt-4">
+      <div className="flex flex-wrap gap-3 justify-between items-center mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-4 py-2 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl">
+            <span className="text-sm font-semibold text-gray-900 dark:text-white">
+              {currentIndex + 1} of {filteredReviewLength}
+            </span>
+            <span className="text-xs text-gray-400 dark:text-white/30">
+              · {Math.round(progressPercentage)}%
+            </span>
           </div>
           {showEditIcon && (
             <button
-              className="cursor-pointer group p-3 rounded-2xl bg-white/70 dark:bg-gray-800/70 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-700 shadow-lg hover:shadow-xl transition-all duration-200"
+              className="cursor-pointer p-2.5 bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:border-brand-primary/30 dark:hover:border-brand-accent/30 text-gray-400 dark:text-white/30 hover:text-brand-primary dark:hover:text-brand-accent transition-colors duration-150"
               onClick={handleEdit}
+              title="Edit flashcards"
             >
-              <PencilSquareIcon className="w-5 h-5 text-gray-600 dark:text-gray-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-200" />
+              <PencilSquareIcon className="w-4 h-4" />
             </button>
           )}
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             onClick={handlePrev}
             disabled={currentIndex <= 0}
-            className="cursor-pointer group p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="cursor-pointer p-2.5 bg-brand-primary dark:bg-brand-accent rounded-xl text-white dark:text-brand-dark disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-700 dark:hover:bg-amber-400 transition-colors duration-150"
           >
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
           <button
             onClick={handleNext}
             disabled={currentIndex >= filteredReviewLength - 1}
-            className="cursor-pointer group p-3 rounded-2xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-400 disabled:to-gray-500 text-white shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:transform-none disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="cursor-pointer p-2.5 bg-brand-primary dark:bg-brand-accent rounded-xl text-white dark:text-brand-dark disabled:opacity-30 disabled:cursor-not-allowed hover:bg-indigo-700 dark:hover:bg-amber-400 transition-colors duration-150"
           >
             <ChevronRightIcon className="h-5 w-5" />
           </button>
         </div>
       </div>
 
-      {/* Enhanced Progress Bar */}
-      <div className="relative">
-        <div className="w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-full h-3 shadow-inner">
-          <div
-            className="bg-gradient-to-r from-blue-500 via-indigo-600 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out shadow-lg relative overflow-hidden"
-            style={{ width: `${progressPercentage}%` }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-          </div>
-        </div>
-        <div className="flex justify-between mt-2 text-xs text-gray-500 dark:text-gray-400">
-          <span>Start</span>
-          <span className="font-medium">{Math.round(progressPercentage)}%</span>
-          <span>Complete</span>
-        </div>
+      {/* Progress Bar */}
+      <div className="w-full bg-gray-100 dark:bg-white/8 rounded-full h-1.5">
+        <div
+          className="bg-brand-primary h-1.5 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${progressPercentage}%` }}
+        />
+      </div>
+      <div className="flex justify-between mt-1.5 text-xs text-gray-400 dark:text-white/30">
+        <span>Start</span>
+        <span>Complete</span>
       </div>
     </div>
   );

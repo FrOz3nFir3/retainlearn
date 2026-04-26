@@ -1,27 +1,35 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { NewFlashcardModal } from "./NewFlashCardModal";
 import AddQuizModal from "./AddQuizModal";
 import PermissionManagementModal from "./PermissionManagementModal";
 import { UserGroupIcon } from "@heroicons/react/24/outline";
 
+const VIEW_META = {
+  flashcards: { modeLabel: "Create mode", heading: "Edit Flashcards" },
+  quizzes:    { modeLabel: "Create mode", heading: "Edit Quizzes" },
+  "review-queue": { modeLabel: "Collaboration", heading: "Review Queue" },
+};
+
 const EditCardHeader = ({ flashcardId, view }) => {
   const [isPermissionModalOpen, setIsPermissionModalOpen] = useState(false);
+  const { modeLabel, heading } = VIEW_META[view] ?? VIEW_META.flashcards;
 
   return (
-    <div className="flex gap-2 flex-wrap justify-between items-center mb-4">
+    <div className="flex gap-3 flex-wrap justify-between items-center mb-5">
       <div>
-        <h2 className="text-3xl font-bold text-gray-800 dark:text-white">
-          Edit {view}
+        <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+          {modeLabel}
+        </p>
+        <h2 className="font-heading text-2xl text-gray-900 dark:text-white">
+          {heading}
         </h2>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
         <button
           onClick={() => setIsPermissionModalOpen(true)}
-          className="group shrink-0 cursor-pointer inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 px-4 py-3 text-sm font-semibold text-white shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
+          className="cursor-pointer shrink-0 inline-flex items-center gap-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-white/70 hover:border-brand-primary/30 dark:hover:border-brand-accent/30 hover:text-brand-primary dark:hover:text-brand-accent transition-colors duration-150"
         >
-          <div className="p-1 bg-white/20 rounded-lg group-hover:bg-white/30 transition-colors duration-200">
-            <UserGroupIcon className="h-5 w-5" />
-          </div>
+          <UserGroupIcon className="h-4 w-4" />
           Manage Reviewers
         </button>
 

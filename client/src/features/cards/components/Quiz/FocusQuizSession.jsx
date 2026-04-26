@@ -1,7 +1,6 @@
 import React from "react";
 import {
   ArrowsRightLeftIcon,
-  FireIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
 } from "@heroicons/react/24/solid";
@@ -64,12 +63,11 @@ const FocusQuizSession = ({ focusQuizzes, session }) => {
         score={score}
       />
 
-      {/* Difficulty Indicator - No Tips, Emphasize Challenge */}
+      {/* Focus Mode Indicator */}
       {currentQuestionIndex === 0 && !selectedAnswer && (
-        <div className="mb-6 text-center inline-flex items-center gap-2 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/20 dark:to-orange-500/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-red-200/50 dark:border-red-500/30">
-          <p className="text-sm text-orange-700 dark:text-orange-300 text-center">
-            <strong>Focus Mode:</strong> You're giving quiz on which you got
-            wrong previously. Take them again and improve your learning!
+        <div className="mb-6 inline-flex items-center gap-2 bg-amber-50 dark:bg-amber-500/10 rounded-xl px-4 py-2.5 border border-amber-200 dark:border-amber-500/20">
+          <p className="text-sm text-amber-700 dark:text-amber-300">
+            <strong>Focus Mode:</strong> Retake quizzes you got wrong previously.
           </p>
         </div>
       )}
@@ -98,68 +96,50 @@ const FocusQuizSession = ({ focusQuizzes, session }) => {
         </div>
       )}
 
-      <FunFactToggle showFacts={showFacts} onToggle={handleRandomFactToggle} />
+      <div className="mt-8 pt-6 border-t border-gray-100 dark:border-white/6">
+        <FunFactToggle showFacts={showFacts} onToggle={handleRandomFactToggle} />
+      </div>
 
       {/* Navigation and Gallery */}
       {sessionQuizzes.length > 1 && (
         <>
-          {/* Progress Indicator with Navigation */}
-          <div className="mb-6">
-            <div className="w-full bg-gradient-to-r from-gray-200 via-gray-300 to-gray-200 dark:from-gray-700 dark:via-gray-600 dark:to-gray-700 rounded-full h-2 shadow-inner">
+          {/* Progress Bar */}
+          <div className="mt-6 mb-6">
+            <div className="w-full bg-gray-100 dark:bg-white/8 rounded-full h-1.5">
               <div
-                className="bg-gradient-to-r from-red-500 via-orange-600 to-red-600 h-2 rounded-full transition-all duration-500 ease-out shadow-lg relative overflow-hidden"
+                className="bg-brand-accent h-1.5 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${progressPercentage}%` }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-pulse"></div>
-              </div>
+              />
             </div>
 
-            {/* Navigation Controls on the right */}
+            {/* Navigation Controls */}
             <div className="flex items-center justify-between mt-3">
-              <div className="hidden md:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                <ArrowsRightLeftIcon className="h-4 w-4" />
-                Use Left/Right arrow keys to navigate
+              <div className="hidden md:flex items-center gap-1.5 text-xs text-gray-400 dark:text-white/30">
+                <ArrowsRightLeftIcon className="h-3.5 w-3.5" />
+                Arrow keys to navigate
               </div>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2.5">
                 <button
                   onClick={handlePrev}
                   disabled={isFirstQuestion}
-                  className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 shadow-sm border ${
-                    isFirstQuestion
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed"
-                      : "bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:shadow-md"
-                  }`}
-                  title={
-                    isFirstQuestion
-                      ? "Already at first question"
-                      : "Previous question"
-                  }
+                  className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <ChevronLeftIcon className="h-4 w-4" />
-                  <span className="text-sm font-medium">Prev</span>
+                  <ChevronLeftIcon className="h-3.5 w-3.5" />
+                  Prev
                 </button>
 
-                <div className="px-2.5 py-1 bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 rounded-md text-sm font-medium border border-orange-200 dark:border-orange-500/30">
+                <div className="px-2.5 py-1 bg-brand-surface dark:bg-brand-accent/10 text-brand-primary dark:text-brand-accent rounded-md text-xs font-semibold border border-brand-primary/15 dark:border-brand-accent/15">
                   {currentQuestionIndex + 1} / {sessionQuizzes.length}
                 </div>
 
                 <button
                   onClick={handleNext}
                   disabled={isLastQuestion}
-                  className={`cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all duration-200 shadow-sm border ${
-                    isLastQuestion
-                      ? "bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed"
-                      : "bg-white/80 hover:bg-white dark:bg-gray-800/80 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:shadow-md"
-                  }`}
-                  title={
-                    isLastQuestion
-                      ? "Already at last question"
-                      : "Next question"
-                  }
+                  className="cursor-pointer flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-gray-200 dark:border-white/10 text-gray-600 dark:text-white/50 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                 >
-                  <span className="text-sm font-medium">Next</span>
-                  <ChevronRightIcon className="h-4 w-4" />
+                  Next
+                  <ChevronRightIcon className="h-3.5 w-3.5" />
                 </button>
               </div>
             </div>

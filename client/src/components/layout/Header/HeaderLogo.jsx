@@ -1,15 +1,18 @@
-import React from "react";
 import { Link } from "react-router-dom";
 import RetainLearnLogo from "../../svg/RetainLearnLogo";
 
-const HeaderLogo = () => {
+const HeaderLogo = ({ isTransparent }) => {
   return (
-    <Link to="/" className="flex-shrink-0 flex items-center group">
-      <div className="relative">
-        <RetainLearnLogo />
-      </div>
-      <span className="ml-0 text-xl font-bold bg-gradient-to-r from-gray-900 via-indigo-900 to-purple-900 dark:from-white dark:via-indigo-100 dark:to-purple-100 bg-clip-text text-transparent group-hover:from-indigo-600 group-hover:to-purple-600 transition-all duration-300">
-        Retain Learn
+    <Link to="/" className="shrink-0 flex items-center gap-0.5 group">
+      <RetainLearnLogo className="h-10 w-auto" />
+      <span
+        className={`text-base font-bold transition-colors duration-300 ${
+          isTransparent
+            ? "text-white group-hover:text-brand-accent"
+            : "text-gray-900 dark:text-white group-hover:text-brand-primary dark:group-hover:text-brand-accent"
+        }`}
+      >
+        RetainLearn
       </span>
     </Link>
   );

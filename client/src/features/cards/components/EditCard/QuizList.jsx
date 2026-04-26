@@ -13,18 +13,16 @@ const QuizList = ({
 }) => {
   if (!quiz) {
     return (
-      <div className="text-center py-20 border-t border-gray-200 dark:border-gray-700">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          <div className="p-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-2xl">
-            <AcademicCapIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900 dark:text-white">
-            No quiz found
-          </h3>
-          <p className="text-lg text-gray-500 dark:text-gray-400 max-w-md">
-            Try a different search term, or create a new quiz to get started.
-          </p>
+      <div className="text-center py-16 border-t border-gray-100 dark:border-white/6">
+        <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-surface dark:bg-white/8 rounded-2xl mb-4">
+          <AcademicCapIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
         </div>
+        <h3 className="font-heading text-xl text-gray-900 dark:text-white mb-1">
+          No quiz found
+        </h3>
+        <p className="text-sm text-gray-500 dark:text-white/40 max-w-sm mx-auto">
+          Try a different search term, or create a new quiz to get started.
+        </p>
       </div>
     );
   }

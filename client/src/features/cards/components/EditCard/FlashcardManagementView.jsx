@@ -81,13 +81,13 @@ const FlashcardManagementView = ({
         </div>
       ) : (
         <div className="text-center py-12">
-          <div className="p-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 rounded-xl inline-block mb-4">
-            <BookOpenIcon className="h-12 w-12 text-gray-400 dark:text-gray-500" />
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-brand-surface dark:bg-white/8 rounded-2xl mb-4">
+            <BookOpenIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
           </div>
-          <h3 className="text-xl font-bold text-gray-600 dark:text-gray-400 mb-2">
+          <h3 className="font-heading text-xl text-gray-900 dark:text-white mb-1">
             No flashcards found
           </h3>
-          <p className="text-gray-500 dark:text-gray-500 text-sm max-w-md mx-auto">
+          <p className="text-sm text-gray-500 dark:text-white/40 max-w-sm mx-auto">
             {searchTerm
               ? "Try different search terms or clear the search to see all cards."
               : "Create your first flashcard to get started!"}

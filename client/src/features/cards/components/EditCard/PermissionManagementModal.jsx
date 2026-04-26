@@ -32,19 +32,15 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
   const [showConfirmRemove, setShowConfirmRemove] = useState(null);
   const errorRef = useRef(null);
 
-  // Debounce search term with 500ms delay
   useEffect(() => {
     const timer = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
-      // Reset page when search term changes
       setPage(1);
       setAllSearchResults([]);
     }, 500);
-
     return () => clearTimeout(timer);
   }, [searchTerm]);
 
-  // API hooks - only load when modal is open
   const {
     data: reviewersData,
     isLoading: reviewersLoading,
@@ -53,7 +49,6 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
     skip: !card?._id || !isOpen,
   });
 
-  // Handle different response structures
   const reviewers = Array.isArray(reviewersData)
     ? reviewersData
     : Array.isArray(reviewersData?.data)
@@ -74,7 +69,6 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
     }
   );
 
-  // Accumulate search results across pages
   const [allSearchResults, setAllSearchResults] = useState([]);
 
   useEffect(() => {
@@ -86,12 +80,9 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
         : Array.isArray(searchData?.users)
         ? searchData.users
         : [];
-
       if (page === 1) {
-        // Reset results for new search
         setAllSearchResults(newResults);
       } else {
-        // Append results for pagination - avoid duplicates
         setAllSearchResults((prev) => {
           const existingUsernames = new Set(prev.map((user) => user.username));
           const uniqueNewResults = newResults.filter(
@@ -111,7 +102,6 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
   const [removeReviewer, { isLoading: removingReviewer, error: removeError }] =
     useRemoveReviewerMutation();
 
-  // Scroll to error when it appears
   useEffect(() => {
     if ((addError || removeError) && errorRef.current) {
       errorRef.current.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -120,62 +110,41 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
 
   const handleAddReviewers = async () => {
     if (selectedUsers.length === 0) return;
-
     const usernames = selectedUsers.map((user) => user.username);
     try {
       await addReviewers({ cardId: card._id, usernames }).unwrap();
       setSelectedUsers([]);
       setSearchTerm("");
-    } catch (error) {
-      // Error handled by RTK Query
-    }
+    } catch (error) {}
   };
 
   const handleRemoveReviewer = async (username) => {
     try {
       await removeReviewer({ cardId: card._id, username }).unwrap();
       setShowConfirmRemove(null);
-    } catch (error) {
-      // Error handled by RTK Query
-    }
+    } catch (error) {}
   };
 
   const handleUserSelect = (user) => {
-    // Don't allow selecting users who are already reviewers
     if (isUserReviewer(user.username)) return;
-
-    // Don't allow selecting the same user twice
     if (isUserSelected(user.username)) return;
-
     setSelectedUsers([...selectedUsers, user]);
   };
 
   const handleRemoveSelected = (username) => {
-    setSelectedUsers(
-      selectedUsers.filter((user) => user.username !== username)
-    );
+    setSelectedUsers(selectedUsers.filter((user) => user.username !== username));
   };
 
-  // Don't filter out reviewers, just mark them
-  const filteredSearchResults = Array.isArray(searchResults)
-    ? searchResults
-    : [];
+  const filteredSearchResults = Array.isArray(searchResults) ? searchResults : [];
 
-  // Helper to check if user is already a reviewer
-  const isUserReviewer = (username) => {
-    return (
-      Array.isArray(reviewers) &&
-      reviewers.some((reviewer) => reviewer.username === username)
-    );
-  };
+  const isUserReviewer = (username) =>
+    Array.isArray(reviewers) &&
+    reviewers.some((reviewer) => reviewer.username === username);
 
-  // Helper to check if user is already selected
-  const isUserSelected = (username) => {
-    return selectedUsers.some((selected) => selected.username === username);
-  };
+  const isUserSelected = (username) =>
+    selectedUsers.some((selected) => selected.username === username);
 
   const isAuthor = (username) => {
-    // Handle both string and object author formats
     const autorUsername =
       typeof card?.author === "object" ? card?.author?.username : card?.author;
     return autorUsername === username;
@@ -183,53 +152,44 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
 
   const hasMore = searchData?.hasMore ?? false;
 
+  const avatarInitial = (user) =>
+    (user.name || user.username || "U").charAt(0).toUpperCase();
+
   return (
-    <Modal
-      maxWidth="4xl"
-      isOpen={isOpen}
-      onClose={onClose}
-      className="!bg-gradient-to-br !from-blue-50 !to-indigo-50 dark:!from-gray-900 dark:!to-gray-800 rounded-2xl"
-    >
+    <Modal maxWidth="4xl" isOpen={isOpen} onClose={onClose}>
+      <div className="bg-gray-50 dark:bg-[#14112a] p-6">
       {/* Header */}
-      <div className="mb-6">
-        <div className="flex justify-between items-center gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-xl shadow-lg">
-              <UserGroupIcon className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-700 to-indigo-700 dark:from-blue-300 dark:to-indigo-300 bg-clip-text text-transparent">
-                Manage Reviewers
-              </h2>
-              <p className="text-gray-600 dark:text-gray-400 text-sm">
-                Control who can contribute directly to this flashcard set
-              </p>
-            </div>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-4">
+          <div className="p-3 bg-brand-surface dark:bg-white/8 rounded-xl">
+            <UserGroupIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
-          >
-            <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
-          </button>
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+              Permissions
+            </p>
+            <h2 className="font-heading text-2xl text-gray-900 dark:text-white leading-tight">
+              Manage Reviewers
+            </h2>
+          </div>
         </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 transition-colors duration-150"
+        >
+          <XMarkIcon className="h-5 w-5 text-gray-500 dark:text-white/40" />
+        </button>
       </div>
 
       {/* Error Display */}
-      <div
-        ref={errorRef}
-        className="mb-6 transition-opacity duration-300 ease-in-out"
-      >
+      <div ref={errorRef}>
         {(addError || removeError) && (
-          <div className="rounded-xl bg-red-50 dark:bg-red-900/20 p-4 border border-red-200 dark:border-red-700/50">
+          <div className="mb-4 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
             <div className="flex items-start gap-3">
-              <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+              <ExclamationTriangleIcon className="h-5 w-5 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-red-800 dark:text-red-200 font-medium text-sm">
-                  Operation Failed
-                </p>
-                <p className="text-red-700 dark:text-red-300 text-xs mt-1">
+                <p className="text-sm font-medium text-red-700 dark:text-red-300">
                   {addError?.data?.error ||
                     removeError?.data?.error ||
                     "An error occurred while managing reviewers."}
@@ -240,328 +200,286 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
         )}
       </div>
 
-      {/* Permission Check - Show fallback if API returns permission error */}
       {reviewersError?.status === 403 || reviewersError?.status === 401 ? (
-        <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-red-200/50 dark:border-red-700/50 mb-6">
-          <div className="p-8 text-center">
-            <div className="p-4 bg-red-100 dark:bg-red-900/30 rounded-full inline-block mb-4">
-              <LockClosedIcon className="h-8 w-8 text-red-600 dark:text-red-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-              Access Restricted
-            </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-4">
-              You don't have permission to manage reviewers for this flashcard
-              set. Only the author and existing reviewers can manage
-              permissions.
-            </p>
-            <button
-              onClick={onClose}
-              className="cursor-pointer px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200"
-            >
-              Close
-            </button>
+        <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 p-8 text-center mb-6">
+          <div className="inline-flex items-center justify-center w-12 h-12 bg-red-50 dark:bg-red-500/10 rounded-2xl mb-4">
+            <LockClosedIcon className="h-6 w-6 text-red-500 dark:text-red-400" />
           </div>
+          <h3 className="font-heading text-lg text-gray-900 dark:text-white mb-2">
+            Access Restricted
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-white/40 mb-4">
+            Only the author and existing reviewers can manage permissions.
+          </p>
+          <button
+            onClick={onClose}
+            className="cursor-pointer px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-white/60 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150"
+          >
+            Close
+          </button>
         </div>
       ) : (
         <>
-          {/* User Search Section */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50 dark:border-blue-700/50 mb-6">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <MagnifyingGlassIcon className="h-5 w-5 text-blue-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Add New Reviewers
-                </h3>
-              </div>
-
-              {/* Search Input */}
-              <div className="relative mb-4">
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search users by name or username or email..."
-                  className="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              {/* Selected Users */}
-              {selectedUsers.length > 0 && (
-                <div className="mb-4">
-                  <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Selected Users ({selectedUsers.length})
-                  </p>
-                  <div className="flex flex-wrap gap-2">
-                    {selectedUsers.map((user) => (
-                      <div
-                        key={user.username}
-                        className="flex items-center gap-2 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 px-3 py-1 rounded-lg text-sm"
-                      >
-                        <UserCircleIcon className="h-4 w-4" />
-                        <span>
-                          {user.name} (@{user.username})
-                        </span>
-                        <button
-                          onClick={() => handleRemoveSelected(user.username)}
-                          className="cursor-pointer hover:text-blue-600 dark:hover:text-blue-300"
-                        >
-                          <XMarkIcon className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Search Results */}
-              {searchTerm.length >= 2 && (
-                <div className="mb-4">
-                  {searchLoading ||
-                  (debouncedSearchTerm !== searchTerm &&
-                    searchTerm.length >= 2) ? (
-                    <div className="space-y-3">
-                      {[...Array(3)].map((_, i) => (
-                        <div
-                          key={i}
-                          className="animate-pulse flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg"
-                        >
-                          <div className="h-8 w-8 bg-gray-300 dark:bg-gray-600 rounded-full"></div>
-                          <div className="flex-1 space-y-2">
-                            <div className="h-4 bg-gray-300 dark:bg-gray-600 rounded w-3/4"></div>
-                            <div className="h-3 bg-gray-300 dark:bg-gray-600 rounded w-1/2"></div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : filteredSearchResults.length > 0 ? (
-                    <div className="space-y-2 max-h-80 overflow-y-auto">
-                      {filteredSearchResults.map((user) => {
-                        const alreadyReviewer = isUserReviewer(user.username);
-                        const alreadySelected = isUserSelected(user.username);
-
-                        return (
-                          <div
-                            key={user.username}
-                            onClick={() => handleUserSelect(user)}
-                            className={`flex items-center gap-3 p-3 rounded-lg transition-colors duration-200 border ${
-                              alreadyReviewer || alreadySelected
-                                ? "bg-gray-100 dark:bg-gray-800/50 border-gray-300 dark:border-gray-600 cursor-not-allowed opacity-60"
-                                : "bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 border-transparent hover:border-blue-200 dark:hover:border-blue-700 cursor-pointer"
-                            }`}
-                          >
-                            <div
-                              className={`h-10 w-10 rounded-full flex items-center justify-center text-white font-medium text-sm ${
-                                alreadyReviewer
-                                  ? "bg-gradient-to-br from-green-500 to-emerald-600"
-                                  : alreadySelected
-                                  ? "bg-gradient-to-br from-blue-400 to-indigo-500"
-                                  : "bg-gradient-to-br from-blue-500 to-indigo-600"
-                              }`}
-                            >
-                              {(user.name || user.username || "U")
-                                .charAt(0)
-                                .toUpperCase()}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center gap-2">
-                                <p className="font-medium text-gray-900 dark:text-white truncate">
-                                  {user.name || user.username || "Unknown User"}
-                                </p>
-                                {alreadyReviewer && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs font-medium rounded-full flex-shrink-0">
-                                    <ShieldCheckIcon className="h-3 w-3" />
-                                    Reviewer
-                                  </span>
-                                )}
-                                {alreadySelected && (
-                                  <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-200 text-xs font-medium rounded-full flex-shrink-0">
-                                    Selected
-                                  </span>
-                                )}
-                              </div>
-                              <p className="text-sm text-gray-600 dark:text-gray-400 truncate">
-                                @{user.username}
-                              </p>
-                            </div>
-                            {!alreadyReviewer && !alreadySelected && (
-                              <PlusIcon className="h-5 w-5 text-blue-500 flex-shrink-0" />
-                            )}
-                          </div>
-                        );
-                      })}
-                      {hasMore && (
-                        <div className="flex flex-col items-center justify-center pt-6 pb-2 border-t border-gray-200 dark:border-gray-700 mt-4">
-                          <button
-                            onClick={() => setPage((prevPage) => prevPage + 1)}
-                            disabled={searchFetching}
-                            className="cursor-pointer flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 disabled:from-gray-400 disabled:to-gray-500 transition-all duration-200 font-medium shadow-lg hover:shadow-xl transform hover:scale-105 active:scale-95"
-                          >
-                            {searchFetching ? (
-                              <>
-                                <ArrowPathIcon className="h-5 w-5 animate-spin" />
-                                <span>Loading More...</span>
-                              </>
-                            ) : (
-                              <>
-                                <PlusIcon className="h-5 w-5" />
-                                <span>Load More Users</span>
-                              </>
-                            )}
-                          </button>
-                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
-                            Showing {allSearchResults.length} users
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  ) : debouncedSearchTerm.length >= 2 ? (
-                    <div className="text-center py-6">
-                      <UserCircleIcon className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-600 dark:text-gray-400 font-medium">
-                        No users found
-                      </p>
-                      <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-                        Try searching with a different username or email
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
-              )}
-
-              {/* Add Button */}
-              {selectedUsers.length > 0 && (
-                <button
-                  onClick={handleAddReviewers}
-                  disabled={addingReviewers}
-                  className="cursor-pointer w-full flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200 font-medium"
-                >
-                  {addingReviewers ? (
-                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
-                  ) : (
-                    <PlusIcon className="h-5 w-5" />
-                  )}
-                  {addingReviewers
-                    ? "Adding..."
-                    : `Add ${selectedUsers.length} Reviewer${
-                        selectedUsers.length > 1 ? "s" : ""
-                      }`}
-                </button>
-              )}
+          {/* Search Section */}
+          <div className="bg-white dark:bg-white/3 rounded-2xl border border-gray-200 dark:border-white/8 p-5 mb-4">
+            <div className="flex items-center gap-2.5 mb-4">
+              <MagnifyingGlassIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-white/80">
+                Add New Reviewers
+              </h3>
             </div>
-          </div>
 
-          {/* Current Reviewers Section */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-xl shadow-lg border border-blue-200/50 dark:border-blue-700/50">
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-4">
-                <ShieldCheckIcon className="h-5 w-5 text-green-500" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-                  Current Reviewers (
-                  {Array.isArray(reviewers) ? reviewers.length : 0})
-                </h3>
-              </div>
+            <div className="relative mb-4">
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, username, or email..."
+                className="block w-full px-4 py-2.5 border border-gray-200 dark:border-white/10 rounded-xl bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-brand-primary/30 dark:focus:ring-brand-accent/30 text-sm"
+              />
+            </div>
 
-              {reviewersLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <ArrowPathIcon className="h-6 w-6 animate-spin text-blue-500" />
-                  <span className="ml-2 text-gray-600 dark:text-gray-400">
-                    Loading reviewers...
-                  </span>
-                </div>
-              ) : reviewersError ? (
-                <div className="text-center py-8">
-                  <ExclamationTriangleIcon className="h-8 w-8 text-red-500 mx-auto mb-2" />
-                  <p className="text-red-600 dark:text-red-400">
-                    Failed to load reviewers
-                  </p>
-                </div>
-              ) : Array.isArray(reviewers) && reviewers.length > 0 ? (
-                <div className="space-y-3">
-                  {reviewers.map((reviewer) => (
+            {/* Selected Users */}
+            {selectedUsers.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs font-medium text-gray-500 dark:text-white/40 mb-2">
+                  Selected ({selectedUsers.length})
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedUsers.map((user) => (
                     <div
-                      key={reviewer.username}
-                      className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-transparent hover:border-gray-200 dark:hover:border-gray-600 transition-colors duration-200"
+                      key={user.username}
+                      className="flex items-center gap-1.5 bg-brand-surface dark:bg-brand-accent/10 text-brand-primary dark:text-brand-accent border border-brand-primary/20 dark:border-brand-accent/20 px-3 py-1 rounded-lg text-xs font-medium"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                          {(reviewer.name || reviewer.username || "U")
-                            .charAt(0)
-                            .toUpperCase()}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900 dark:text-white">
-                              {reviewer.name}
-                            </p>
-                            {isAuthor(reviewer.username) && (
-                              <span className="inline-flex items-center gap-1 px-2 py-1 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-xs font-medium rounded-full">
-                                <ShieldCheckIcon className="h-3 w-3" />
-                                Author
-                              </span>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            @{reviewer.username}
-                          </p>
-                        </div>
-                      </div>
-
-                      {!isAuthor(reviewer.username) &&
-                        reviewer.username !== currentUser?.username && (
-                          <button
-                            onClick={() => setShowConfirmRemove(reviewer)}
-                            disabled={removingReviewer}
-                            className="cursor-pointer p-2 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
-                          >
-                            <TrashIcon className="h-5 w-5" />
-                          </button>
-                        )}
+                      <UserCircleIcon className="h-3.5 w-3.5" />
+                      <span>{user.name} (@{user.username})</span>
+                      <button
+                        onClick={() => handleRemoveSelected(user.username)}
+                        className="cursor-pointer hover:opacity-70 ml-0.5"
+                      >
+                        <XMarkIcon className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   ))}
                 </div>
-              ) : (
-                <div className="text-center py-8">
-                  <UserGroupIcon className="h-12 w-12 text-gray-400 mx-auto mb-3" />
-                  <p className="text-gray-600 dark:text-gray-400">
-                    No reviewers found
-                  </p>
-                </div>
-              )}
+              </div>
+            )}
+
+            {/* Search Results */}
+            {searchTerm.length >= 2 && (
+              <div className="mb-4">
+                {searchLoading ||
+                (debouncedSearchTerm !== searchTerm && searchTerm.length >= 2) ? (
+                  <div className="space-y-2">
+                    {[...Array(3)].map((_, i) => (
+                      <div
+                        key={i}
+                        className="animate-pulse flex items-center gap-3 p-3 bg-gray-50 dark:bg-white/3 rounded-xl"
+                      >
+                        <div className="h-8 w-8 bg-gray-200 dark:bg-white/10 rounded-full shrink-0" />
+                        <div className="flex-1 space-y-1.5">
+                          <div className="h-3.5 bg-gray-200 dark:bg-white/10 rounded-full w-3/4" />
+                          <div className="h-3 bg-gray-200 dark:bg-white/10 rounded-full w-1/2" />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : filteredSearchResults.length > 0 ? (
+                  <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                    {filteredSearchResults.map((user) => {
+                      const alreadyReviewer = isUserReviewer(user.username);
+                      const alreadySelected = isUserSelected(user.username);
+                      return (
+                        <div
+                          key={user.username}
+                          onClick={() => handleUserSelect(user)}
+                          className={`flex items-center gap-3 p-3 rounded-xl transition-colors duration-150 border ${
+                            alreadyReviewer || alreadySelected
+                              ? "bg-gray-50 dark:bg-white/3 border-gray-100 dark:border-white/6 cursor-not-allowed opacity-60"
+                              : "bg-white dark:bg-white/5 border-gray-100 dark:border-white/6 hover:border-brand-primary/30 dark:hover:border-brand-accent/30 cursor-pointer"
+                          }`}
+                        >
+                          <div
+                            className={`h-9 w-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0 ${
+                              alreadyReviewer
+                                ? "bg-emerald-500"
+                                : "bg-brand-primary dark:bg-brand-accent dark:text-brand-dark"
+                            }`}
+                          >
+                            {avatarInitial(user)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2">
+                              <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+                                {user.name || user.username || "Unknown User"}
+                              </p>
+                              {alreadyReviewer && (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full shrink-0">
+                                  <ShieldCheckIcon className="h-3 w-3" />
+                                  Reviewer
+                                </span>
+                              )}
+                              {alreadySelected && (
+                                <span className="inline-flex items-center px-2 py-0.5 bg-brand-surface dark:bg-brand-accent/10 text-brand-primary dark:text-brand-accent text-xs font-medium rounded-full shrink-0">
+                                  Selected
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-400 dark:text-white/30 truncate">
+                              @{user.username}
+                            </p>
+                          </div>
+                          {!alreadyReviewer && !alreadySelected && (
+                            <PlusIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent shrink-0" />
+                          )}
+                        </div>
+                      );
+                    })}
+                    {hasMore && (
+                      <div className="flex flex-col items-center pt-4 border-t border-gray-100 dark:border-white/6 mt-2">
+                        <button
+                          onClick={() => setPage((prev) => prev + 1)}
+                          disabled={searchFetching}
+                          className="cursor-pointer flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white dark:text-brand-dark bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {searchFetching ? (
+                            <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <PlusIcon className="h-4 w-4" />
+                          )}
+                          {searchFetching ? "Loading..." : "Load More"}
+                        </button>
+                        <p className="text-xs text-gray-400 dark:text-white/30 mt-2">
+                          Showing {allSearchResults.length} users
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                ) : debouncedSearchTerm.length >= 2 ? (
+                  <div className="text-center py-6">
+                    <UserCircleIcon className="h-10 w-10 text-gray-300 dark:text-white/20 mx-auto mb-2" />
+                    <p className="text-sm text-gray-500 dark:text-white/40">No users found</p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* Add Button */}
+            {selectedUsers.length > 0 && (
+              <button
+                onClick={handleAddReviewers}
+                disabled={addingReviewers}
+                className="cursor-pointer w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold text-white dark:text-brand-dark bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {addingReviewers ? (
+                  <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                ) : (
+                  <PlusIcon className="h-4 w-4" />
+                )}
+                {addingReviewers
+                  ? "Adding..."
+                  : `Add ${selectedUsers.length} Reviewer${selectedUsers.length > 1 ? "s" : ""}`}
+              </button>
+            )}
+          </div>
+
+          {/* Current Reviewers */}
+          <div className="bg-white dark:bg-white/3 rounded-2xl border border-gray-200 dark:border-white/8 p-5">
+            <div className="flex items-center gap-2.5 mb-4">
+              <ShieldCheckIcon className="h-4 w-4 text-emerald-500" />
+              <h3 className="text-sm font-semibold text-gray-800 dark:text-white/80">
+                Current Reviewers ({Array.isArray(reviewers) ? reviewers.length : 0})
+              </h3>
             </div>
+
+            {reviewersLoading ? (
+              <div className="flex items-center gap-2 py-4 text-sm text-gray-400 dark:text-white/30">
+                <ArrowPathIcon className="h-4 w-4 animate-spin" />
+                Loading reviewers...
+              </div>
+            ) : reviewersError ? (
+              <div className="text-center py-6">
+                <ExclamationTriangleIcon className="h-8 w-8 text-red-400 mx-auto mb-2" />
+                <p className="text-sm text-red-500 dark:text-red-400">Failed to load reviewers</p>
+              </div>
+            ) : Array.isArray(reviewers) && reviewers.length > 0 ? (
+              <div className="space-y-2">
+                {reviewers.map((reviewer) => (
+                  <div
+                    key={reviewer.username}
+                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-white/3 rounded-xl border border-gray-100 dark:border-white/6"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="h-9 w-9 bg-emerald-500 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                        {avatarInitial(reviewer)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {reviewer.name}
+                          </p>
+                          {isAuthor(reviewer.username) && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 text-xs font-medium rounded-full">
+                              <ShieldCheckIcon className="h-3 w-3" />
+                              Author
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-gray-400 dark:text-white/30">
+                          @{reviewer.username}
+                        </p>
+                      </div>
+                    </div>
+                    {!isAuthor(reviewer.username) &&
+                      reviewer.username !== currentUser?.username && (
+                        <button
+                          onClick={() => setShowConfirmRemove(reviewer)}
+                          disabled={removingReviewer}
+                          className="cursor-pointer p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10 rounded-lg transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <TrashIcon className="h-4 w-4" />
+                        </button>
+                      )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <UserGroupIcon className="h-10 w-10 text-gray-300 dark:text-white/20 mx-auto mb-2" />
+                <p className="text-sm text-gray-400 dark:text-white/30">No reviewers yet</p>
+              </div>
+            )}
           </div>
         </>
       )}
 
-      {/* Remove Confirmation Modal */}
+      {/* Remove Confirmation */}
       {showConfirmRemove && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-md mx-4 shadow-xl">
+          <div className="bg-white dark:bg-[#14112a] rounded-2xl p-6 max-w-md mx-4 shadow-xl border border-gray-200 dark:border-white/8">
             <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <ExclamationTriangleIcon className="h-6 w-6 text-red-600 dark:text-red-400" />
+              <div className="p-2 bg-red-50 dark:bg-red-500/10 rounded-xl">
+                <ExclamationTriangleIcon className="h-5 w-5 text-red-500 dark:text-red-400" />
               </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-white">
                 Remove Reviewer
               </h3>
             </div>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Are you sure you want to remove{" "}
-              <strong>{showConfirmRemove.name}</strong> from the reviewers list?
-              They will no longer be able to contribute to this flashcard set.
+            <p className="text-sm text-gray-500 dark:text-white/50 mb-6">
+              Remove <strong className="text-gray-800 dark:text-white/80">{showConfirmRemove.name}</strong> from reviewers? They'll no longer be able to contribute to this set.
             </p>
             <div className="flex gap-3 justify-end">
               <button
                 onClick={() => setShowConfirmRemove(null)}
                 disabled={removingReviewer}
-                className="cursor-pointer px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700 dark:text-white/60 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={() => handleRemoveReviewer(showConfirmRemove.username)}
                 disabled={removingReviewer}
-                className="cursor-pointer flex items-center gap-2 px-4 py-2 bg-red-600 text-white hover:bg-red-700 rounded-lg transition-colors duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+                className="cursor-pointer flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {removingReviewer ? (
                   <ArrowPathIcon className="h-4 w-4 animate-spin" />
@@ -576,13 +494,14 @@ const PermissionManagementModal = ({ isOpen, onClose }) => {
       )}
 
       {/* Footer */}
-      <div className="pt-4 mt-6 flex justify-end border-t border-gray-200 dark:border-gray-700">
+      <div className="pt-4 mt-4 flex justify-end border-t border-gray-100 dark:border-white/6">
         <button
           onClick={onClose}
-          className="cursor-pointer px-6 py-3 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all duration-200 font-medium"
+          className="cursor-pointer px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-white/60 border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150"
         >
           Done
         </button>
+      </div>
       </div>
     </Modal>
   );

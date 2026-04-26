@@ -2,7 +2,7 @@ import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../../../../authentication/state/authSlice";
-import { TrophyIcon, SparklesIcon, FireIcon } from "@heroicons/react/24/solid";
+import { TrophyIcon, FireIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 
 const ReviewCompletion = ({ onRestart, completedCardsCount }) => {
   const user = useSelector(selectCurrentUser);
@@ -14,48 +14,49 @@ const ReviewCompletion = ({ onRestart, completedCardsCount }) => {
   };
 
   return (
-    <div className="flex justify-center mb-6 animate-in slide-in-from-bottom-4 duration-500">
-      <div className="bg-gradient-to-br from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 backdrop-blur-md rounded-3xl p-6 sm:p-8 shadow-xl border border-green-200/50 dark:border-green-700/50 max-w-md text-center">
+    <div className="px-6 pb-6 flex justify-center">
+      <div className="bg-gray-50 dark:bg-white/4 border border-gray-100 dark:border-white/6 rounded-2xl p-8 max-w-md w-full text-center">
         <div className="flex justify-center mb-4">
-          <div className="relative">
-            <TrophyIcon className="h-16 w-16 text-yellow-500 animate-bounce" />
-            <SparklesIcon className="h-6 w-6 text-yellow-400 absolute -top-1 -right-1 animate-pulse" />
+          <div className="p-4 bg-brand-surface dark:bg-white/8 rounded-2xl">
+            <TrophyIcon className="h-10 w-10 text-brand-accent" />
           </div>
         </div>
 
-        <h3 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
-          🎉 Great Job!
+        <h3 className="font-heading text-2xl text-gray-900 dark:text-white mb-2">
+          Session complete!
         </h3>
 
-        <p className="text-gray-600 dark:text-gray-300 mb-4">
-          You've completed this review session!
-          {completedCardsCount > 0 && (
-            <span className="block mt-1 text-sm">
-              You mastered {completedCardsCount} cards
-            </span>
-          )}
+        <p className="text-sm text-gray-500 dark:text-white/40 mb-1">
+          You've finished this review session.
         </p>
+        {completedCardsCount > 0 && (
+          <p className="text-sm font-semibold text-brand-accent mb-6">
+            {completedCardsCount} card{completedCardsCount !== 1 ? "s" : ""} mastered
+          </p>
+        )}
+        {completedCardsCount === 0 && <div className="mb-6" />}
 
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {user && (
             <button
               onClick={handleFocusReview}
-              className="cursor-pointer w-full bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center gap-2"
+              className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 text-sm font-semibold rounded-xl hover:bg-amber-100 dark:hover:bg-amber-500/20 transition-colors duration-150"
             >
-              <FireIcon className="animate-pulse h-5 w-5" />
+              <FireIcon className="h-4 w-4" />
               Do Focus Review
             </button>
           )}
 
           <button
             onClick={onRestart}
-            className="cursor-pointer w-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-6 py-3 rounded-xl font-medium transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+            className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 text-white dark:text-brand-dark text-sm font-semibold rounded-xl transition-colors duration-150"
           >
+            <ArrowPathIcon className="h-4 w-4" />
             Review Again
           </button>
 
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-4">
-            💡 Try Quiz Mode below for a different challenge!
+          <p className="text-xs text-gray-400 dark:text-white/30 pt-1">
+            Try Quiz Mode below for a different challenge
           </p>
         </div>
       </div>

@@ -70,7 +70,7 @@ Start both the client and server concurrently in development mode:
 npm run dev
 ```
 
-*   **Frontend:** http://localhost
+*   **Frontend:** http://localhost:5173
 *   **Backend:** http://localhost:3000
 
 ## 📜 Scripts

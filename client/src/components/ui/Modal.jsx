@@ -52,7 +52,7 @@ const Modal = ({
       {...extraProps}
     >
       <div
-        className={`relative transform overflow-y-auto max-h-[90vh] rounded-lg bg-white dark:bg-gray-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full ${
+        className={`relative transform overflow-hidden overflow-y-auto max-h-[90vh] rounded-2xl shadow-xl transition-all sm:my-8 sm:w-full ${
           maxWidthClasses[maxWidth]
         } ${className ?? ""}`}
         onClick={(e) => e.stopPropagation()}

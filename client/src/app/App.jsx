@@ -36,6 +36,12 @@ const PublicPageRoute = lazy(() =>
 const AuthenticationRoute = lazy(() =>
   import("../features/authentication/routes/AuthenticationRoute")
 );
+const PrivacyPolicyRoute = lazy(() =>
+  import("../features/home/routes/PrivacyPolicyRoute")
+);
+const TermsOfServiceRoute = lazy(() =>
+  import("../features/home/routes/TermsOfServiceRoute")
+);
 const NotFoundRoute = lazy(() =>
   import("../features/not-found/routes/NotFoundRoute")
 );
@@ -107,6 +113,14 @@ const router = createBrowserRouter([
       {
         path: "authenticate",
         element: <AuthenticationRoute />,
+      },
+      {
+        path: "privacy",
+        element: <PrivacyPolicyRoute />,
+      },
+      {
+        path: "terms",
+        element: <TermsOfServiceRoute />,
       },
       {
         path: "*",

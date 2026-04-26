@@ -1,30 +1,26 @@
-import React from "react";
 import { NavLink } from "react-router-dom";
 
-const DesktopNav = ({ navigation }) => {
+const DesktopNav = ({ navigation, isTransparent }) => {
   return (
-    <div className="hidden md:block ml-10">
-      <div className="flex items-center space-x-1">
+    <div className="hidden md:block ml-8">
+      <div className="flex items-center gap-0.5">
         {navigation.map((item) => (
           <NavLink
             key={item.name}
             to={item.href}
             className={({ isActive }) =>
-              `relative px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 ${
-                isActive
-                  ? "text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30"
-                  : "text-gray-600 dark:text-gray-300 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-gray-50 dark:hover:bg-gray-800/50"
+              `px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 ${
+                isTransparent
+                  ? isActive
+                    ? "text-white bg-white/10"
+                    : "text-white/60 hover:text-white hover:bg-white/8"
+                  : isActive
+                  ? "text-brand-primary dark:text-brand-accent bg-brand-primary/6 dark:bg-brand-accent/8"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/5"
               }`
             }
           >
-            {({ isActive }) => (
-              <>
-                {item.name}
-                {isActive && (
-                  <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 w-1 h-1 bg-indigo-600 dark:bg-indigo-400 rounded-full"></div>
-                )}
-              </>
-            )}
+            {item.name}
           </NavLink>
         ))}
       </div>

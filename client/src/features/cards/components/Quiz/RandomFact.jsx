@@ -2,10 +2,10 @@ import React from "react";
 import { SparklesIcon } from "@heroicons/react/24/solid";
 
 const SkeletonLoader = () => (
-  <div className="animate-pulse space-y-3">
-    <div className="h-4 bg-gradient-to-r from-yellow-200 to-orange-200 dark:from-yellow-700 dark:to-orange-700 rounded-full w-3/4"></div>
-    <div className="h-4 bg-gradient-to-r from-yellow-200 to-orange-200 dark:from-yellow-700 dark:to-orange-700 rounded-full w-1/2"></div>
-    <div className="h-4 bg-gradient-to-r from-yellow-200 to-orange-200 dark:from-yellow-700 dark:to-orange-700 rounded-full w-2/3"></div>
+  <div className="animate-pulse space-y-2.5">
+    <div className="h-3.5 bg-amber-200 dark:bg-amber-500/20 rounded-full w-3/4"></div>
+    <div className="h-3.5 bg-amber-200 dark:bg-amber-500/20 rounded-full w-1/2"></div>
+    <div className="h-3.5 bg-amber-200 dark:bg-amber-500/20 rounded-full w-2/3"></div>
   </div>
 );
 
@@ -27,31 +27,24 @@ const RandomFact = ({ fact, loading, shouldAutoScroll = false }) => {
   return (
     <div
       ref={containerRef}
-      className="mb-8 relative overflow-hidden rounded-3xl bg-gradient-to-br from-yellow-50 via-orange-50 to-amber-50 dark:from-yellow-900/20 dark:via-orange-900/20 dark:to-amber-900/20 shadow-2xl border-2 border-yellow-200/50 dark:border-yellow-700/50 animate-fade-in"
+      className="rounded-2xl bg-amber-50 dark:bg-amber-500/8 border border-amber-200 dark:border-amber-500/20 p-5"
     >
-      {/* Background decorative elements */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 right-1/4 w-32 h-32 bg-gradient-to-br from-yellow-400/10 to-orange-500/10 rounded-full blur-2xl animate-pulse"></div>
+      <div className="flex items-center gap-2.5 mb-3">
+        <div className="p-1.5 bg-amber-100 dark:bg-amber-500/15 rounded-lg shrink-0">
+          <SparklesIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div>
+          <h4 className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+            Did you know?
+          </h4>
+          <p className="text-xs text-amber-600/70 dark:text-amber-400/60">
+            Fun fact while you study
+          </p>
+        </div>
       </div>
 
-      <div className="relative z-10 p-6 sm:p-8">
-        <div className="flex items-center gap-4 mb-4">
-          <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-lg">
-            <SparklesIcon className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h4 className="text-xl font-bold bg-gradient-to-r from-yellow-700 to-orange-700 dark:from-yellow-300 dark:to-orange-300 bg-clip-text text-transparent">
-              Did you know?
-            </h4>
-            <p className="text-sm text-yellow-600 dark:text-yellow-400">
-              Fun fact while you wait
-            </p>
-          </div>
-        </div>
-
-        <div className="text-yellow-800 dark:text-yellow-200 text-lg leading-relaxed font-medium">
-          {loading ? <SkeletonLoader /> : fact}
-        </div>
+      <div className="text-sm text-amber-900 dark:text-amber-200 leading-relaxed">
+        {loading ? <SkeletonLoader /> : fact}
       </div>
     </div>
   );

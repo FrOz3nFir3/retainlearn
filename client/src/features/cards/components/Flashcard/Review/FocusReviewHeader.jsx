@@ -1,5 +1,5 @@
 import React from "react";
-import { FireIcon } from "@heroicons/react/24/solid";
+import { FireIcon } from "@heroicons/react/24/outline";
 
 const FocusReviewHeader = ({
   showCompletion = false,
@@ -7,32 +7,34 @@ const FocusReviewHeader = ({
   currentIndex,
 }) => {
   return (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-gradient-to-br from-orange-500 to-amber-600 rounded-2xl shadow-lg">
-            <FireIcon className="h-8 w-8 text-white" />
-          </div>
-          <div className="text-center sm:text-left">
-            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-gray-900 via-orange-800 to-amber-600 dark:from-white dark:via-orange-200 dark:to-amber-300 bg-clip-text text-transparent">
-              Focus Review
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm sm:text-base">
-              {showCompletion
-                ? "Targeted practice session completed"
-                : `Practicing ${focusCardsCount} challenging ${
-                    focusCardsCount === 1 ? "card" : "cards"
-                  }`}
-            </p>
-          </div>
+    <div className="px-6 pt-6 pb-4 mb-2">
+      <div className="flex items-center gap-4 mb-3">
+        <div className="p-2.5 bg-amber-50 dark:bg-amber-500/10 rounded-xl">
+          <FireIcon className="h-6 w-6 text-amber-600 dark:text-amber-400" />
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+            Targeted practice
+          </p>
+          <h2 className="font-heading text-2xl text-gray-900 dark:text-white leading-tight">
+            Focus Review
+          </h2>
         </div>
       </div>
 
+      {!showCompletion && (
+        <p className="text-sm text-gray-500 dark:text-white/40">
+          {showCompletion
+            ? "Targeted practice session completed"
+            : `Practising ${focusCardsCount} challenging ${focusCardsCount === 1 ? "card" : "cards"}`}
+        </p>
+      )}
+
       {!showCompletion && currentIndex === 0 && (
-        <div className="mb-6 text-center inline-flex items-center gap-2 bg-gradient-to-r from-red-500/10 to-orange-500/10 dark:from-red-500/20 dark:to-orange-500/20 backdrop-blur-sm rounded-xl px-4 py-2 border border-red-200/50 dark:border-red-500/30">
-          <p className="text-sm text-orange-700 dark:text-orange-300 text-center">
-            <strong>Focus Mode:</strong> You're reviewing cards that need extra
-            practice. Rate them honestly to improve your learning!
+        <div className="mt-3 inline-flex items-start gap-2 bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 rounded-xl px-4 py-2.5">
+          <FireIcon className="h-4 w-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+          <p className="text-xs text-amber-700 dark:text-amber-300">
+            <strong>Focus Mode:</strong> You're reviewing cards that need extra practice. Rate them honestly to improve your learning.
           </p>
         </div>
       )}

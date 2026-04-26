@@ -68,7 +68,6 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
       cardId: flashcard._id,
     };
 
-    // Only send changed fields
     if (originalState.question !== question) {
       payload.question = question;
     }
@@ -95,31 +94,25 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} maxWidth="7xl">
-      <div className="relative bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 rounded-3xl overflow-hidden">
-        {/* Background decorative elements */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-gradient-to-br from-blue-400/10 to-purple-500/10 rounded-full blur-3xl animate-pulse"></div>
-          <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-gradient-to-br from-indigo-400/10 to-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="relative z-10 p-8">
+      <div className="bg-white dark:bg-[#14112a] rounded-2xl overflow-hidden">
+        <form onSubmit={handleSubmit} className="p-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                <BookOpenIcon className="h-8 w-8 text-white" />
+              <div className="p-3 bg-brand-surface dark:bg-white/8 rounded-xl">
+                <BookOpenIcon className="h-6 w-6 text-brand-primary dark:text-brand-accent/70" />
               </div>
               <div>
-                <h3 className="text-3xl font-bold bg-gradient-to-r from-gray-900 via-blue-800 to-indigo-600 dark:from-white dark:via-blue-200 dark:to-indigo-300 bg-clip-text text-transparent">
+                <p className="text-xs font-semibold uppercase tracking-widest text-brand-accent mb-0.5">
+                  Edit card
+                </p>
+                <h3 className="font-heading text-2xl text-gray-900 dark:text-white leading-tight">
                   Edit Flashcard
                 </h3>
-                <p className="text-gray-600 dark:text-gray-400 mt-1">
-                  Update your flashcard content and preview changes
-                </p>
                 {isChanged && (
-                  <div className="mt-2 inline-flex items-center gap-2 px-3 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-lg border border-amber-200 dark:border-amber-700">
-                    <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></div>
-                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
+                  <div className="mt-1.5 inline-flex items-center gap-1.5 px-2.5 py-1 bg-amber-50 dark:bg-amber-500/10 rounded-lg border border-amber-200 dark:border-amber-500/20">
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
+                    <span className="text-xs font-medium text-amber-700 dark:text-amber-400">
                       Unsaved changes
                     </span>
                   </div>
@@ -129,54 +122,45 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
             <button
               type="button"
               onClick={handleClose}
-              className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors duration-200"
+              className="cursor-pointer p-2 rounded-xl bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/8 transition-colors duration-150"
             >
-              <XMarkIcon className="h-6 w-6 text-gray-500 dark:text-gray-400" />
+              <XMarkIcon className="h-5 w-5 text-gray-500 dark:text-white/40" />
             </button>
           </div>
 
           {/* Error Message */}
           <div ref={errorRef}>
             {error && (
-              <div className="mb-6 p-4 rounded-2xl bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border-2 border-red-200 dark:border-red-800">
+              <div className="mb-6 p-4 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
                 <div className="flex items-start gap-3">
-                  <div className="p-2 bg-red-100 dark:bg-red-900/50 rounded-xl">
-                    <ExclamationTriangleIcon className="h-5 w-5 text-red-600 dark:text-red-400" />
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-red-800 dark:text-red-200">
-                      Something went wrong
-                    </h4>
-                    <p className="text-red-700 dark:text-red-300 text-sm mt-1">
-                      {error.data?.error || "Please try again"}
-                    </p>
-                  </div>
+                  <ExclamationTriangleIcon className="h-5 w-5 text-red-500 dark:text-red-400 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                    {error.data?.error || "Something went wrong. Please try again."}
+                  </p>
                 </div>
               </div>
             )}
           </div>
 
           {/* Main Content */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Question Section */}
-            <div className="group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl">
-                  <QuestionMarkCircleIcon className="h-5 w-5 text-white" />
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="p-1.5 bg-brand-surface dark:bg-white/8 rounded-lg">
+                  <QuestionMarkCircleIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
                 </div>
                 <div>
                   <label
                     onClick={() => questionEditorRef.current?.focus()}
-                    className="text-lg font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer"
+                    className="text-sm font-semibold text-gray-800 dark:text-white/80 cursor-pointer"
                   >
-                    Front Side (Question)
+                    Front Side
                   </label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    What you want to learn or remember
-                  </p>
+                  <span className="text-xs text-gray-400 dark:text-white/30 ml-1.5">question</span>
                 </div>
               </div>
-              <div className="rounded-md border-2 border-blue-500 dark:border-blue-600 shadow-lg hover:shadow-xl">
+              <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
                 <RichTextEditor
                   ref={questionEditorRef}
                   initialContent={question}
@@ -185,30 +169,28 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
                     setIsFlipped(false);
                   }}
                   editable={!isLoading}
-                  className="!mt-0"
+                  className="mt-0!"
                 />
               </div>
             </div>
 
             {/* Answer Section */}
-            <div className="group">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl">
-                  <LightBulbIcon className="h-5 w-5 text-white" />
+            <div>
+              <div className="flex items-center gap-2.5 mb-3">
+                <div className="p-1.5 bg-amber-50 dark:bg-amber-500/10 rounded-lg">
+                  <LightBulbIcon className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
                   <label
                     onClick={() => answerEditorRef.current?.focus()}
-                    className="text-lg font-bold bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent cursor-pointer"
+                    className="text-sm font-semibold text-gray-800 dark:text-white/80 cursor-pointer"
                   >
-                    Back Side (Answer)
+                    Back Side
                   </label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    The answer or explanation
-                  </p>
+                  <span className="text-xs text-gray-400 dark:text-white/30 ml-1.5">answer</span>
                 </div>
               </div>
-              <div className="rounded-md border-2 border-emerald-500 dark:border-emerald-600 shadow-lg hover:shadow-xl">
+              <div className="rounded-xl border border-gray-200 dark:border-white/10 overflow-hidden">
                 <RichTextEditor
                   ref={answerEditorRef}
                   initialContent={answer}
@@ -217,24 +199,21 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
                     setIsFlipped(true);
                   }}
                   editable={!isLoading}
-                  className="!mt-0"
+                  className="mt-0!"
                 />
               </div>
             </div>
           </div>
-          {/* Right Side - Live Preview */}
-          <div className="mt-4">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl">
-                <EyeIcon className="h-5 w-5 text-white" />
+
+          {/* Live Preview */}
+          <div className="mt-8">
+            <div className="flex items-center gap-2.5 mb-4">
+              <div className="p-1.5 bg-brand-surface dark:bg-white/8 rounded-lg">
+                <EyeIcon className="h-4 w-4 text-brand-primary dark:text-brand-accent/70" />
               </div>
               <div>
-                <h4 className="text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Live Preview
-                </h4>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Click the card to flip between sides
-                </p>
+                <span className="text-sm font-semibold text-gray-800 dark:text-white/80">Live Preview</span>
+                <span className="text-xs text-gray-400 dark:text-white/30 ml-1.5">click to flip</span>
               </div>
             </div>
 
@@ -247,18 +226,19 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
               <FlashcardTips />
             </div>
           </div>
+
           {/* Footer Actions */}
-          <div className="flex gap-4 flex-wrap items-center justify-between mt-8 pt-6 border-t border-gray-200 dark:border-gray-700">
-            <div className="text-sm text-gray-500 dark:text-gray-400">
+          <div className="flex gap-4 flex-wrap items-center justify-between mt-8 pt-6 border-t border-gray-100 dark:border-white/6">
+            <div className="text-sm text-gray-500 dark:text-white/40">
               {question && answer && user ? (
-                <span className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                <span className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400">
                   <CheckCircleIcon className="h-4 w-4" />
                   Ready to update
                 </span>
               ) : !user ? (
-                "Login in to update"
+                "Log in to update"
               ) : (
-                "Fill in both question and answer to continue"
+                "Fill in both sides to continue"
               )}
             </div>
 
@@ -267,25 +247,23 @@ const EditFlashcardModal = ({ isOpen, onClose, flashcard, cardId }) => {
                 type="button"
                 onClick={handleClose}
                 disabled={isLoading}
-                className="cursor-pointer px-6 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl shadow-lg hover:shadow-xl hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 disabled:opacity-50"
+                className="cursor-pointer px-5 py-2.5 text-sm font-medium text-gray-700 dark:text-white/60 bg-white dark:bg-transparent border border-gray-200 dark:border-white/10 rounded-xl hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-150 disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={
-                  isLoading || !question || !answer || !user || !isChanged
-                }
-                className="group cursor-pointer flex items-center gap-3 px-8 py-3 text-sm font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                disabled={isLoading || !question || !answer || !user || !isChanged}
+                className="cursor-pointer flex items-center gap-2 px-6 py-2.5 text-sm font-semibold text-white dark:text-brand-dark bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
                   <>
-                    <ArrowPathIcon className="h-5 w-5 animate-spin" />
+                    <ArrowPathIcon className="h-4 w-4 animate-spin" />
                     Updating...
                   </>
                 ) : (
                   <>
-                    <BookOpenIcon className="h-5 w-5 group-hover:scale-110 transition-transform duration-200" />
+                    <BookOpenIcon className="h-4 w-4" />
                     Update Flashcard
                   </>
                 )}

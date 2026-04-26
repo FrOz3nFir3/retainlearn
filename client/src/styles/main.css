@@ -1,4 +1,29 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+
+@theme {
+  --color-brand-primary: #4F46E5;
+  --color-brand-accent: #F59E0B;
+  --color-brand-light: #FAF8F4;
+  --color-brand-dark: #1E1B4B;
+  --color-brand-muted: #6366F1;
+  --color-brand-surface: #FEF3C7;
+
+  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
+  --font-heading: "Fraunces", Georgia, serif;
+
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-up: slide-up 0.6s ease-out forwards;
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(24px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -6,49 +31,60 @@
   word-break: break-word;
 }
 
-/* Custom Animations */
-@keyframes fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Legal pages (Terms / Privacy) */
+.legal-content section {
+  scroll-margin-top: 6rem;
 }
-
-@keyframes slide-in-up {
-  from {
-    opacity: 0;
-    transform: translateY(30px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+.legal-content section + section {
+  @apply mt-10 pt-10 border-t border-gray-100;
 }
-
-@keyframes float {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-10px);
-  }
+.dark .legal-content section + section {
+  @apply border-white/6;
 }
-
-.animate-fade-in {
-  animation: fade-in 0.6s ease-out forwards;
+.legal-content h2 {
+  @apply font-heading text-2xl text-gray-900 leading-snug mb-4 flex items-baseline gap-3;
 }
-
-.animate-slide-in-up {
-  animation: slide-in-up 0.8s ease-out forwards;
+.dark .legal-content h2 {
+  @apply text-white;
 }
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+.legal-content h2::before {
+  content: "";
+  @apply inline-block w-1 h-6 rounded-full bg-brand-accent self-center shrink-0;
+}
+.legal-content p {
+  @apply text-gray-600 leading-relaxed text-[15px];
+}
+.dark .legal-content p {
+  @apply text-white/70;
+}
+.legal-content p + p,
+.legal-content p + ul,
+.legal-content ul + p {
+  @apply mt-3;
+}
+.legal-content ul {
+  @apply list-disc pl-6 space-y-2 mt-3 text-gray-600 leading-relaxed text-[15px] marker:text-brand-accent/60;
+}
+.dark .legal-content ul {
+  @apply text-white/70;
+}
+.legal-content strong {
+  @apply text-gray-900 font-semibold;
+}
+.dark .legal-content strong {
+  @apply text-white/90;
+}
+.legal-content a {
+  @apply text-brand-primary hover:underline font-medium;
+}
+.dark .legal-content a {
+  @apply text-brand-accent;
+}
+.legal-content .legal-callout {
+  @apply mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600 leading-relaxed font-mono uppercase tracking-wide;
+}
+.dark .legal-content .legal-callout {
+  @apply bg-white/4 border-white/8 text-white/60;
 }
 
 /* Tiptap Editor Styles */

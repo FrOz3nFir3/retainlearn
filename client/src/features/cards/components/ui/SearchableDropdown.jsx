@@ -115,7 +115,7 @@ const SearchableDropdown = ({
           onChange={handleInputChange}
           onFocus={handleFocus}
           placeholder={placeholder}
-          className="w-full px-4 py-3 pr-12 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl hover:border-indigo-500 dark:hover:border-indigo-400 focus:border-indigo-500 dark:focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none shadow-lg hover:shadow-xl transition-all duration-300"
+          className="w-full px-4 py-3 pr-12 text-sm font-medium text-gray-700 dark:text-white/80 bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-xl hover:border-brand-primary/40 dark:hover:border-brand-accent/30 focus:border-brand-primary dark:focus:border-brand-accent focus:ring-2 focus:ring-brand-primary/20 dark:focus:ring-brand-accent/20 focus:outline-none transition-colors duration-200"
         />
         <div className="absolute inset-y-0 right-0 flex items-center pr-4">
           {value ? (
@@ -128,7 +128,7 @@ const SearchableDropdown = ({
             </button>
           ) : (
             <ChevronDownIcon
-              className="h-4 w-4 text-gray-500 flex-shrink-0"
+              className="h-4 w-4 text-gray-500 shrink-0"
               aria-hidden="true"
             />
           )}
@@ -154,7 +154,7 @@ const SearchableDropdown = ({
           )}
 
           {/* Dropdown */}
-          <div className="absolute z-[10000] w-full mt-2 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-600 rounded-xl shadow-2xl max-h-80 overflow-y-auto">
+          <div className="absolute z-50 w-full mt-1 bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/10 rounded-xl shadow-lg max-h-72 overflow-y-auto">
             {isLoading ? (
               /* Loading Skeleton - Matches dropdown item structure */
               <div className="py-2">
@@ -163,12 +163,12 @@ const SearchableDropdown = ({
                     <div className="flex items-center justify-between">
                       <div className="flex-1 min-w-0">
                         {/* Label skeleton */}
-                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-24 mb-2"></div>
+                        <div className="h-4 bg-gray-200 dark:bg-white/8 rounded w-24 mb-2"></div>
                         {/* Description skeleton - 3 lines */}
                         <div className="space-y-1.5">
-                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"></div>
-                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-5/6"></div>
-                          <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-4/6"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-full"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-5/6"></div>
+                          <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-4/6"></div>
                         </div>
                       </div>
                     </div>
@@ -179,9 +179,9 @@ const SearchableDropdown = ({
               filteredOptions.map((option, index) => (
                 <button
                   key={option.value}
-                  className={`cursor-pointer w-full text-left px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors duration-200 ${
+                  className={`cursor-pointer w-full text-left px-4 py-4 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors duration-200 ${
                     option.value === value
-                      ? "bg-indigo-50 dark:bg-indigo-900/30 border-l-4 border-indigo-500"
+                      ? "bg-brand-surface dark:bg-white/8 border-l-4 border-brand-primary dark:border-brand-accent"
                       : ""
                   } ${index === 0 ? "rounded-t-xl" : ""} ${
                     index === filteredOptions.length - 1 ? "rounded-b-xl" : ""
@@ -190,23 +190,23 @@ const SearchableDropdown = ({
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-gray-900 dark:text-gray-100 truncate">
+                      <div className="font-medium text-gray-900 dark:text-white truncate">
                         {option.label}
                       </div>
                       {option.description && (
-                        <div className="text-xs text-gray-600 dark:text-gray-400 mt-2 leading-relaxed line-clamp-3">
+                        <div className="text-xs text-gray-600 dark:text-white/30 mt-2 leading-relaxed line-clamp-3">
                           {option.description}
                         </div>
                       )}
                     </div>
                     {option.value === value && (
-                      <div className="ml-2 w-2 h-2 bg-indigo-500 rounded-full flex-shrink-0" />
+                      <div className="ml-2 w-2 h-2 bg-brand-primary dark:bg-brand-accent rounded-full shrink-0" />
                     )}
                   </div>
                 </button>
               ))
             ) : (
-              <div className="px-4 py-4 text-gray-500 dark:text-gray-400">
+              <div className="px-4 py-4 text-gray-500 dark:text-white/30">
                 No results found
               </div>
             )}

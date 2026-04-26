@@ -1,38 +1,40 @@
-import React from "react";
-
 const ReviewPageSkeleton = () => {
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-100/50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 shadow-2xl animate-pulse">
-      <div className="relative z-10 p-6 sm:p-8">
-        <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-gray-300 dark:bg-gray-700 rounded-2xl shadow-lg h-20 w-20"></div>
+    <div className="bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl overflow-hidden animate-pulse">
+      {/* ReviewHeader (px-6 pt-6 pb-4 mb-2: icon tile + amber label + heading + Focus Review button) */}
+      <div className="px-6 pt-6 pb-4 mb-2">
+        <div className="flex flex-wrap gap-3 items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-2.5 bg-gray-200 dark:bg-white/8 rounded-xl w-11 h-11"></div>
             <div>
-              <div className="h-8 bg-gray-300 dark:bg-gray-700 rounded w-48 mb-2"></div>
-              <div className="h-4 bg-gray-300 dark:bg-gray-700 rounded w-64"></div>
+              <div className="h-3 bg-gray-200 dark:bg-white/8 rounded w-20 mb-2"></div>
+              <div className="h-7 bg-gray-200 dark:bg-white/8 rounded w-40"></div>
             </div>
           </div>
+          <div className="h-9 bg-gray-200 dark:bg-white/8 rounded-xl w-32"></div>
         </div>
-        {/* Search Bar Skeleton */}
-        <div className="h-14 bg-gray-300 dark:bg-gray-700 rounded-xl mb-6"></div>
+      </div>
 
-        {/* Flashcard Skeleton */}
-        <div className="aspect-video bg-gray-300 dark:bg-gray-700 rounded-3xl mb-6"></div>
+      <div className="p-6 sm:p-8 pt-2">
+        {/* Flashcard area */}
+        <div className="aspect-video bg-gray-200 dark:bg-white/8 rounded-2xl mb-6"></div>
 
-        {/* Navigation Skeleton */}
-        <div className="flex justify-between items-center mb-6">
-          <div className="h-12 w-28 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
-          <div className="h-4 w-24 bg-gray-300 dark:bg-gray-700 rounded-lg"></div>
-          <div className="h-12 w-28 bg-gray-300 dark:bg-gray-700 rounded-full"></div>
+        {/* Keyboard hint */}
+        <div className="text-center mt-6 mb-4">
+          <div className="hidden md:inline-flex h-9 bg-gray-200 dark:bg-white/8 rounded-xl w-64"></div>
         </div>
 
-        {/* Card Gallery Skeleton */}
-        <div className="flex space-x-2 overflow-hidden">
+        {/* Navigation (prev / counter / next) */}
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-10 w-28 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+          <div className="h-4 w-20 bg-gray-200 dark:bg-white/8 rounded"></div>
+          <div className="h-10 w-28 bg-gray-200 dark:bg-white/8 rounded-xl"></div>
+        </div>
+
+        {/* Card gallery thumbnails */}
+        <div className="flex gap-2 overflow-hidden mt-4">
           {[...Array(8)].map((_, i) => (
-            <div
-              key={i}
-              className="h-20 w-16 bg-gray-300 dark:bg-gray-700 rounded-lg flex-shrink-0"
-            ></div>
+            <div key={i} className="h-16 w-12 bg-gray-200 dark:bg-white/8 rounded-lg shrink-0"></div>
           ))}
         </div>
       </div>
