@@ -54,7 +54,7 @@ export function cacheMiddleware(options = {}) {
 
                 // Set cache headers to indicate cached response
                 res.set('X-Cache', 'HIT');
-                res.set('X-Cache-Key', cacheKey);
+                if (CACHE_CONFIG.DEBUG.ENABLED) res.set('X-Cache-Key', cacheKey);
 
                 const headers = { ...(cachedData.headers || {}) };
 
@@ -75,14 +75,12 @@ export function cacheMiddleware(options = {}) {
             const originalStatus = res.status;
             let responseStatusCode = 200;
             let responseHeaders = {};
-            let responseBody = null;
             let responseSent = false;
 
 
             // Override res.json to capture response data
             res.json = function (data) {
                 if (!responseSent) {
-                    responseBody = data;
                     responseSent = true;
 
                     // Cache the response after sending it
@@ -97,16 +95,14 @@ export function cacheMiddleware(options = {}) {
 
                 // Set cache headers to indicate cache miss
                 this.set('X-Cache', 'MISS');
-                this.set('X-Cache-Key', cacheKey);
+                if (CACHE_CONFIG.DEBUG.ENABLED) this.set('X-Cache-Key', cacheKey);
 
                 return originalJson.call(this, data);
             };
 
             // Override res.send to capture non-JSON responses
             res.send = function (data) {
-
                 if (!responseSent) {
-                    responseBody = data;
                     responseSent = true;
 
                     const contentType = this.get('Content-Type');
@@ -135,7 +131,7 @@ export function cacheMiddleware(options = {}) {
 
                 // Set cache headers to indicate cache miss
                 this.set('X-Cache', 'MISS');
-                this.set('X-Cache-Key', cacheKey);
+                if (CACHE_CONFIG.DEBUG.ENABLED) this.set('X-Cache-Key', cacheKey);
 
                 return originalSend.call(this, data);
             };
