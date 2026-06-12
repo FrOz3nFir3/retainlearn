@@ -16,12 +16,12 @@
   "author": "FrOz3nFir3",
   "license": "Unlicense",
   "devDependencies": {
-    "@vitejs/plugin-react-swc": "^3.11.0",
+    "@vitejs/plugin-react-swc": "^4.3.1",
     "compression": "^1.8.1",
     "postcss": "^8.5.12",
-    "rollup-plugin-bundle-stats": "^4.21.1",
+    "rollup-plugin-bundle-stats": "^4.22.2",
     "tailwindcss": "^4.1.11",
-    "vite": "^7.3.2",
+    "vite": "^8.0.16",
     "vite-bundle-analyzer": "^1.1.0"
   },
   "dependencies": {
