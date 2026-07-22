@@ -65,6 +65,10 @@ export default defineConfig(() => {
       emptyOutDir: true,
       // Disable source maps in production to avoid size issues
       sourcemap: false,
+      // Never inline assets as base64 — small font subsets were getting
+      // inlined into CSS as data: URIs, which the CSP correctly blocks
+      // since font-src/style-src don't allow the data: scheme.
+      assetsInlineLimit: 0,
     },
     resolve: {
       alias: {
