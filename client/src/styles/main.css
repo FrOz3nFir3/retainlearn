@@ -8,8 +8,8 @@
   --color-brand-muted: #6366F1;
   --color-brand-surface: #FEF3C7;
 
-  --font-sans: "Plus Jakarta Sans", system-ui, sans-serif;
-  --font-heading: "Fraunces", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans Variable", system-ui, sans-serif;
+  --font-heading: "Fraunces Variable", Georgia, serif;
 
   --animate-fade-in: fade-in 0.5s ease-out forwards;
   --animate-slide-up: slide-up 0.6s ease-out forwards;
