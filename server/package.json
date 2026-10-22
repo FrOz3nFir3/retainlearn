@@ -17,10 +17,10 @@
   "license": "Unlicense",
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "compression": "^1.8.1",
+    "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.17",
     "dotenv": "^17.0.1",
     "email-deep-validator": "^3.3.0",
     "express": "^5.1.0",
@@ -29,7 +29,7 @@
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",
     "lru-cache": "^11.1.0",
-    "mongoose": "^8.22.1",
+    "mongoose": "^8.24.1",
     "rate-limit-redis": "^4.2.2",
     "redis": "^5.8.3"
   },
