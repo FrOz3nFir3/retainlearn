@@ -1,7 +1,8 @@
-name: API tests
+name: Tests
 
-# Runs the server's API tests on every pull request. A merge to main deploys production (deploy.yml) with no tests
-# of its own, so this is the gate: protect `main` and require this check to pass before merging.
+# Runs the server's API tests and the client's unit tests on every pull request. A merge to main deploys production
+# (deploy.yml) with no tests of its own, so this is the gate: protect `main` and require both checks ("api" and
+# "client") to pass before merging.
 on:
   pull_request:
 
@@ -37,4 +38,18 @@ jobs:
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
+      - run: npm test
+
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # The client's unit tests are plain modules run by Node's built-in runner: no browser and no dependencies, so
+      # there's nothing to install.
       - run: npm test

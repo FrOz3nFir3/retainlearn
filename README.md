@@ -103,9 +103,10 @@ These scripts and the tests only ever write to a **local** database whose name s
 
 ```bash
 npm test --prefix server
+npm test --prefix client
 ```
 
-The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. They also run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. Both run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
 
 ## 📜 Scripts
 

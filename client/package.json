@@ -10,7 +10,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build",
-    "test": "jest test"
+    "test": "node --test \"src/**/*.test.js\""
   },
   "keywords": [],
   "author": "FrOz3nFir3",

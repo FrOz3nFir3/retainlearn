@@ -8,9 +8,10 @@ const authSlicer = createSlice({
   },
   reducers: {
     initialUser(state, action) {
-      state.user = action.payload.user;
+      // No payload (a failed request) means no user, rather than an error here.
+      state.user = action.payload?.user ?? null;
       // Set CSRF token if provided
-      if (action.payload.csrfToken) {
+      if (action.payload?.csrfToken) {
         state.csrfToken = action.payload.csrfToken;
       }
     },
