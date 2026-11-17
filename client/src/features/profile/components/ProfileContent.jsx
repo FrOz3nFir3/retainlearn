@@ -58,17 +58,11 @@ const ProfileContent = () => {
     });
   };
 
+  // Send Google's access token to the server, which asks Google whose account it is before linking it.
   const handleGoogleConnectSuccess = async (tokenResponse) => {
-    try {
-      const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-      });
-      const googleUser = await response.json();
-      const updatedUser = { googleId: googleUser.sub };
-      const { error } = await updateUser(updatedUser);
-      if (error) return;
-      dispatch(updateUserProfile(updatedUser));
-    } catch {}
+    const { data, error } = await updateUser({ googleAccessToken: tokenResponse.access_token });
+    if (error || !data?.googleId) return;
+    dispatch(updateUserProfile({ googleId: data.googleId }));
   };
 
   const login = useGoogleLogin({

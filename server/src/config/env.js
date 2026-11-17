@@ -48,6 +48,14 @@ export const env = {
 
     // Proxy Configuration
     ENABLE_PROXY: process.env.ENABLE_PROXY !== "false", // Default: true
+
+    // Google sign-in: the OAuth client id that Google's tokens must have been issued for (checked on the server,
+    // services/googleAuth.js). It's public, the same one the client uses (VITE_GOOGLE_CLIENT_ID), so it defaults to
+    // the client's built-in one.
+    GOOGLE_CLIENT_ID:
+        process.env.GOOGLE_CLIENT_ID ||
+        process.env.VITE_GOOGLE_CLIENT_ID ||
+        "861201461365-j2s71jmj0i3q5qo2634mfbavoepi53to.apps.googleusercontent.com",
 };
 
 /**

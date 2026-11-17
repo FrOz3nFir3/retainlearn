@@ -35,6 +35,7 @@ import { compare } from "bcrypt";
 import EmailValidator from "email-deep-validator";
 const emailValidator = new EmailValidator({ timeout: 10000 });
 import { userDetailsProjection } from "../../utils/constants.js";
+import { googleAuth } from "../../services/googleAuth.js";
 
 import env from "../../config/env.js";
 
@@ -240,7 +241,9 @@ export async function httpCreateNewUser(req, res) {
 export async function httpUpdateUser(req, res) {
   try {
     const { id } = req.token;
-    const { name, email, username, googleId } = req.body;
+    // A Google account is linked from a token Google issued for this app, checked with Google (services/googleAuth.js),
+    // never from an id posted by the browser.
+    const { name, email, username, googleAccessToken } = req.body;
     const updateFields = {};
 
     if (name?.trim() === "") {
@@ -287,14 +290,20 @@ export async function httpUpdateUser(req, res) {
       updateFields.email = email.trim();
     }
 
-    if (googleId) {
-      const existingGoogleUser = await findUserByGoogleId(googleId);
+    if (googleAccessToken) {
+      let google;
+      try {
+        google = await googleAuth.verifyAccessToken(String(googleAccessToken));
+      } catch {
+        return res.status(401).json({ error: "Google couldn't confirm that account. Please try again." });
+      }
+      const existingGoogleUser = await findUserByGoogleId(google.googleId, { _id: 1 });
       if (existingGoogleUser && existingGoogleUser._id.toString() !== id) {
         return res.status(409).json({
           error: "This Google account is already linked to another user.",
         });
       }
-      updateFields.googleId = googleId;
+      updateFields.googleId = google.googleId;
     }
 
     if (Object.keys(updateFields).length === 0) {
@@ -302,7 +311,7 @@ export async function httpUpdateUser(req, res) {
     }
 
     await updateUser(id, updateFields);
-    res.status(200).json({ ok: true });
+    res.status(200).json(updateFields.googleId ? { ok: true, googleId: updateFields.googleId } : { ok: true });
   } catch (error) {
     console.log(error);
     res.status(500).json({ error: error.message });
@@ -379,42 +388,55 @@ export async function httpLoginUser(req, res) {
   }
 }
 
+// Sign in with Google. The browser sends the ID token Google gave it (`credential`), and the server verifies it
+// with Google (services/googleAuth.js). Only the verified token says who this is. It used to trust an email and a
+// Google id posted by the browser, so anyone could sign in as anyone.
 export async function httpLoginGoogleUser(req, res) {
-  const { email, name, googleId } = req.body;
-  try {
-    if (!email) {
-      return res.status(400).json({ error: "Google login failed no email" });
-    }
+  const credential = req.body?.credential;
+  if (typeof credential !== "string" || credential.length === 0) {
+    return res.status(400).json({
+      error: "Google sign-in failed. Please reload the page and try again.",
+    });
+  }
 
-    const userProjectionCopy = { ...userDetailsProjection };
-    userProjectionCopy._id = 1;
-    let user = await findUserByGoogleId(googleId, userProjectionCopy);
+  let google;
+  try {
+    google = await googleAuth.verifyIdToken(credential);
+  } catch {
+    return res.status(401).json({ error: "Google sign-in couldn't be verified. Please try again." });
+  }
+  if (!google.googleId || !google.email || !google.emailVerified) {
+    return res.status(401).json({
+      error: "Your Google account's email address isn't verified, so it can't be used to sign in.",
+    });
+  }
+
+  try {
+    const projection = { ...userDetailsProjection, _id: 1 };
+    let user = await findUserByGoogleId(google.googleId, projection);
 
     if (user == null) {
-      // New Google user, check if email is already taken by a regular user
-      const emailUser = await findUserByEmail(email);
+      const emailUser = await findUserByEmail(google.email, { _id: 1 });
       if (emailUser) {
-        // Email exists, link Google ID to it
-        user = await updateUser(emailUser._id, { googleId, name });
+        // An account with this (verified) email already exists: link the Google account to it. The name the user
+        // chose is kept.
+        user = await updateUser(emailUser._id, { googleId: google.googleId }, projection);
       } else {
-        // Truly a new user
-        const username = await generateUniqueUsername(email);
-        user = await createNewUser({ email, name, googleId, username });
+        const username = await generateUniqueUsername(google.email);
+        await createNewUser({ email: google.email, name: google.name, googleId: google.googleId, username });
+        user = await findUserByGoogleId(google.googleId, projection);
       }
-    } else if (!user.googleId) {
-      // This case is less likely with the above check but good for safety
-      user = await updateUser(user._id, { googleId, name });
     }
 
     const csrfToken = setTokens(res, user);
-    const { _id, ...userDetails } = user._doc ?? user;
+    const { _id, ...userDetails } = user;
     return res.status(200).json({
       user: userDetails,
       csrfToken,
     });
   } catch (error) {
     console.log(error);
-    return res.status(500).json({ error });
+    return res.status(500).json({ error: "Google sign-in failed. Please try again." });
   }
 }
 

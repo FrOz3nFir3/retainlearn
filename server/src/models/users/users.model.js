@@ -517,9 +517,11 @@ export async function getUserQuizProgressByCard({ userId, cardId }) {
   }
 }
 
-export async function updateUser(userId, userDetails) {
+// The updated user, with only the fields in `projection` (never the password hash, unless asked for).
+export async function updateUser(userId, userDetails, projection = { password: 0, studying: 0 }) {
   return Users.findOneAndUpdate({ _id: { $eq: userId } }, userDetails, {
     new: true,
+    projection,
   }).lean();
 }
 
