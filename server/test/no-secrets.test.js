@@ -49,3 +49,14 @@ for (const [path, signedIn] of reads) {
     assertNoSecrets(path, await res.json());
   });
 }
+
+test("the reviewer search finds an email only from the whole address, never from part of it", async () => {
+  const found = async (search) => {
+    const res = await t.api(`/api/users/search?id=${ids.js}&search=${encodeURIComponent(search)}&page=1`, { headers: ada });
+    return (await res.json()).users.map((user) => user.username);
+  };
+  assert.deepEqual(await found("lee@example"), []);
+  assert.deepEqual(await found("example.test"), []);
+  assert.deepEqual(await found("LEE@example.test"), ["lee_learner"]);
+  assert.deepEqual(await found("learner"), ["lee_learner"], "names and usernames still match any part");
+});

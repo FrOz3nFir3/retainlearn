@@ -2,7 +2,9 @@ import { useMemo } from "react";
 import { useSelector } from "react-redux";
 import { useParams, useSearchParams } from "react-router-dom";
 import { selectCurrentCard } from "../../state/cardSlice";
+import { selectCurrentUser } from "../../../authentication/state/authSlice";
 import { useGetIndividualCardQuery } from "../../../../api/apiSlice";
+import RestrictedAccess from "../../../../components/ui/RestrictedAccess";
 import EditCardHeader from "./EditCardHeader";
 import QuizManagementView from "./QuizManagementView";
 import FlashcardManagementView from "./FlashcardManagementView";
@@ -38,15 +40,22 @@ const EditCardView = () => {
     return "review";
   };
 
+  // The review queue is for signed-in users: the server answers 401 to anyone else.
+  const user = useSelector(selectCurrentUser);
+  const needsSignIn = currentView === "review-queue" && !user;
+
   const {
     data: viewData,
     isLoading: isViewLoading,
     error: viewError,
     isFetching: isViewFetching,
-  } = useGetIndividualCardQuery({
-    id: params.id,
-    view: getViewType(),
-  });
+  } = useGetIndividualCardQuery(
+    {
+      id: params.id,
+      view: getViewType(),
+    },
+    { skip: needsSignIn }
+  );
 
   // Merge overview and view-specific data
   const mergedCard = useMemo(() => {
@@ -103,6 +112,12 @@ const EditCardView = () => {
     });
     return map;
   }, [mergedCard, quizzes]);
+
+  if (needsSignIn || viewError?.status === 401) {
+    return (
+      <RestrictedAccess description="Log in to see the changes people have suggested for this set and waiting for review." />
+    );
+  }
 
   // Show loading state
   if (isOverviewLoading || isViewLoading) {

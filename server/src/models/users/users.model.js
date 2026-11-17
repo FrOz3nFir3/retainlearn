@@ -2,7 +2,7 @@ import Users from "../users/users.mongo.js";
 import Card from "../cards/cards.mongo.js";
 import mongoose from "mongoose";
 import crypto from "crypto";
-import { escapeRegex } from "../../utils/textNormalization.js";
+import { escapeRegex, normalizeEmail } from "../../utils/textNormalization.js";
 
 export async function findUserByEmail(email, projection = {}) {
   return Users.findOne({ email: String(email) }, projection).lean();
@@ -1187,13 +1187,17 @@ export async function searchUsers(searchTerm, page = 1, limit = 10) {
   // Create regex for case-insensitive search
   const searchRegex = new RegExp(escapeRegex(trimmedSearch), "i");
 
+  // Names and usernames match any part. An email matches only as the whole address, so searching never reveals any
+  // part of someone's email.
+  const email = normalizeEmail(trimmedSearch);
+
   const pipeline = [
     {
       $match: {
         $or: [
           { username: searchRegex },
-          { email: searchRegex },
           { name: searchRegex },
+          ...(email ? [{ email: { $eq: email } }] : []),
         ],
       },
     },

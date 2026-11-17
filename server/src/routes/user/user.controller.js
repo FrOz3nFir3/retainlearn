@@ -697,7 +697,7 @@ export async function httpSearchUsers(req, res) {
   }
 
   // Validate search term
-  if (!searchTerm || searchTerm.trim().length < 2) {
+  if (typeof searchTerm !== "string" || searchTerm.trim().length < 2) {
     return res.status(400).json({
       error: "Search term must be at least 2 characters long",
     });

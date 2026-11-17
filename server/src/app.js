@@ -56,7 +56,7 @@ app.use((req, res, next) => {
 
   if (method !== "GET") return next();
 
-  const isAuthenticatedRequest = url.startsWith('/api/user');
+  const isAuthenticatedRequest = url.toLowerCase().startsWith('/api/user');
   if (isAuthenticatedRequest) {
     res.set('Cache-Control', "private, no-cache, must-revalidate");
   } else {

@@ -19,7 +19,7 @@ export async function checkReviewPermissions(req, res, next) {
   }
 
   if (!Types.ObjectId.isValid(cardId)) {
-    throw new Error("Invalid card ID ");
+    return res.status(400).json({ error: "Invalid card ID" });
   }
 
   try {

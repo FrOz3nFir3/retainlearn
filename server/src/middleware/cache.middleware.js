@@ -155,58 +155,43 @@ export function cacheMiddleware(options = {}) {
  * @returns {string|null} Generated cache key or null if caching should be skipped
  */
 function generateCacheKey(req, cacheType) {
-    // Extract relevant parts from request
-    const baseUrl = req.baseUrl || '';
-    const path = req.path || '';
-    const query = req.query || {};
-
-    // Create a clean URL path
-    const fullPath = `${baseUrl}${path}`.replace(/\/+/g, '/');
+    // The route as the code defines it, lowercased (Express matches /api/USER/stats to /api/user/stats), with the
+    // values from the address filled in as they were sent (usernames are case-sensitive). So the address's letter
+    // case doesn't make another copy.
+    const pattern = req.route?.path;
+    const path = (typeof pattern === 'string'
+        ? `${req.baseUrl || ''}${pattern}`.toLowerCase().replace(/:(\w+)/g, (_, name) => encodeURIComponent(req.params?.[name] ?? ''))
+        : `${req.baseUrl || ''}${req.path || ''}`
+    ).replace(/\/+/g, '/');
 
     // Determine cache type from URL if not provided
-    const type = cacheType || inferCacheTypeFromUrl(fullPath);
+    const type = cacheType || inferCacheTypeFromUrl(path.toLowerCase());
 
     // Generate identifier from path (remove leading slash and replace slashes with colons)
-    let identifier = fullPath.replace(/^\//, '').replace(/\//g, ':') || 'root';
+    let identifier = path.replace(/^\//, '').replace(/\//g, ':') || 'root';
 
-    // For user-specific routes, include user ID in cache key for isolation
-    // This prevents one user from accessing another user's cached data
-    if (isUserSpecificRoute(fullPath)) {
+    // A route for signed-in users only (req.signedInOnly, set by the auth checks) may return the user's own data, so
+    // its key always holds the user's id (P0-08). This doesn't depend on a list of paths, or on how they're typed.
+    if (req.signedInOnly) {
         const userId = req.token?.id;
-        if (userId) {
-            // Use the user's MongoDB _id to namespace the cache key
-            identifier = `user:${userId}:${identifier}`;
-        } else {
-            // If no user ID, don't cache user-specific data
-            // This prevents caching for unauthenticated requests
-            return null;
-        }
+        if (!userId) return null;
+        identifier = `user:${userId}:${identifier}`;
     }
 
-    // Use cache service to generate key with query parameters
-    return cacheService.generateCacheKey(type, identifier, query);
+    // Use cache service to generate key with the query parameters the handlers read
+    return cacheService.generateCacheKey(type, identifier, keyQuery(req.query));
 }
 
-/**
- * Check if a route contains user-specific data that requires user isolation
- * 
- * @param {string} path - URL path
- * @returns {boolean} True if route is user-specific
- */
-function isUserSpecificRoute(path) {
-    // Routes that contain user-specific data
-    const userSpecificPatterns = [
-        '/user/progress',
-        '/user/stats',
-        '/user/quiz-progress',
-        '/user/review-progress',
-        '/user/report',
-        '/user/focus-review',
-        '/user/focus-quiz',
-        '/user/authed'
-    ];
+// The query parameters handlers read. Any others are ignored by the handlers, so they're left out of the key too:
+// otherwise `?page=1&x=1`, `?page=1&x=2`... would each store another copy of the same response.
+const KEY_QUERY_PARAMS = ['category', 'id', 'page', 'search', 'skipLogs', 'view'];
 
-    return userSpecificPatterns.some(pattern => path.includes(pattern));
+function keyQuery(query = {}) {
+    const picked = {};
+    for (const name of KEY_QUERY_PARAMS) {
+        if (query[name] !== undefined) picked[name] = query[name];
+    }
+    return picked;
 }
 
 /**
@@ -302,9 +287,8 @@ function extractTagsFromRequest(req, responseData, customTagExtractor) {
         }
     }
 
-    // Extract standard tags based on URL patterns and response data
-    const path = req.path;
-    const fullPath = req.originalUrl || `${req.baseUrl || ''}${req.path}`;
+    // Extract standard tags based on URL patterns and response data. Lowercased, as routes match whatever the case.
+    const fullPath = (req.originalUrl || `${req.baseUrl || ''}${req.path}`).toLowerCase();
     const params = req.params || {};
     const query = req.query || {};
 

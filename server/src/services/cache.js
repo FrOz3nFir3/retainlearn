@@ -507,12 +507,14 @@ class CacheService {
         return result;
       }, {});
 
+    // 64 bits of SHA-256: too many for anyone to find other parameters that land on the same key on purpose (8 hex
+    // characters, 32 bits, could be searched in minutes).
     const paramString = JSON.stringify(sortedParams);
     return crypto
-      .createHash("md5")
+      .createHash("sha256")
       .update(paramString)
       .digest("hex")
-      .substring(0, 8);
+      .substring(0, 16);
   }
 
   /**
