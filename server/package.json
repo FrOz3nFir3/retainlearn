@@ -13,7 +13,8 @@
     "cron:cleanup": "node src/cron-jobs/index.js",
     "test": "node --test --test-concurrency=1 --test-force-exit \"test/**/*.test.js\"",
     "db:copy": "node scripts/copy-db.js",
-    "db:seed": "node scripts/seed.js"
+    "db:seed": "node scripts/seed.js",
+    "reports": "node scripts/reports.js"
   },
   "keywords": [],
   "author": "FrOz3nFir3",

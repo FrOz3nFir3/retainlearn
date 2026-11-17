@@ -1,6 +1,7 @@
 import { CardField } from "./CardField";
 import CardMetaInfo from "./CardMetaInfo";
 import FieldCard from "./FieldCard";
+import ReportSetButton from "./ReportSetButton";
 import {
   TagIcon,
   FolderIcon,
@@ -48,6 +49,10 @@ const CardInfo = ({ card }) => {
         <FieldCard icon={InformationCircleIcon} title="Metadata">
           <CardMetaInfo card={card} />
         </FieldCard>
+      </div>
+
+      <div className="mt-5 pt-4 border-t border-gray-100 dark:border-white/6">
+        <ReportSetButton cardId={_id} />
       </div>
     </div>
   );

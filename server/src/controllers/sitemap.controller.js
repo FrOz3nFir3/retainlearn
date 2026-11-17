@@ -1,4 +1,5 @@
 import Card from "../models/cards/cards.mongo.js";
+import { listedFilter } from "../models/cards/cards.model.js";
 
 // Helper to escape special XML characters
 const escapeXml = (unsafe) => {
@@ -42,7 +43,10 @@ export const generateSitemap = async (req, res) => {
 
     // We need all unique categories and all cards to build URLs.
     // MongoDB aggregation to get unique categories and their latest update time.
+    // Listed sets only (P0-14): a new account's sets join once the account is trusted.
+    const listed = listedFilter();
     const categoriesPipeline = [
+      { $match: listed },
       {
         $group: {
           _id: "$category",
@@ -54,7 +58,7 @@ export const generateSitemap = async (req, res) => {
 
     // Fetch all cards for individual URLs
     // Only fetching necessary fields to keep memory usage low
-    const allCards = await Card.find({}, "_id updatedAt").lean();
+    const allCards = await Card.find(listed, "_id updatedAt").lean();
 
     const baseUrl = process.env.BASE_URL || "https://retainlearn.com";
 

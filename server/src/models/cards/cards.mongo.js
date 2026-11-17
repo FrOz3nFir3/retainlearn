@@ -114,6 +114,16 @@ const cardsSchema = new Schema(
       default: []
     },
     logs: [logEntrySchema],
+    // Whether the set appears in the categories, the category pages and the sitemap, and can be indexed by search
+    // engines (P0-14). Missing means listed: every set from before this field is. A new account's sets start with
+    // `listed: false` and `listAt`, the day they're listed by themselves. Sets unlisted after reports have no
+    // `listAt`: they stay unlisted until listed by hand. Reads use `listedFilter` (cards.model.js).
+    listed: {
+      type: Boolean,
+    },
+    listAt: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

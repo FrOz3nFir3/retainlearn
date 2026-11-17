@@ -13,8 +13,57 @@ import {
   addCardReviewers,
   removeCardReviewer,
   getReviewQueueItems,
+  unlistCard,
 } from "../../models/cards/cards.model.js";
 import { getTextFromHTML, sanitizeHTML } from "../../utils/dom.js";
+import { Types } from "mongoose";
+import SetReport, { REPORT_REASONS } from "../../models/reports/setReports.mongo.js";
+import { TRUST } from "../../config/trust.config.js";
+import { cacheService } from "../../services/cache.js";
+
+// "Report this set" (P0-14). One report per person per set: reporting again changes nothing. Once enough different
+// people have reported a set, it's unlisted until someone checks it.
+export async function httpReportCard(req, res) {
+  const { id } = req.params;
+  const { reason, note = "" } = req.body ?? {};
+  if (!Types.ObjectId.isValid(id)) {
+    return res.status(400).json({ error: "Invalid card ID" });
+  }
+  if (!REPORT_REASONS.includes(reason)) {
+    return res.status(400).json({ error: "Please choose a reason" });
+  }
+  if (typeof note !== "string" || note.length > 500) {
+    return res.status(400).json({ error: "The note can be up to 500 characters" });
+  }
+
+  try {
+    const author = await getAuthorOfCard(id);
+    if (!author) {
+      return res.status(404).json({ error: "Card not found" });
+    }
+    if (author.toString() === req.token.id) {
+      return res.status(400).json({ error: "You can't report your own set" });
+    }
+
+    await SetReport.updateOne(
+      { card: id, reporter: req.token.id },
+      { $setOnInsert: { reason, note: note.trim(), createdAt: new Date() } },
+      { upsert: true }
+    ).catch((error) => {
+      if (error.code !== 11000) throw error; // the same report sent twice at once
+    });
+
+    const reports = await SetReport.countDocuments({ card: id });
+    if (reports >= TRUST.REPORTS_TO_UNLIST && (await unlistCard(id))) {
+      // Out of the cached lists before replying.
+      await cacheService.invalidateByTags(["Card"]);
+    }
+    return res.json({ ok: true });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Couldn't send the report. Please try again." });
+  }
+}
 
 export async function httpGetCardById(req, res) {
   const { id } = req.params;

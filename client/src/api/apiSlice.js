@@ -696,6 +696,15 @@ export const apiSlice = createApi({
         return currentArg?.page !== previousArg?.page;
       },
     }),
+
+    // "Report this set": one report per person per set.
+    reportSet: builder.mutation({
+      query: ({ cardId, reason, note }) => ({
+        url: `/card/${cardId}/report`,
+        method: "POST",
+        body: { reason, note },
+      }),
+    }),
   }),
 });
 
@@ -737,4 +746,5 @@ export const {
   useRemoveReviewerMutation,
   // User Search Hook
   useSearchUsersQuery,
+  useReportSetMutation,
 } = apiSlice;

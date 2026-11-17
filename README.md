@@ -114,6 +114,7 @@ The API tests use Node's built-in test runner against a local database of their 
 *   `npm run client`: Builds the frontend for production.
 *   `npm run server`: Starts the backend server.
 *   `npm run deploy`: Builds client and starts server.
+*   `npm run reports --prefix server`: Lists the study sets people have reported, most reported first. It only reads (the database in `MONGO_URI`), and says how to list a set again after checking it.
 
 ## 📄 License
 

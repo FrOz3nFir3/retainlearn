@@ -70,6 +70,8 @@ function IndividualCardPage() {
         <title>{cardData["main-topic"]} — {cardData["sub-topic"]} — RetainLearn</title>
         <meta name="description" content={cardData.description || `Study flashcard on ${cardData["main-topic"]} — ${cardData["sub-topic"]}.`} />
         <meta property="og:title" content={`${cardData["main-topic"]} — ${cardData["sub-topic"]} — RetainLearn`} />
+        {/* Sets from new accounts aren't listed yet, so search engines are asked not to index them either. */}
+        {cardData.listed === false && <meta name="robots" content="noindex" />}
       </Helmet>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">

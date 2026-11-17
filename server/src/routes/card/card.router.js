@@ -10,6 +10,7 @@ import {
   httpAddCardReviewers,
   httpRemoveCardReviewer,
   httpGetReviewQueueItems,
+  httpReportCard,
 } from "./card.controller.js";
 import { requireAuthenticationWithCSRF } from "../../middleware/auth.middleware.js";
 import { checkReviewPermissions, requireReviewPermission } from "../../middleware/reviewPermission.middleware.js";
@@ -34,5 +35,6 @@ cardRouter.delete("/:id/reviewers/:username", requireAuthenticationWithCSRF, che
 cardRouter.patch("/", requireAuthenticationWithCSRF, checkReviewPermissions, createInvalidationMiddleware.auto(), httpPatchUpdateCard);
 cardRouter.post("/:id/review-queue/:itemId/accept", requireAuthenticationWithCSRF, checkReviewPermissions, createInvalidationMiddleware.auto(), httpAcceptReviewItem);
 cardRouter.post("/:id/review-queue/:itemId/reject", requireAuthenticationWithCSRF, checkReviewPermissions, createInvalidationMiddleware.auto(), httpRejectReviewItem);
+cardRouter.post("/:id/report", requireAuthenticationWithCSRF, httpReportCard);
 
 export default cardRouter;
