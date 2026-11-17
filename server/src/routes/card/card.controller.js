@@ -17,7 +17,7 @@ import {
 } from "../../models/cards/cards.model.js";
 import { getTextFromHTML, sanitizeHTML } from "../../utils/dom.js";
 import { Types } from "mongoose";
-import SetReport, { REPORT_REASONS } from "../../models/reports/setReports.mongo.js";
+import CardReport, { REPORT_REASONS } from "../../models/cardReports/cardReports.mongo.js";
 import { TRUST } from "../../config/trust.config.js";
 import { cacheService } from "../../services/cache.js";
 
@@ -45,7 +45,7 @@ export async function httpReportCard(req, res) {
       return res.status(400).json({ error: "You can't report your own set" });
     }
 
-    await SetReport.updateOne(
+    await CardReport.updateOne(
       { card: id, reporter: req.token.id },
       { $setOnInsert: { reason, note: note.trim(), createdAt: new Date() } },
       { upsert: true }
@@ -53,7 +53,7 @@ export async function httpReportCard(req, res) {
       if (error.code !== 11000) throw error; // the same report sent twice at once
     });
 
-    const reports = await SetReport.countDocuments({ card: id });
+    const reports = await CardReport.countDocuments({ card: id });
     if (reports >= TRUST.REPORTS_TO_UNLIST && (await unlistCard(id))) {
       // Out of the cached lists before replying.
       await cacheService.invalidateByTags(["Card"]);

@@ -6,16 +6,16 @@
 // A set reported by enough people is already unlisted (config/trust.config.js). After checking one, in mongosh:
 // - to list it again and clear its reports:
 //     db.cards.updateOne({ _id: ObjectId("<id>") }, { $set: { listed: true }, $unset: { listAt: 1 } })
-//     db.set_reports.deleteMany({ card: ObjectId("<id>") })
+//     db.card_reports.deleteMany({ card: ObjectId("<id>") })
 // - to keep it unlisted: leave it as it is.
 import { initMongoDB, mongoDisconnect } from "../src/services/mongo.js";
-import SetReport from "../src/models/reports/setReports.mongo.js";
+import CardReport from "../src/models/cardReports/cardReports.mongo.js";
 import Card from "../src/models/cards/cards.mongo.js";
 import Users from "../src/models/users/users.mongo.js";
 
 await initMongoDB();
 try {
-  const reported = await SetReport.aggregate([
+  const reported = await CardReport.aggregate([
     {
       $group: {
         _id: "$card",
