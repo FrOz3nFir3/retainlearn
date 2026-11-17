@@ -26,6 +26,11 @@ console.log(`Checking ${where(env.MONGO_URI)}, read-only\n`);
 await mongoose.connect(env.MONGO_URI, { autoIndex: false, autoCreate: false, serverSelectionTimeoutMS: 10000 });
 
 try {
+  // --- The server: its version, and whether it's a replica set (needed for multi-document transactions).
+  const admin = mongoose.connection.db.admin();
+  const [{ version }, hello] = await Promise.all([admin.buildInfo(), admin.command({ hello: 1 })]);
+  note(`MongoDB ${version}, ${hello.setName ? `replica set "${hello.setName}" (transactions available)` : "standalone (no multi-document transactions)"}\n`);
+
   // --- Accounts
   const accounts = await Users.countDocuments();
   console.log(`Accounts: ${accounts}`);
