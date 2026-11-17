@@ -1,0 +1,13 @@
+# Local development only: Redis for the server's cache and rate limits. MongoDB already runs on your machine
+# (port 27017). Production doesn't use this file: Dokploy builds and runs the server, and Cloudflare the client.
+#
+#   docker compose up -d     start Redis
+#   docker compose down      stop it (nothing is kept: it's a cache)
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: retainlearn-redis
+    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "allkeys-lru", "--save", "", "--appendonly", "no"]
+    ports:
+      - "127.0.0.1:6379:6379" # this machine only, not the network
+    restart: unless-stopped

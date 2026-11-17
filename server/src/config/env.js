@@ -13,8 +13,11 @@ import { dirname, join } from "path";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Load environment variables from .env file
-dotenv.config({ path: join(__dirname, "../../../.env") });
+// Load environment variables. `.env.local` (git-ignored; see `.env.local.example`) loads first and wins, because
+// dotenv never overrides a value that's already set: it points a local server at local databases, so development
+// never touches production's. Then `.env`. Production has neither file in the repo: Dokploy sets its variables.
+dotenv.config({ path: join(__dirname, "../../../.env.local"), quiet: true });
+dotenv.config({ path: join(__dirname, "../../../.env"), quiet: true });
 
 /**
  * Environment variables with defaults and validation
