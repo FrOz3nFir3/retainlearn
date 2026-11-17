@@ -116,6 +116,7 @@ The API tests use Node's built-in test runner against a local database of their 
 *   `npm run server`: Starts the backend server.
 *   `npm run deploy`: Builds client and starts server.
 *   `npm run reports --prefix server`: Lists the study sets people have reported, most reported first. It only reads (the database in `MONGO_URI`), and says how to list a set again after checking it.
+*   `npm run check:data --prefix server`: Checks, read-only, that a database's data fits what this version of the server reads (sign-in, the categories, each set's page), before deploying it. Point `MONGO_URI` at production to check it there. It prints counts only.
 
 ## 📄 License
 
