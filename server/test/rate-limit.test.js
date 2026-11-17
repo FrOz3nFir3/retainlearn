@@ -15,6 +15,14 @@ after(async () => {
   await t?.stop();
 });
 
+test("browsing while logged out doesn't use up the sign-in limit", async () => {
+  // More pages than sign-ins allowed (10 per 15 minutes). The two limits used to share one count per visitor.
+  for (let i = 0; i < 15; i++) {
+    assert.equal((await t.api("/api/cards/categories?page=1")).status, 200);
+  }
+  await t.signIn("ada_author");
+});
+
 test("a strike is remembered for 12 hours, not 500 days", async () => {
   // Sign-ins allow 10 tries per 15 minutes; the 11th is over the limit and earns a strike.
   let last;

@@ -99,6 +99,9 @@ export const authLimiter = rateLimit({
   },
   store: redis.isReady
     ? new RedisStore({
+      // Its own counts. With the default prefix it shared each visitor's count with globalApiLimiter, so browsing
+      // while logged out used up the sign-in limit.
+      prefix: "rl:auth:",
       sendCommand: (...args) => {
         // edge case left to handle later
         if (!redis.isReady) return [];
@@ -154,6 +157,7 @@ export const globalApiLimiter = rateLimit({
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   store: redis.isReady
     ? new RedisStore({
+      prefix: "rl:api:", // its own counts, apart from sign-ins (authLimiter)
       sendCommand: (...args) => {
         // edge case left to handle later
         if (!redis.isReady) return [];
