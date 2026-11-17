@@ -31,9 +31,10 @@ export async function httpGetCardById(req, res) {
 
 export async function httpGetCardLogs(req, res) {
   const { id } = req.params;
-  const page = parseInt(req.query.page, 10) || 1;
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
   const limit = 10;
-  const search = req.query.search || "";
+  // One piece of text, at most 100 characters (a repeated ?search= arrives as a list).
+  const search = typeof req.query.search === "string" ? req.query.search.slice(0, 100) : "";
 
   try {
     const data = await getCardLogs(id, page, limit, search);

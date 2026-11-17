@@ -3,9 +3,10 @@
 // Before this fix, posting an email and any Google id signed you in as that email's owner.
 import { after, before, beforeEach, mock, test } from "node:test";
 import assert from "node:assert/strict";
-import { startApi } from "./helpers.js";
+import { cookiesOf, startApi } from "./helpers.js";
 import { ids } from "./fixtures.js";
 import { googleAuth } from "../src/services/googleAuth.js";
+import { generateUniqueUsername } from "../src/models/users/users.model.js";
 import Users from "../src/models/users/users.mongo.js";
 
 let t;
@@ -61,6 +62,10 @@ test("an unverified Google email can't sign in, or take over the account with th
 });
 
 test("a verified Google account links to the account with its email, and nothing secret comes back", async () => {
+  // Someone signed in to this account with its password before the email's owner signs in with Google. Sign-up never
+  // checked the email, so that may not have been the owner.
+  const earlierSession = await t.signIn("lee_learner");
+
   googleSays(lee);
   const res = await googleLogin({ credential: "real" });
   assert.equal(res.status, 200);
@@ -68,18 +73,36 @@ test("a verified Google account links to the account with its email, and nothing
   assert.equal(body.user.username, "lee_learner");
   assert.equal(body.user.name, "Lee Learner", "the name they chose is kept, not replaced by Google's");
   assert.ok(body.csrfToken);
-  assert.doesNotMatch(JSON.stringify(body), /password|\$2[aby]\$/);
+  assert.doesNotMatch(JSON.stringify(body), /password|\$2[aby]\$|tokenVersion/);
   assert.ok(res.headers.getSetCookie().some((cookie) => cookie.startsWith("jwt_access=")));
   assert.equal(await googleIdOf(ids.learner), "google-lee");
+
+  // Whoever else could get in is shut out: the password is gone, and the earlier session can't be renewed.
+  assert.equal((await Users.findById(ids.learner).lean()).password, undefined);
+  const renewEarlier = await t.api("/api/user/refresh", { method: "POST", headers: { Cookie: earlierSession.Cookie } });
+  assert.equal(renewEarlier.status, 401);
+  // The Google sign-in's own session works.
+  const renewOwn = await t.api("/api/user/refresh", { method: "POST", headers: { Cookie: cookiesOf(res) } });
+  assert.equal(renewOwn.status, 200);
 });
 
 test("a verified Google account with a new email gets a new account, with no password", async () => {
-  googleSays({ googleId: "google-new", email: "new.person@example.test", emailVerified: true, name: "New Person" });
+  googleSays({ googleId: "google-new", email: "New.Person@Example.test", emailVerified: true, name: "New Person" });
   const res = await googleLogin({ credential: "real" });
   assert.equal(res.status, 200);
   const created = await Users.findOne({ googleId: "google-new" }).lean();
-  assert.equal(created.email, "new.person@example.test");
+  assert.equal(created.email, "new.person@example.test", "stored lowercased, like every email");
   assert.equal(created.password, undefined);
+});
+
+test("new Google accounts get a username of 3 to 30 characters, whatever the email", async () => {
+  assert.equal(await generateUniqueUsername("jo@example.test"), "jouser");
+  assert.equal(await generateUniqueUsername("__@example.test"), "user");
+  const long = await generateUniqueUsername(`${"a".repeat(40)}@example.test`);
+  assert.equal(long, "a".repeat(20));
+  // A name that's taken gets a random suffix, still within 30.
+  await Users.create({ username: "leelearner", email: "other@example.test" });
+  assert.match(await generateUniqueUsername("lee.learner@example.test"), /^leelearner[0-9a-f]{4}$/);
 });
 
 test("profile: a Google id posted by the browser isn't linked", async () => {

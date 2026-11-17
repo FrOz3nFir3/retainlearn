@@ -1,4 +1,5 @@
 import rateLimit, { MemoryStore } from "express-rate-limit";
+import { isIP } from "node:net";
 import { LRUCache } from "lru-cache";
 import { redis, redisConnect } from "../services/redis.js";
 import { RedisStore } from "rate-limit-redis";
@@ -14,23 +15,24 @@ console.log(
     : `Redis connected to rate limiter`
 );
 
+// The visitor's address, which the limits below count by (P0-10).
+// - Behind Cloudflare (ENABLE_PROXY), it's the CF-Connecting-IP header. Cloudflare sets it on every request and
+//   replaces any value the visitor sent. X-Forwarded-For can't be used: its first entries are whatever the visitor
+//   wrote, so it could look like a new visitor on every request.
+// - Otherwise, the address that connected (Express's req.ip).
+// The header only counts if the request came through Cloudflare. Requests that reach the server directly could set it
+// to anything, so the server should only accept connections from Cloudflare.
 export const getClientIp = (req) => {
-  let ip = req.ip;
-
   if (env.ENABLE_PROXY) {
-    // later have req headers as per the proxy setup
-    const clientIp =
-      req.headers["x-forwarded-for"]
-
-    if (clientIp) {
-      ip = clientIp;
-    }
+    const visitor = req.headers["cf-connecting-ip"];
+    if (typeof visitor === "string" && isIP(visitor)) return visitor;
   }
-
-  return ip ?? req.socket.remoteAddress;
+  return req.ip ?? req.socket.remoteAddress;
 };
 
-const ttl = 12 * 60 * 60 * 1000; // 12 hours;
+// How long a "strike" (one time over a limit) is remembered. Redis takes seconds and the memory store milliseconds:
+// passing the milliseconds to Redis once kept strikes for about 500 days.
+const STRIKE_TTL_SECONDS = 12 * 60 * 60; // 12 hours
 const GLOBAL_ABUSE_THRESHOLD = 1000; // How many times an IP can get rate-limited before a long-term block.
 const AUTH_ABUSE_THRESHOLD = 10;
 
@@ -41,18 +43,32 @@ const AUTH_ABUSE_THRESHOLD = 10;
 const abuseTracker = new LRUCache({
   max: 100000, // A single, larger cache for all abuse tracking.
   // The TTL here is for how long a "strike" is remembered.
-  ttl, // Strikes are forgotten after 12 hour.
+  ttl: STRIKE_TTL_SECONDS * 1000,
 });
+
+// Strikes are counted separately for sign-ins and for the API as a whole, under their own names in Redis.
+const authStrikeKey = (key) => `strikes:auth:${key}`;
+const apiStrikeKey = (key) => `strikes:api:${key}`;
+
+async function getStrikes(key) {
+  return redis.isReady ? Number(await redis.get(key)) : abuseTracker.get(key) || 0;
+}
+
+async function addStrike(key) {
+  const strikes = (await getStrikes(key)) + 1;
+  if (redis.isReady) {
+    await redis.set(key, String(strikes), { EX: STRIKE_TTL_SECONDS });
+  } else {
+    abuseTracker.set(key, strikes);
+  }
+  return strikes;
+}
 
 // Rate limiter for sensitive authentication actions like login and registration
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: async (req, res) => {
-    const key = getClientIp(req);
-
-    const strikes = redis.isReady
-      ? Number(await redis.get(key))
-      : abuseTracker.get(key) || 0;
+    const strikes = await getStrikes(authStrikeKey(getClientIp(req)));
     // If this user/IP has reached the abuse threshold, block them.
     if (strikes >= AUTH_ABUSE_THRESHOLD) {
       return -1; // The "Penalty Box" logic.
@@ -63,18 +79,8 @@ export const authLimiter = rateLimit({
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
   handler: async (req, res, next, options) => {
-    const key = options.keyGenerator(req);
     // Increment the strike count for this user/IP.
-    const strikeCount =
-      (redis.isReady
-        ? Number(await redis.get(key))
-        : abuseTracker.get(key) || 0) + 1;
-
-    if (redis.isReady) {
-      await redis.set(key, strikeCount.toString(), { EX: ttl }); // The cache's TTL will handle eviction.
-    } else {
-      abuseTracker.set(key, strikeCount);
-    }
+    const strikeCount = await addStrike(authStrikeKey(options.keyGenerator(req)));
 
     if (strikeCount >= AUTH_ABUSE_THRESHOLD) {
       // On the final strike, send a harsher message.
@@ -115,11 +121,7 @@ export const globalApiLimiter = rateLimit({
     return whiteListIp.includes(key);
   },
   max: async (req, res) => {
-    const key = req.token ? req.token.id : getClientIp(req);
-
-    const strikes = redis.isReady
-      ? Number(await redis.get(key))
-      : abuseTracker.get(key) || 0;
+    const strikes = await getStrikes(apiStrikeKey(req.token ? req.token.id : getClientIp(req)));
     // If this user/IP has reached the abuse threshold, block them.
     if (strikes >= GLOBAL_ABUSE_THRESHOLD) {
       return -1; // The "Penalty Box" logic.
@@ -131,19 +133,8 @@ export const globalApiLimiter = rateLimit({
     return req.token ? req.token.id : getClientIp(req);
   },
   handler: async (req, res, next, options) => {
-    const key = options.keyGenerator(req);
-
     // Increment the strike count for this user/IP.
-    const strikeCount =
-      (redis.isReady
-        ? Number(await redis.get(key))
-        : abuseTracker.get(key) || 0) + 1;
-
-    if (redis.isReady) {
-      await redis.set(key, strikeCount.toString(), { EX: ttl }); // The cache's TTL will handle eviction.
-    } else {
-      abuseTracker.set(key, strikeCount);
-    }
+    const strikeCount = await addStrike(apiStrikeKey(options.keyGenerator(req)));
 
     if (strikeCount >= GLOBAL_ABUSE_THRESHOLD) {
       // On the final strike, send a harsher message.

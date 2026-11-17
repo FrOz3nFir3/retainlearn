@@ -8,8 +8,9 @@ export async function findUserByEmail(email, projection = {}) {
   return Users.findOne({ email: String(email) }, projection).lean();
 }
 
+// $eq here and in findUserByEmailOrUsername: a value that isn't text is only ever compared, never read as a query.
 export async function findUserByUsername(username, projection = {}) {
-  return Users.findOne({ username }, projection).lean();
+  return Users.findOne({ username: { $eq: username } }, projection).lean();
 }
 
 export async function getPublicUserByUsername(username, excludeId = true) {
@@ -26,7 +27,7 @@ export async function findUserByEmailOrUsername(
 ) {
   return Users.findOne(
     {
-      $or: [{ email: loginIdentifier }, { username: loginIdentifier }],
+      $or: [{ email: { $eq: loginIdentifier } }, { username: { $eq: loginIdentifier } }],
     },
     projection
   ).lean();
@@ -49,19 +50,21 @@ export async function createNewUser(user) {
   return newUser.save();
 }
 
+// Ends every session of this user: tokens issued before now carry an older token version, and refreshing one fails.
+export async function endAllSessions(userId) {
+  return Users.updateOne({ _id: { $eq: userId } }, { $inc: { tokenVersion: 1 } });
+}
+
+// A free username for a new Google account, from the letters and digits before the email's "@". Usernames are 3 to
+// 30 characters: a short or symbol-only name ("jo@…") gets "user" added, and a long one is cut to 20, leaving room for
+// a random suffix when the name is taken.
 export async function generateUniqueUsername(email) {
-  let username = email.split("@")[0].replace(/[^a-z0-9]/gi, "");
-  let user = await findUserByUsername(username);
-  let attempts = 0;
-  while (user) {
-    attempts++;
-    // Use cryptographically secure random bytes to generate a suffix.
-    username = `${username}${crypto.randomBytes(2).toString("hex")}`;
-    if (attempts > 5) {
-      // Fallback for highly saturated usernames
-      username = `${username}${new Date().getTime()}`;
-    }
-    user = await findUserByUsername(username);
+  let base = email.split("@")[0].replace(/[^a-z0-9]/gi, "").slice(0, 20);
+  if (base.length < 3) base = `${base}user`;
+  let username = base;
+  for (let attempt = 0; await findUserByUsername(username, { _id: 1 }); attempt++) {
+    // Cryptographically secure random suffix; a longer one after a few collisions.
+    username = `${base}${crypto.randomBytes(attempt < 5 ? 2 : 4).toString("hex")}`;
   }
   return username;
 }

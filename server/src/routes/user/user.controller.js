@@ -22,19 +22,20 @@ import {
   updateUserStrugglingQuiz,
   resetUserQuizProgress,
   searchUsers,
+  endAllSessions,
 } from "../../models/users/users.model.js";
 import { getPagination } from "../../services/query.js";
 import {
   setTokens,
+  clearSessionCookies,
   verifyRefreshToken,
-  createAccessToken,
   createCSRFToken,
-  ACCESS_TOKEN_MAX_AGE_MS,
 } from "./auth.controller.js";
 import { compare } from "bcrypt";
 import EmailValidator from "email-deep-validator";
 const emailValidator = new EmailValidator({ timeout: 10000 });
 import { userDetailsProjection } from "../../utils/constants.js";
+import { normalizeEmail } from "../../utils/textNormalization.js";
 import { googleAuth } from "../../services/googleAuth.js";
 
 import env from "../../config/env.js";
@@ -66,25 +67,16 @@ export async function httpRefreshToken(req, res) {
     return res.status(401).json({ error: "Invalid refresh token." });
   }
 
-  const newAccessToken = createAccessToken(decoded.id);
-  const csrfToken = createCSRFToken();
+  // The session must still be live (P0-13): the account exists, and nothing has ended its sessions since this token
+  // was issued (logging out, or a Google sign-in with the account's email).
+  const user = await getUserById(decoded.id, { tokenVersion: 1 });
+  if (!user || (user.tokenVersion ?? 0) !== (decoded.v ?? 0)) {
+    clearSessionCookies(res);
+    return res.status(401).json({ error: "Your session has ended. Please sign in again." });
+  }
 
-  res.cookie("jwt_access", newAccessToken, {
-    httpOnly: true,
-    signed: true,
-    maxAge: ACCESS_TOKEN_MAX_AGE_MS, // 1 hour
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    path: "/api",
-  });
-
-  // Set new CSRF token as session cookie
-  res.cookie("csrf_token", csrfToken, {
-    httpOnly: true,
-    secure: isProduction,
-    sameSite: isProduction ? "none" : "lax",
-    path: "/api",
-  });
+  // New tokens all round, the refresh token included, so an active session keeps going.
+  const csrfToken = setTokens(res, user);
 
   res.status(200).json({
     message: "Token refreshed successfully",
@@ -133,14 +125,16 @@ export async function httpPostAuthDetails(req, res) {
   });
 }
 
+// Sign up with a password. Only the sign-up fields are read (P0-07): anything else in the request, such as a Google id,
+// progress or an _id, never reaches the new account.
 export async function httpCreateNewUser(req, res) {
-  const newUser = req.body;
+  const { name, username: rawUsername, email: rawEmail, password: userPassword, confirmPassword } = req.body ?? {};
   try {
     // --- Username Validation ---
-    if (!newUser.username || typeof newUser.username !== "string") {
+    if (!rawUsername || typeof rawUsername !== "string") {
       return res.status(400).json({ error: "Username is required" });
     }
-    const username = newUser.username.trim();
+    const username = rawUsername.trim();
     if (username.length < 3) {
       return res
         .status(400)
@@ -156,22 +150,24 @@ export async function httpCreateNewUser(req, res) {
         error: "Username can only contain letters, numbers, and underscores",
       });
     }
-    const usernameExists = await findUserByUsername(username);
+    const usernameExists = await findUserByUsername(username, { _id: 1 });
     if (usernameExists) {
       return res.status(409).json({ error: "Username is already taken" });
     }
-    newUser.username = username; // Use the sanitized username
 
     // --- Name Validation ---
-    if (!newUser.name || typeof newUser.name !== "string") {
-      return res.status(400).json({ error: "Name is required" });
+    const nameError = checkName(name);
+    if (nameError) {
+      return res.status(400).json({ error: nameError });
     }
 
     // --- Password Validation ---
-    if (newUser.password != newUser.confirmPassword) {
+    if (typeof userPassword !== "string" || userPassword.length === 0) {
+      return res.status(400).json({ error: "Password is required" });
+    }
+    if (userPassword !== confirmPassword) {
       return res.status(409).json({ error: "Confirm Password does not match" });
     }
-    const userPassword = newUser.password;
     if (userPassword.length < 10) {
       return res
         .status(400)
@@ -200,17 +196,17 @@ export async function httpCreateNewUser(req, res) {
     }
 
     // --- Email Validation ---
-    const userExists = await findUserByEmail(
-      newUser.email,
-      userDetailsProjection
-    );
+    // Checked as a plain address before anything else, so nothing malformed reaches the domain and mailbox check.
+    const email = normalizeEmail(rawEmail);
+    if (!email) {
+      return res.status(400).json({ error: "Please enter a valid email address" });
+    }
+    const userExists = await findUserByEmail(email, { _id: 1 });
     if (userExists != null) {
       return res.status(409).json({ error: "Email already exist" });
     }
 
-    const { validDomain, validMailbox } = await emailValidator.verify(
-      newUser.email
-    );
+    const { validDomain, validMailbox } = await emailValidator.verify(email);
     if (validDomain == false || validMailbox == false) {
       if (!validDomain) {
         return res.status(409).json({ error: "Invalid Email Domain" });
@@ -225,17 +221,23 @@ export async function httpCreateNewUser(req, res) {
         .json({ error: "Invalid Email please try with different email" });
     }
 
-    const user = await createNewUser(newUser);
+    const user = await createNewUser({ name: name.trim(), username, email, password: userPassword });
     const csrfToken = setTokens(res, user);
-    const { _id, password, __v, studying, ...userDetails } = user._doc ?? user;
     res.status(200).json({
-      user: userDetails,
+      user: { name: user.name, username: user.username, email: user.email, studyingCount: 0 },
       csrfToken,
     });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error });
+    console.error(error);
+    res.status(500).json({ error: "Sign-up failed. Please try again." });
   }
+}
+
+// What's wrong with a display name, if anything.
+function checkName(name) {
+  if (typeof name !== "string" || name.trim() === "") return "Name is required";
+  if (name.trim().length > 100) return "Name must be 100 characters or less";
+  return null;
 }
 
 export async function httpUpdateUser(req, res) {
@@ -243,16 +245,20 @@ export async function httpUpdateUser(req, res) {
     const { id } = req.token;
     // A Google account is linked from a token Google issued for this app, checked with Google (services/googleAuth.js),
     // never from an id posted by the browser.
-    const { name, email, username, googleAccessToken } = req.body;
+    const { name, email, username, googleAccessToken } = req.body ?? {};
     const updateFields = {};
 
-    if (name?.trim() === "") {
-      return res.status(400).json({ error: "Name cannot be empty" });
-    }
-    if (name) {
+    if (name != null) {
+      const nameError = checkName(name);
+      if (nameError) {
+        return res.status(400).json({ error: nameError });
+      }
       updateFields.name = name.trim();
     }
 
+    if (username != null && typeof username !== "string") {
+      return res.status(400).json({ error: "Username must be text" });
+    }
     if (username) {
       const sanitizedUsername = username.trim();
       if (sanitizedUsername.length < 3 || sanitizedUsername.length > 30) {
@@ -274,20 +280,25 @@ export async function httpUpdateUser(req, res) {
       updateFields.username = sanitizedUsername;
     }
 
-    if (email?.trim() === "") {
-      return res.status(400).json({ error: "Email cannot be empty" });
-    }
-    if (email) {
-      const { validDomain, validMailbox } = await emailValidator.verify(email);
-      if (validDomain == false || validMailbox == false) {
-        return res.status(409).json({ error: "Invalid Email" });
+    if (email != null) {
+      if (typeof email !== "string" || email.trim() === "") {
+        return res.status(400).json({ error: "Email cannot be empty" });
       }
-
-      const existingUser = await findUserByEmail(email.trim(), { _id: 1 });
+      // A plain address first, so nothing malformed reaches the domain and mailbox check.
+      const normalizedEmail = normalizeEmail(email);
+      if (!normalizedEmail) {
+        return res.status(400).json({ error: "Please enter a valid email address" });
+      }
+      const existingUser = await findUserByEmail(normalizedEmail, { _id: 1 });
       if (existingUser && existingUser._id.toString() !== id) {
         return res.status(409).json({ error: "Email already in use" });
       }
-      updateFields.email = email.trim();
+
+      const { validDomain, validMailbox } = await emailValidator.verify(normalizedEmail);
+      if (validDomain == false || validMailbox == false) {
+        return res.status(409).json({ error: "Invalid Email" });
+      }
+      updateFields.email = normalizedEmail;
     }
 
     if (googleAccessToken) {
@@ -313,8 +324,8 @@ export async function httpUpdateUser(req, res) {
     await updateUser(id, updateFields);
     res.status(200).json(updateFields.googleId ? { ok: true, googleId: updateFields.googleId } : { ok: true });
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
+    console.error(error);
+    res.status(500).json({ error: "Couldn't update your profile. Please try again." });
   }
 }
 
@@ -355,11 +366,19 @@ export async function httpUpdateUserReviewProgress(req, res) {
 }
 
 export async function httpLoginUser(req, res) {
-  const { loginIdentifier, password } = req.body;
+  const { loginIdentifier, password } = req.body ?? {};
+  // Only text is looked up. Anything else (an object, say) would be read by the database as a query (P0-10).
+  if (typeof loginIdentifier !== "string" || loginIdentifier.trim() === "" || typeof password !== "string" || password === "") {
+    return res.status(400).json({ error: "Please enter your email or username, and your password" });
+  }
+  // Usernames can't contain "@", so an identifier with one is an email address, and those are stored lowercased.
+  const identifier = loginIdentifier.includes("@") ? normalizeEmail(loginIdentifier) ?? loginIdentifier.trim() : loginIdentifier.trim();
   try {
-    const user = await findUserByEmailOrUsername(loginIdentifier, {
-      __v: 0,
-      "studying.quizAttempts": 0,
+    const user = await findUserByEmailOrUsername(identifier, {
+      ...userDetailsProjection,
+      _id: 1,
+      password: 1,
+      tokenVersion: 1,
     });
 
     if (user == null) {
@@ -378,13 +397,14 @@ export async function httpLoginUser(req, res) {
 
     const csrfToken = setTokens(res, user);
 
-    const { _id, password: p, studying, ...userDetails } = user;
+    const { _id, password: p, tokenVersion, ...userDetails } = user;
     return res.status(200).json({
       user: userDetails,
       csrfToken,
     });
   } catch (error) {
-    return res.status(500).json({ error: error.message });
+    console.error(error);
+    return res.status(500).json({ error: "Sign-in failed. Please try again." });
   }
 }
 
@@ -412,59 +432,51 @@ export async function httpLoginGoogleUser(req, res) {
   }
 
   try {
-    const projection = { ...userDetailsProjection, _id: 1 };
+    const email = normalizeEmail(google.email) ?? google.email;
+    const projection = { ...userDetailsProjection, _id: 1, tokenVersion: 1 };
     let user = await findUserByGoogleId(google.googleId, projection);
 
     if (user == null) {
-      const emailUser = await findUserByEmail(google.email, { _id: 1 });
+      const emailUser = await findUserByEmail(email, { _id: 1 });
       if (emailUser) {
-        // An account with this (verified) email already exists: link the Google account to it. The name the user
-        // chose is kept.
-        user = await updateUser(emailUser._id, { googleId: google.googleId }, projection);
+        // An account with this email already exists, and Google has just shown that this person owns the email.
+        // Nobody had shown that before: sign-up doesn't check emails, and the profile can change them. So whoever
+        // else could get into the account is shut out: its password is removed (sign in with Google from now on),
+        // any other Google account is replaced, and every session ends. The name the user chose is kept.
+        user = await updateUser(
+          emailUser._id,
+          { $set: { googleId: google.googleId }, $unset: { password: 1 }, $inc: { tokenVersion: 1 } },
+          projection
+        );
       } else {
-        const username = await generateUniqueUsername(google.email);
-        await createNewUser({ email: google.email, name: google.name, googleId: google.googleId, username });
+        const username = await generateUniqueUsername(email);
+        await createNewUser({ email, name: google.name, googleId: google.googleId, username });
         user = await findUserByGoogleId(google.googleId, projection);
       }
     }
 
     const csrfToken = setTokens(res, user);
-    const { _id, ...userDetails } = user;
+    const { _id, tokenVersion, ...userDetails } = user;
     return res.status(200).json({
       user: userDetails,
       csrfToken,
     });
   } catch (error) {
-    console.log(error);
+    console.error(error);
     return res.status(500).json({ error: "Google sign-in failed. Please try again." });
   }
 }
 
+// Logging out ends the account's sessions on every device (P0-13): the token version moves on, so no refresh token
+// issued before now works. Access tokens already issued still work until they expire (3 hours at most).
 export async function httpLogoutUser(req, res) {
-  const refreshTokenFromCookie = req.signedCookies.jwt_refresh;
-  if (!refreshTokenFromCookie) {
-    return res.sendStatus(204); // No content
+  clearSessionCookies(res);
+  try {
+    await endAllSessions(req.token.id);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: "Logging out failed. Please try again." });
   }
-  let extraOptions = {};
-  if (isProduction) {
-    extraOptions = {
-      secure: true,
-      sameSite: "none",
-    };
-  }
-
-  res.clearCookie("jwt_access", {
-    path: "/api",
-    ...extraOptions,
-  });
-  res.clearCookie("jwt_refresh", {
-    path: "/api/user",
-    ...extraOptions,
-  });
-  res.clearCookie("csrf_token", {
-    path: "/api",
-    ...extraOptions,
-  });
   return res.status(200).json({ ok: true });
 }
 

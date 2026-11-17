@@ -991,8 +991,9 @@ export async function getCardLogs(cardId, page = 1, limit = 10, search = "") {
       ? [
         {
           $match: {
+            // Searched as plain text: the words are escaped, so nothing typed is read as a pattern (P0-16).
             "logs.summary": {
-              $regex: normalizeWhitespace(search),
+              $regex: escapeRegex(search),
               $options: "i",
             },
           },

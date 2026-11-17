@@ -127,6 +127,13 @@ const UsersSchema = new Schema({
   googleId: {
     type: String,
   },
+  // Moves on when every session should end (logging out, or a Google sign-in with the account's email). Sign-in
+  // tokens carry the version they were issued with (routes/user/auth.controller.js). Missing on older accounts,
+  // which counts as 0.
+  tokenVersion: {
+    type: Number,
+    default: 0,
+  },
   studying: [studyingSchema],
 });
 

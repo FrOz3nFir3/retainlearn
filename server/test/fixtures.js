@@ -35,6 +35,29 @@ export const cards = () => [
       { _id: ids.constCard, question: "<p>What does <code>const</code> declare?</p>", answer: "<p>A block-scoped binding that can't be reassigned.</p>" },
       { _id: ids.loopCard, question: "<p>What does the event loop do?</p>", answer: "<p>Runs queued callbacks once the call stack is empty.</p>" },
     ],
+    // History and a suggestion waiting for review, so reads that show who did what return people.
+    logs: [
+      { eventType: "created", user: ids.author, summary: "Created the study set", timestamp: new Date("2026-01-01"), changes: [] },
+      {
+        eventType: "updated",
+        user: ids.author,
+        summary: "Edited a flashcard",
+        timestamp: new Date("2026-01-02"),
+        changes: [{ field: "Flashcard Answer", oldValue: "<p>Old</p>", newValue: "<p>New</p>", cardId: ids.loopCard }],
+      },
+    ],
+    reviewQueue: [
+      {
+        changeType: "edit",
+        field: "description",
+        oldValue: "Variables, scope and the event loop.",
+        newValue: "Variables, scope, closures and the event loop.",
+        targetId: ids.js,
+        submittedBy: ids.learner,
+        submittedAt: new Date("2026-01-03"),
+        expiresAt: new Date("2099-01-01"),
+      },
+    ],
     // `options` are the wrong answers; the right one is `quizAnswer` (as in the real model).
     quizzes: [
       {
