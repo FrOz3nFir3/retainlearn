@@ -12,6 +12,7 @@ import { initMongoDB, mongoDisconnect } from "../src/services/mongo.js";
 import { assertLocalRetainlearn } from "../scripts/local-only.js";
 import { migrationStatus, runAtStartup, runMigrations, shouldRunMigrations } from "../src/migrations/runner.js";
 import migrations from "../src/migrations/index.js";
+import Users from "../src/models/users/users.mongo.js";
 
 let db;
 before(async () => {
@@ -203,11 +204,58 @@ test("0001 leaves an index on the same fields with other options alone: that's s
   const problems = [];
   await runMigrations(db, { dryRun: true, log: quiet, problem: (text) => problems.push(text) });
   assert.deepEqual(problems, [
-    '0001-indexes: users email (unique): the index "email_1" is on the same fields with other options. Drop it by hand first.',
+    '0001-indexes: users email (unique): the index "email_1" is on the same fields with other options (not unique). Drop it by hand first.',
   ]);
   await assert.rejects(runMigrations(db, { log: quiet }), /email_1/);
   const email = (await db.collection("users").indexes()).find((index) => index.name === "email_1");
   assert.ok(email && !email.unique, "left as it was");
+});
+
+test("0001 replaces an older googleId index with other options, as production has, once no two accounts share one", async () => {
+  const users = db.collection("users");
+  await users.createIndex({ googleId: 1 }, { unique: true, sparse: true }); // an older form
+  await users.insertMany([
+    { username: "one", email: "one@example.test", googleId: "google-1" },
+    { username: "two", email: "two@example.test", googleId: "google-2" },
+    { username: "three", email: "three@example.test" },
+    { username: "four", email: "four@example.test" },
+  ]);
+  const googleIndex = async () => (await users.indexes()).find((index) => index.name === "googleId_1");
+
+  const lines = [];
+  const plan = await runMigrations(db, { dryRun: true, log: (text) => lines.push(text), problem: assert.fail });
+  assert.equal(plan.problems, 0);
+  assert.ok(
+    lines.includes(
+      '  users googleId (unique): will replace "googleId_1" (unique, sparse) with one that\'s unique, only where {"googleId":{"$exists":true}}; no value is shared',
+    ),
+    lines.join("\n"),
+  );
+  assert.equal((await googleIndex()).sparse, true, "the dry run left it as it was");
+
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0001-indexes"]);
+  const replaced = await googleIndex();
+  assert.equal(replaced.sparse, undefined);
+  assert.deepEqual(replaced.partialFilterExpression, { googleId: { $exists: true } });
+  assert.deepEqual(await Users.diffIndexes(), { toDrop: [], toCreate: [] }, "now as the model declares");
+  await assert.rejects(users.insertOne({ username: "five", email: "five@example.test", googleId: "google-1" }), { code: 11000 });
+});
+
+test("0001 keeps the old googleId index while two accounts share a Google id", async () => {
+  const users = db.collection("users");
+  await users.createIndex({ googleId: 1 }); // not unique
+  await users.insertMany([
+    { username: "one", email: "one@example.test", googleId: "google-1" },
+    { username: "two", email: "two@example.test", googleId: "google-1" },
+  ]);
+  const problems = [];
+  await runMigrations(db, { dryRun: true, log: quiet, problem: (text) => problems.push(text) });
+  assert.deepEqual(problems, ["0001-indexes: users googleId (unique): 1 value(s) belong to more than one document. Make them unique first."]);
+
+  await assert.rejects(runMigrations(db, { log: quiet }), /users googleId/);
+  const kept = (await users.indexes()).find((index) => index.name === "googleId_1");
+  assert.ok(kept && !kept.unique && !kept.partialFilterExpression, "not dropped");
+  assert.deepEqual(await recorded(), []);
 });
 
 test("every numbered file in src/migrations is in the list, in order", async () => {
