@@ -81,6 +81,10 @@ const LanguageSelector = ({ editor, currentLanguage = "plaintext" }) => {
       setIsOpen(false);
       setSearchTerm("");
     } else if (event.key === "Enter" && filteredLanguages.length > 0) {
+      // Enter that confirms a word being composed (Chinese, Japanese, Korean input) isn't a choice yet. Safari can
+      // report isComposing as false on that keystroke, so keyCode 229 is checked too.
+      event.preventDefault();
+      if (event.isComposing || event.keyCode === 229) return;
       // Prioritize favorites for Enter key selection
       const firstLanguage =
         favoriteLanguages.length > 0
