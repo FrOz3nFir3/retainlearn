@@ -117,13 +117,16 @@ const UsersSchema = new Schema({
     minlength: 3,
     maxlength: 30,
   },
+  // Unique, like the username: one account per email.
   email: {
     type: String,
     required: true,
+    unique: true,
   },
   password: {
     type: String,
   },
+  // Unique among the accounts that have one (the index below).
   googleId: {
     type: String,
   },
@@ -136,6 +139,10 @@ const UsersSchema = new Schema({
   },
   studying: [studyingSchema],
 });
+
+// The indexes declared here are made by a migration (src/migrations/0001-indexes.js), not when the server starts. A
+// test checks that the two agree.
+UsersSchema.index({ googleId: 1 }, { unique: true, partialFilterExpression: { googleId: { $exists: true } } });
 
 const SALT_WORK_FACTOR = 10;
 

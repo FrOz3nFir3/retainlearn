@@ -1,5 +1,7 @@
+import mongoose from "mongoose";
 import app from "./app.js";
 import { initMongoDB } from "./services/mongo.js";
+import { runAtStartup } from "./migrations/runner.js";
 import env from "./config/env.js";
 
 const PORT = env.PORT;
@@ -18,6 +20,8 @@ async function startServer() {
         `Backend Server with PID:${process.pid} started in ${Date.now() - localStartTime
         }ms`
       );
+      // Database migrations, once the server is answering requests. They never stop it (src/migrations/runner.js).
+      runAtStartup(mongoose.connection.db);
     });
   } catch (err) {
     console.error(`Server startup failed:`, err.message);

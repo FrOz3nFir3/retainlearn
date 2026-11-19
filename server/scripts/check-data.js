@@ -4,10 +4,12 @@
 //   MONGO_URI="<production>" npm run check:data      production, over NetBird or as a one-off command in Dokploy
 //
 // It only reads: nothing is written, and no collection or index is created (autoIndex and autoCreate are off). It
-// runs the server's own queries for sign-in, the categories and each set's page against the real documents. It
-// prints counts, never anyone's details. Exit code 1 if something would break.
+// runs the server's own queries for sign-in, the categories and each set's page against the real documents, and
+// lists what the migrations this version brings will do when it starts (a dry run: src/migrations). It prints
+// counts, never anyone's details. Exit code 1 if something would break.
 import mongoose from "mongoose";
 import env from "../src/config/env.js";
+import { runMigrations } from "../src/migrations/runner.js";
 import Users from "../src/models/users/users.mongo.js";
 import Cards from "../src/models/cards/cards.mongo.js";
 import { getAllCategoriesWithPagination, getCardById, listedFilter } from "../src/models/cards/cards.model.js";
@@ -104,12 +106,15 @@ try {
   const [{ biggest = 0 } = {}] = await Cards.aggregate([{ $group: { _id: null, biggest: { $max: { $bsonSize: "$$ROOT" } } } }]);
   note(`the biggest set is ${Math.round(biggest / 1024)} KB (MongoDB's limit is 16 MB)`);
 
-  // --- Collections this version adds
-  const names = (await mongoose.connection.db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name);
-  note(`card_reports ${names.includes("card_reports") ? "is there" : "isn't there yet: the server makes it, with its index, when it starts"}`);
+  // --- Migrations: the ones this database hasn't had, which the server runs by itself when this version starts.
+  // A dry run: each says what it would do, and anything that would stop it is a FIX.
+  console.log("\nMigrations");
+  const { pending } = await runMigrations(mongoose.connection.db, { dryRun: true, log: note, problem: (text) => check(false, text) });
+  if (pending.length) note(`${pending.length} will run by themselves when this version starts: nothing to run by hand`);
+  else check(true, "every migration has run");
 } finally {
   await mongoose.disconnect();
 }
 
-console.log(problems ? `\n${problems} thing(s) to fix before deploying.` : "\nAll good: nothing to run on this database before or after deploying.");
+console.log(problems ? `\n${problems} thing(s) to fix before deploying.` : "\nAll good: nothing to run by hand on this database, before or after deploying.");
 process.exit(problems ? 1 : 0);
