@@ -7,9 +7,7 @@ import { DocumentTextIcon } from "@heroicons/react/24/solid";
 const CardLogs = ({ logs, cardId }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const sortedLogs = logs
-    .slice()
-    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  const sortedLogs = logs.toSorted((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
   const recentLogs = sortedLogs.slice(0, 5);
 
   return (

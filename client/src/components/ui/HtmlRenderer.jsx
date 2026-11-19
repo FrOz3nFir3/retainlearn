@@ -7,6 +7,12 @@ const HtmlRenderer = ({ htmlContent, className = "" }) => {
 
   useEffect(() => {
     if (contentRef.current) {
+      // Links people put in study sets are marked as user content that search engines shouldn't follow or credit.
+      // The server marks new content the same way; this covers content saved before it did.
+      contentRef.current.querySelectorAll("a[href]").forEach((link) => {
+        link.setAttribute("rel", "nofollow ugc noopener noreferrer");
+      });
+
       contentRef.current.querySelectorAll("pre code").forEach(async (block) => {
         let language = block.parentElement.dataset.language ?? "plaintext";
         // lowlight has this in common while hightlight doesn't

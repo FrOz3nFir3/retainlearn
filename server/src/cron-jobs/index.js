@@ -12,6 +12,8 @@ async function runCleanup() {
         await cleanupExpiredReviewItems();
         process.exit(0);
     } catch (error) {
+        // Say why, so a failed run in Dokploy's logs isn't a silent exit code.
+        console.error("Cleanup failed:", error);
         process.exit(1);
     }
 }

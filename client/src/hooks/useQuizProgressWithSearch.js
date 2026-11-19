@@ -20,7 +20,8 @@ const useQuizProgressWithSearch = (user) => {
         search: debouncedSearchQuery,
       },
       {
-        skip: !user || !user?.studyingCount,
+        // Not `user.studyingCount`, which is only read at sign-in (see useUserProgressWithSearch.js).
+        skip: !user,
       }
     );
 

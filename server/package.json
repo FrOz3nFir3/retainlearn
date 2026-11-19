@@ -10,7 +10,12 @@
   "scripts": {
     "start": "node src/server.js",
     "watch": "nodemon src/server.js",
-    "cron:cleanup": "node src/cron-jobs/index.js"
+    "cron:cleanup": "node src/cron-jobs/index.js",
+    "test": "node --test --test-concurrency=1 --test-force-exit \"test/**/*.test.js\"",
+    "db:copy": "node scripts/copy-db.js",
+    "db:seed": "node scripts/seed.js",
+    "reports": "node scripts/reports.js",
+    "check:data": "node scripts/check-data.js"
   },
   "keywords": [],
   "author": "FrOz3nFir3",
@@ -25,6 +30,7 @@
     "email-deep-validator": "^3.3.0",
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
+    "google-auth-library": "^10.9.1",
     "helmet": "^8.1.0",
     "jsdom": "^26.1.0",
     "jsonwebtoken": "^9.0.2",

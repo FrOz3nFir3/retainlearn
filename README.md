@@ -73,6 +73,41 @@ npm run dev
 *   **Frontend:** http://localhost:5173
 *   **Backend:** http://localhost:3000
 
+### Local development: local databases only
+
+A server started on your machine should never touch production's database.
+
+1.  **MongoDB** on your machine (port 27017), and **Redis** from Docker:
+    ```bash
+    docker compose up -d
+    ```
+    This file is only for local Redis. Production doesn't use it: Dokploy builds and runs the server, and Cloudflare the client.
+2.  **`.env.local`** points the server at them. It loads before `.env` and wins, and git ignores it:
+    ```bash
+    cp .env.local.example .env.local
+    ```
+    The server logs which database it connects to (`Initializing MongoDB connection to mongodb://localhost:27017/retainlearn`), and it stops if it can't connect.
+3.  **Data** in the working database, `retainlearn`, either:
+    *   copied from another local database, e.g. an imported copy of production (collections and indexes, the target dropped first):
+        ```bash
+        npm run db:copy --prefix server -- --from repetitions --to retainlearn
+        ```
+    *   or made-up data:
+        ```bash
+        npm run db:seed --prefix server
+        ```
+
+These scripts and the tests only ever write to a **local** database whose name starts with **`retainlearn`**. They refuse anything else (`server/scripts/local-only.js`).
+
+### Tests
+
+```bash
+npm test --prefix server
+npm test --prefix client
+```
+
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. Both run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
+
 ## 📜 Scripts
 
 *   `npm run install-all`: Installs dependencies for root, client, and server.
@@ -80,6 +115,8 @@ npm run dev
 *   `npm run client`: Builds the frontend for production.
 *   `npm run server`: Starts the backend server.
 *   `npm run deploy`: Builds client and starts server.
+*   `npm run reports --prefix server`: Lists the study sets people have reported, most reported first. It only reads (the database in `MONGO_URI`), and says how to list a set again after checking it.
+*   `npm run check:data --prefix server`: Checks, read-only, that a database's data fits what this version of the server reads (sign-in, the categories, each set's page), before deploying it. Point `MONGO_URI` at production to check it there. It prints counts only.
 
 ## 📄 License
 

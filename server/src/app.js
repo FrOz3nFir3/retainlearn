@@ -11,6 +11,7 @@ import helmet from "helmet";
 import cors from "cors";
 import { ddosLimiter, globalApiLimiter } from "./middleware/rateLimiter.middleware.js";
 import { attachTokenIfAuthenticated } from "./middleware/auth.middleware.js";
+import { redirectToHttps } from "./middleware/https.middleware.js";
 
 const app = express();
 const __dirname = import.meta.dirname;
@@ -44,12 +45,7 @@ app.use(
 // HTTPS redirect first
 if (env.ENABLE_PROXY) {
   app.set("trust proxy", 1);
-  app.use((req, res, next) => {
-    if (runningInProduction && req.secure == false) {
-      res.redirect("https://" + req.headers.host + req.url);
-    }
-    next();
-  });
+  if (runningInProduction) app.use(redirectToHttps);
 }
 
 // to save bandwidth if content not modified
@@ -60,7 +56,7 @@ app.use((req, res, next) => {
 
   if (method !== "GET") return next();
 
-  const isAuthenticatedRequest = url.startsWith('/api/user');
+  const isAuthenticatedRequest = url.toLowerCase().startsWith('/api/user');
   if (isAuthenticatedRequest) {
     res.set('Cache-Control', "private, no-cache, must-revalidate");
   } else {
@@ -84,7 +80,8 @@ app.use((req, res, next) => {
 });
 
 // Essential middleware
-app.use(express.json({ limit: "10mb" })); // Add limit for security
+// Request bodies up to 1 MB (P0-12). The biggest study set's flashcards and questions together come to about 200 KB.
+app.use(express.json({ limit: "1mb" }));
 app.use(express.static(path.join(__dirname, "..", "public")));
 
 // Cookie parser for API routes

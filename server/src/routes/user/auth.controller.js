@@ -18,14 +18,17 @@ export const ACCESS_TOKEN_MAX_AGE_MS =
 const REFRESH_TOKEN_MAX_AGE_MS =
   REFRESH_TOKEN_EXPIRY_DAYS * 24 * 60 * 60 * 1000;
 
-export function createAccessToken(id) {
-  return jwt.sign({ id }, ACCESS_TOKEN_SECRET, {
+// Tokens carry the account's token version (`v`) from when they were issued (P0-13). Logging out moves the account's
+// version on, and a refresh token with an older one is refused (httpRefreshToken), so every session ends. Accounts
+// and tokens from before versions existed have none, which counts as 0.
+export function createAccessToken(id, version = 0) {
+  return jwt.sign({ id, v: version }, ACCESS_TOKEN_SECRET, {
     expiresIn: ACCESS_TOKEN_EXPIRY_JWT,
   });
 }
 
-export function createRefreshToken(id) {
-  return jwt.sign({ id }, REFRESH_TOKEN_SECRET, {
+export function createRefreshToken(id, version = 0) {
+  return jwt.sign({ id, v: version }, REFRESH_TOKEN_SECRET, {
     expiresIn: REFRESH_TOKEN_EXPIRY_JWT,
   });
 }
@@ -104,14 +107,16 @@ export function verifyCSRFToken(signedToken) {
   }
 }
 
+// Starts a session, or renews one on refresh: a new access token, a new refresh token (good for another 30 days),
+// and a new CSRF token. `user` needs `_id` and `tokenVersion`.
 export function setTokens(res, user) {
-  const accessToken = createAccessToken(user._id);
-  const refreshToken = createRefreshToken(user._id);
+  const version = user.tokenVersion ?? 0;
+  const accessToken = createAccessToken(user._id, version);
+  const refreshToken = createRefreshToken(user._id, version);
   const csrfToken = createCSRFToken(); // Generate CSRF token
 
   const isProduction = env.NODE_ENV === "production";
 
-  // TODO: make samesite back to lax after domain is same
   res.cookie("jwt_access", accessToken, {
     httpOnly: true,
     signed: true,
@@ -149,4 +154,12 @@ export function setTokens(res, user) {
   });
 
   return csrfToken;
+}
+
+// Removes the session cookies from this browser (logging out, or a session that has ended).
+export function clearSessionCookies(res) {
+  const options = env.NODE_ENV === "production" ? { secure: true, sameSite: "none" } : {};
+  res.clearCookie("jwt_access", { path: "/api", ...options });
+  res.clearCookie("jwt_refresh", { path: "/api/user", ...options });
+  res.clearCookie("csrf_token", { path: "/api", ...options });
 }

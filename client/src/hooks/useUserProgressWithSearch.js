@@ -23,7 +23,9 @@ const useUserProgressWithSearch = () => {
         search: debouncedSearchQuery,
       },
       {
-        skip: !user || !user.studyingCount,
+        // Not `user.studyingCount`: it's only read at sign-in, so a set started since then stayed hidden until a
+        // reload. Asking costs one request, and the answer is cached and refreshed when progress is saved.
+        skip: !user,
       }
     );
 

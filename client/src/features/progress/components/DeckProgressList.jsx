@@ -28,8 +28,9 @@ const DeckProgressList = ({ user, onViewReport }) => {
     resetSearch,
   } = useQuizProgressWithSearch(user);
 
+  // Not `user.studyingCount`, which is only read at sign-in (see useUserProgressWithSearch.js).
   const { data: stats } = useGetUserStatsQuery(undefined, {
-    skip: !user?.studyingCount,
+    skip: !user,
   });
 
   const totalDecksStudied = stats?.totalDecksStudied || 0;

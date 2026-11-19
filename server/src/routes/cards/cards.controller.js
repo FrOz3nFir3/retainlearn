@@ -1,10 +1,13 @@
+import { Types } from "mongoose";
 import {
   getCardsByCategoryPaginated,
   createNewCard,
+  countCardsCreatedSince,
   findExistingCard,
   getAllCategoriesWithPagination,
   getCardsByAuthorPaginated,
 } from "../../models/cards/cards.model.js";
+import { DAY_MS, TRUST, trustedFrom } from "../../config/trust.config.js";
 import { getPublicUserByUsername } from "../../models/users/users.model.js";
 import { getPagination } from "../../services/query.js";
 import { getCategoriesPagination } from "../../services/categoryQuery.js";
@@ -63,23 +66,35 @@ export async function httpGetCardsByCategory(req, res) {
 export async function httpPostCreateNewCard(req, res) {
   const token = req.token;
 
-  if (token === null) {
+  if (!token) {
     return res.status(401).json({ error: "Authentication / Login required" });
   }
-  let { mainTopic, subTopic, category } = req.body;
-  if (!mainTopic && !mainTopic.trim()) {
+  let { mainTopic, subTopic, category } = req.body ?? {};
+  const isText = (value) => typeof value === "string" && value.trim() !== "";
+  if (!isText(mainTopic)) {
     return res.status(409).json({ error: "Main Topic name is required" });
   }
 
-  if (!subTopic && !subTopic.trim()) {
+  if (!isText(subTopic)) {
     return res.status(409).json({ error: "Sub Topic name is required" });
   }
 
-  if (!category && !category.trim()) {
+  if (!isText(category)) {
     return res.status(409).json({ error: "Category name is required" });
   }
 
   try {
+    // New accounts (P0-14): fewer sets a day, and their sets start unlisted until the account is trusted.
+    const authorId = new Types.ObjectId(`${token.id}`);
+    const listAt = trustedFrom(authorId);
+    const isNewAccount = listAt > new Date();
+    const perDay = isNewAccount ? TRUST.SETS_PER_DAY_NEW_ACCOUNT : TRUST.SETS_PER_DAY;
+    if ((await countCardsCreatedSince(authorId, new Date(Date.now() - DAY_MS))) >= perDay) {
+      return res.status(429).json({
+        error: `You've created ${perDay} study sets in the last day, the most for now. Please try again tomorrow.`,
+      });
+    }
+
     // Check if a card with the same main-topic, sub-topic, and category already exists
     const existingCard = await findExistingCard(mainTopic, subTopic, category);
     if (existingCard) {
@@ -98,7 +113,8 @@ export async function httpPostCreateNewCard(req, res) {
         "sub-topic": subTopic,
         category,
       },
-      token.id
+      token.id,
+      isNewAccount ? { listed: false, listAt } : {}
     );
     return res.json(card);
   } catch (error) {

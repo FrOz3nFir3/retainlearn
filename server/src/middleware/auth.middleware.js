@@ -26,6 +26,15 @@ export function attachTokenIfAuthenticated(req, res, next) {
   return next();
 }
 
+// Both checks below mark the route as for signed-in users only. What it returns may be that user's own, so:
+// - the server's cache keeps it per user (`req.signedInOnly`, read by cache.middleware.js);
+// - shared caches (Cloudflare, proxies) are told not to keep it.
+// That holds for every such route, with no list of routes to keep up to date.
+function markSignedInOnly(req, res) {
+  req.signedInOnly = true;
+  res.set("Cache-Control", "private, no-cache, must-revalidate");
+}
+
 // Pure authentication middleware - only validates JWT
 export function requireAuthentication(req, res, next) {
   const token = req.token;
@@ -34,6 +43,7 @@ export function requireAuthentication(req, res, next) {
     return res.status(401).json({ error: "User not Logged In." });
   }
 
+  markSignedInOnly(req, res);
   next();
 }
 
@@ -70,5 +80,6 @@ export function requireAuthenticationWithCSRF(req, res, next) {
     });
   }
 
+  markSignedInOnly(req, res);
   next();
 }

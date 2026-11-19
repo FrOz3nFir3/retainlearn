@@ -1,6 +1,9 @@
+import { useSelector } from "react-redux";
 import { CardField } from "./CardField";
 import CardMetaInfo from "./CardMetaInfo";
 import FieldCard from "./FieldCard";
+import ReportSetButton from "./ReportSetButton";
+import { selectCurrentUser } from "../../authentication/state/authSlice";
 import {
   TagIcon,
   FolderIcon,
@@ -10,6 +13,7 @@ import {
 } from "@heroicons/react/24/solid";
 
 const CardInfo = ({ card }) => {
+  const user = useSelector(selectCurrentUser);
   const {
     _id,
     "main-topic": mainTopic,
@@ -49,6 +53,13 @@ const CardInfo = ({ card }) => {
           <CardMetaInfo card={card} />
         </FieldCard>
       </div>
+
+      {/* Not for the set's own author, who can't report it. */}
+      {!(user && card.author?.username === user.username) && (
+        <div className="mt-5 pt-4 border-t border-gray-100 dark:border-white/6">
+          <ReportSetButton cardId={_id} />
+        </div>
+      )}
     </div>
   );
 };

@@ -4,6 +4,7 @@ import {
   setCsrfToken,
 } from "../features/authentication/state/authSlice";
 import { setSessionStatus, isSessionPotentiallyActive } from "../utils/session";
+import { shareInFlight } from "./shareInFlight";
 
 const baseQuery = fetchBaseQuery({
   baseUrl:
@@ -20,6 +21,25 @@ const baseQuery = fetchBaseQuery({
   },
 });
 
+// Session and CSRF refreshes are shared (P0-15). When a session expires, every query that fails at that moment waits
+// for one refresh, instead of each starting its own. Each refresh also replaces the CSRF cookie, so separate ones could
+// leave a retry holding a token that no longer matched. A shared refresh has its own abort signal, so one query being
+// cancelled doesn't cancel it for the others.
+const shared = shareInFlight();
+const postShared = (url, api, extraOptions) =>
+  shared(url, () =>
+    baseQuery({ url, method: "POST" }, { ...api, signal: new AbortController().signal }, extraOptions)
+  );
+
+// A request that never got an answer (offline, a timeout) says nothing about the session, so it logs no one out.
+const gotNoAnswer = (result) =>
+  result.error?.status === "FETCH_ERROR" || result.error?.status === "TIMEOUT_ERROR";
+
+const logOutHere = (api) => {
+  api.dispatch(initialUser({ user: null, csrfToken: null }));
+  setSessionStatus();
+};
+
 const baseQueryWithReauth = async (args, api, extraOptions) => {
   let result = await baseQuery(args, api, extraOptions);
 
@@ -31,22 +51,17 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
     ) {
       const isValidSession = isSessionPotentiallyActive();
       if (!isValidSession) return result;
-      const refreshResult = await baseQuery(
-        { url: "/user/refresh", method: "POST" },
-        api,
-        extraOptions
-      );
+      const refreshResult = await postShared("/user/refresh", api, extraOptions);
 
-      if (refreshResult.meta.response.ok) {
+      if (refreshResult.meta?.response?.ok) {
         // Update CSRF token if provided in refresh response
         if (refreshResult.data?.csrfToken) {
           api.dispatch(setCsrfToken(refreshResult.data.csrfToken));
         }
         result = await baseQuery(args, api, extraOptions);
-      } else {
-        // Force logout if refresh fails
-        api.dispatch(initialUser({ user: null, csrfToken: null }));
-        setSessionStatus();
+      } else if (!gotNoAnswer(refreshResult)) {
+        // The session has ended
+        logOutHere(api);
       }
     }
   }
@@ -58,20 +73,15 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
     // Check if it's a CSRF-related error
     if (errorMessage.includes("CSRF token")) {
       // Try to get a fresh CSRF token from lightweight /csrf-refresh endpoint
-      const authResult = await baseQuery(
-        { url: "/user/csrf-refresh", method: "POST" },
-        api,
-        extraOptions
-      );
+      const authResult = await postShared("/user/csrf-refresh", api, extraOptions);
 
       if (authResult.meta?.response?.ok && authResult.data?.csrfToken) {
         // Update CSRF token and retry original request
         api.dispatch(setCsrfToken(authResult.data.csrfToken));
         result = await baseQuery(args, api, extraOptions);
-      } else {
+      } else if (!gotNoAnswer(authResult)) {
         // Force logout if refresh fails
-        api.dispatch(initialUser({ user: null, csrfToken: null }));
-        setSessionStatus();
+        logOutHere(api);
       }
     }
   }
@@ -696,6 +706,15 @@ export const apiSlice = createApi({
         return currentArg?.page !== previousArg?.page;
       },
     }),
+
+    // "Report this set": one report per person per set.
+    reportSet: builder.mutation({
+      query: ({ cardId, reason, note }) => ({
+        url: `/card/${cardId}/report`,
+        method: "POST",
+        body: { reason, note },
+      }),
+    }),
   }),
 });
 
@@ -737,4 +756,5 @@ export const {
   useRemoveReviewerMutation,
   // User Search Hook
   useSearchUsersQuery,
+  useReportSetMutation,
 } = apiSlice;

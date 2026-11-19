@@ -28,3 +28,11 @@ export function escapeRegex(string) {
   // Escape special regex characters
   return normalizeWhitespace(string).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
+
+// An email address as it's stored and looked up: trimmed and lowercased. Null if it isn't a plain address: no spaces
+// or line breaks anywhere, one "@", a dot in the domain, at most 254 characters.
+export function normalizeEmail(value) {
+  if (typeof value !== "string") return null;
+  const email = value.trim().toLowerCase();
+  return email.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
+}

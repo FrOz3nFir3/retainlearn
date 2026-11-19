@@ -51,6 +51,20 @@ function createChangeEntry(field, content = "", targetId = null) {
   return entry;
 }
 
+// The sets shown in the categories, on the category pages and in the sitemap (P0-14): every set except unlisted ones
+// whose day to be listed (`listAt`) hasn't come. Sets from before `listed` existed have no such field, so they show.
+export function listedFilter(now = new Date()) {
+  return { $or: [{ listed: { $ne: false } }, { listAt: { $lte: now } }] };
+}
+
+// The same as a yes/no inside an aggregation, for a single set's page (search engines are told not to index it).
+const isListedExpression = (now) => ({
+  $or: [
+    { $ne: ["$listed", false] },
+    { $and: [{ $eq: [{ $type: "$listAt" }, "date"] }, { $lte: ["$listAt", now] }] },
+  ],
+});
+
 export async function getCardsByCategoryPaginated(
   category,
   { skip, limit, search } = {}
@@ -63,11 +77,11 @@ export async function getCardsByCategoryPaginated(
     pipeline.push({
       $match: {
         category: category,
-        $or: [{ "main-topic": searchRegex }, { "sub-topic": searchRegex }],
+        $and: [{ $or: [{ "main-topic": searchRegex }, { "sub-topic": searchRegex }] }, listedFilter()],
       },
     });
   } else {
-    pipeline.push({ $match: { category: category } });
+    pipeline.push({ $match: { category: category, ...listedFilter() } });
   }
 
   pipeline.push({
@@ -102,7 +116,7 @@ export async function getCardsByCategoryPaginated(
 }
 
 export async function countCardsByCategory(category, search) {
-  let filter = { category: { $eq: category } };
+  let filter = { category: { $eq: category }, ...listedFilter() };
 
   // Add search filter if provided
   if (search && search.trim()) {
@@ -113,7 +127,7 @@ export async function countCardsByCategory(category, search) {
 }
 
 export async function getAllCards() {
-  return Card.distinct("category");
+  return Card.distinct("category", listedFilter());
 }
 
 export async function getAllCategoriesWithPagination({ skip, limit, search }) {
@@ -125,8 +139,11 @@ export async function getAllCategoriesWithPagination({ skip, limit, search }) {
     pipeline.push({
       $match: {
         category: searchRegex,
+        ...listedFilter(),
       },
     });
+  } else {
+    pipeline.push({ $match: listedFilter() });
   }
 
   const paginatedPipeline = [
@@ -186,8 +203,11 @@ export async function countAllCategories(search) {
     pipeline.push({
       $match: {
         category: searchRegex,
+        ...listedFilter(),
       },
     });
+  } else {
+    pipeline.push({ $match: listedFilter() });
   }
 
   // projection
@@ -226,10 +246,10 @@ export async function findExistingCard(mainTopic, subTopic, category) {
   );
 }
 
-export async function createNewCard(card, userId) {
+// `listing` is `{ listed: false, listAt }` for a new account's set (P0-14), or nothing.
+export async function createNewCard(card, userId, listing = {}) {
   // Normalize fields before saving
   const normalizedCard = {
-    ...card,
     "main-topic": normalizeWhitespace(card["main-topic"]),
     "sub-topic": normalizeWhitespace(card["sub-topic"]),
     category: normalizeCategory(card.category),
@@ -237,10 +257,29 @@ export async function createNewCard(card, userId) {
 
   const newCard = new Card({
     ...normalizedCard,
+    ...listing,
     author: userId,
     logs: [{ eventType: "created", user: userId, summary: "Card created" }],
   });
   return newCard.save();
+}
+
+// How many sets this user has created since `since` (from the time in each set's _id).
+export async function countCardsCreatedSince(userId, since) {
+  return Card.countDocuments({
+    author: { $eq: userId },
+    _id: { $gte: Types.ObjectId.createFromTime(Math.floor(since.getTime() / 1000)) },
+  });
+}
+
+// Takes a set out of the lists until it's listed by hand (after reports). That includes a new account's set waiting
+// to be listed by itself: it no longer will be. Returns whether anything changed.
+export async function unlistCard(cardId) {
+  const result = await Card.updateOne(
+    { _id: { $eq: cardId }, $or: [{ listed: { $ne: false } }, { listAt: { $exists: true } }] },
+    { $set: { listed: false }, $unset: { listAt: 1 } }
+  );
+  return result.modifiedCount > 0;
 }
 
 export async function getCardById(id, view = "overview", skipLogs = false) {
@@ -293,6 +332,8 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
 
   const pipeline = [
     { $match: { _id: cardId } },
+    // Listed or not, as a yes/no: the set's page tells search engines not to index an unlisted set (P0-14).
+    { $addFields: { listed: isListedExpression(new Date()) } },
     {
       $lookup: {
         from: "users",
@@ -390,6 +431,7 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
           description: 1,
           createdAt: 1,
           updatedAt: 1,
+          listed: 1,
           reviewers: 1,
           reviewQueue: 1,
           author: { name: "$author.name", username: "$author.username" },
@@ -412,6 +454,7 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
           description: 1,
           createdAt: 1,
           updatedAt: 1,
+          listed: 1,
           reviewers: 1,
           reviewQueue: 1,
           author: 1,
@@ -444,6 +487,7 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
           reviewQueue: { $first: "$reviewQueue" },
           createdAt: { $first: "$createdAt" },
           updatedAt: { $first: "$updatedAt" },
+          listed: { $first: "$listed" },
           logs: { $push: "$logs" },
         },
       }
@@ -460,6 +504,7 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
         description: 1,
         createdAt: 1,
         updatedAt: 1,
+        listed: 1,
         reviewers: 1,
         reviewQueue: 1,
         author: { name: "$author.name", username: "$author.username" },
@@ -481,6 +526,7 @@ export async function getCardById(id, view = "overview", skipLogs = false) {
     updatedAt: 1,
     author: 1,
     lastUpdatedBy: 1,
+    listed: 1,
     reviewLength: { $size: "$review" },
     quizzesLength: { $size: "$quizzes" },
     reviewQueueLength: { $size: "$reviewQueue" },
@@ -991,8 +1037,9 @@ export async function getCardLogs(cardId, page = 1, limit = 10, search = "") {
       ? [
         {
           $match: {
+            // Searched as plain text: the words are escaped, so nothing typed is read as a pattern (P0-16).
             "logs.summary": {
-              $regex: normalizeWhitespace(search),
+              $regex: escapeRegex(search),
               $options: "i",
             },
           },

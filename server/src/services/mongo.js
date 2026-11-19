@@ -8,6 +8,9 @@ setServers(["1.1.1.1", "8.8.8.8"]);
 // MongoDB connection string from environment
 const MONGO_URI = env.MONGO_URI;
 
+// Where it connects, without the user and password, so a local run shows plainly that it isn't production.
+const where = (uri) => (uri || "(no MONGO_URI set)").replace(/\/\/[^@/]*@/, "//").split("?")[0];
+
 mongoose.connection.once("open", () => {
   console.log("MongoDB connection ready!");
 });
@@ -50,7 +53,7 @@ export const initMongoDB = async () => {
   const startTime = Date.now();
 
   try {
-    console.log("Initializing MongoDB connection...");
+    console.log(`Initializing MongoDB connection to ${where(MONGO_URI)} ...`);
     await mongoConnect();
 
     if (mongoose.connection.readyState === 1) {
@@ -61,7 +64,9 @@ export const initMongoDB = async () => {
       `MongoDB connection failed after ${Date.now() - startTime}ms:`,
       err.message
     );
-    console.error("App starting without database - API requests may fail");
+    // Fail fast: a server without its database only looks like it's running (every request fails instead).
+    // server.js and the cron job exit on this.
+    throw err;
   }
 };
 

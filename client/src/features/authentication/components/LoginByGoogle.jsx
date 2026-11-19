@@ -5,7 +5,6 @@ import { initialUser } from "../state/authSlice";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import LoginByGoogleSkeleton from "../../../components/ui/skeletons/LoginByGoogleSkeleton";
 import ContactHelpMessage from "./ui/ContactHelpMessage";
-import { jwtDecode } from "jwt-decode";
 import { setSessionStatus } from "../../../utils/session";
 import { useFailedAttempts } from "../hooks/useFailedAttempts";
 
@@ -61,12 +60,9 @@ function LoginByGoogle(props) {
   );
 
   // hoisting
+  // Send Google's signed credential as it is: the server verifies it with Google and reads who you are from it.
   function successfulLogin(credentialResponse) {
-    const decoded = jwtDecode(credentialResponse.credential);
-    const email = decoded.email;
-    const name = decoded.name;
-    const googleId = decoded.sub;
-    loginWithGoogle({ name, email, googleId });
+    loginWithGoogle({ credential: credentialResponse.credential });
   }
   function unsuccessfulLogin() {
     incrementAttempts();
