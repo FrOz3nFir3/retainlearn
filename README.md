@@ -108,6 +108,12 @@ npm test --prefix client
 
 The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. Both run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
 
+### Database changes (migrations)
+
+Changes to the database's shape (indexes, new collections, data moved into them) are numbered migrations in `server/src/migrations`, run in order, once each. **Nothing is run by hand.** The deployed server runs the new ones itself once it's answering requests, records each in the `migrations` collection, and shows the latest in `/api/health` (`"migrations": {"state": "done", ...}`). A local server does the same on its local database; one pointed at another machine's database leaves them alone. Mongoose doesn't make indexes or collections at startup (`autoIndex` and `autoCreate` are off): the migrations do.
+
+Before deploying, `npm run check:data` with `MONGO_URI` pointed at production lists, read-only, what the new migrations will do there, and anything that would stop them. How to write one, and the rules (code before data, safe to run again, and so on), are at the top of `server/src/migrations/runner.js`.
+
 ## 📜 Scripts
 
 *   `npm run install-all`: Installs dependencies for root, client, and server.
@@ -116,7 +122,7 @@ The API tests use Node's built-in test runner against a local database of their 
 *   `npm run server`: Starts the backend server.
 *   `npm run deploy`: Builds client and starts server.
 *   `npm run reports --prefix server`: Lists the study sets people have reported, most reported first. It only reads (the database in `MONGO_URI`), and says how to list a set again after checking it.
-*   `npm run check:data --prefix server`: Checks, read-only, that a database's data fits what this version of the server reads (sign-in, the categories, each set's page), before deploying it. Point `MONGO_URI` at production to check it there. It prints counts only.
+*   `npm run check:data --prefix server`: Checks, read-only, that a database's data fits what this version of the server reads (sign-in, the categories, each set's page), and lists what its migrations will do there, before deploying it. Point `MONGO_URI` at production to check it there. It prints counts only.
 
 ## 📄 License
 

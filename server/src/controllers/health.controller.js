@@ -1,6 +1,7 @@
 import { getConnectionStatus } from "../services/mongo.js";
 import { cacheService } from "../services/cache.js";
 import { getClientIp } from "../middleware/rateLimiter.middleware.js"
+import { migrationStatus } from "../migrations/runner.js";
 import env from "../config/env.js";
 
 export async function httpGetClientIp(req, res) {
@@ -28,6 +29,8 @@ export async function httpGetHealthStatus(req, res) {
             status: redisStatus.isAvailable ? "connected" : "disconnected",
             cachingEnabled: redisStatus.enabled,
         },
+        // Whether this server's database migrations ran, and the latest one (details are in the server's log).
+        migrations: migrationStatus(),
         uptime: process.uptime(),
         timestamp: new Date().toLocaleString(),
         environment: env.NODE_ENV,

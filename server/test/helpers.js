@@ -9,6 +9,7 @@ import { redis } from "../src/services/redis.js";
 import Users from "../src/models/users/users.mongo.js";
 import Cards from "../src/models/cards/cards.mongo.js";
 import { assertLocalRetainlearn } from "../scripts/local-only.js";
+import { runMigrations } from "../src/migrations/runner.js";
 import { cards, PASSWORD, users } from "./fixtures.js";
 
 // The tests' Redis database (1, setup-env.js) is theirs alone, and it's emptied at the start of each test file, so
@@ -29,6 +30,8 @@ export async function startApi() {
   assertLocalRetainlearn(process.env.MONGO_URI, { exact: "retainlearn_test" });
   await initMongoDB();
   await mongoose.connection.db.dropDatabase();
+  // The indexes, as on a deployed database: the migrations make them (Mongoose's autoIndex is off).
+  await runMigrations(mongoose.connection.db, { log: () => {} });
   await resetTestRedis();
   await Users.create(users());
   await Cards.insertMany(cards());

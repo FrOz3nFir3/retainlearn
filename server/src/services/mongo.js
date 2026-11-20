@@ -41,6 +41,11 @@ export async function mongoConnect() {
     compressors: "zlib",
     bufferCommands: false, // Don't buffer commands if not connected
     maxIdleTimeMS: 900000, // 15 minutes
+    // Indexes and collections come from the migrations (src/migrations), not from Mongoose at every start: each one
+    // is made once, recorded, and checked beforehand with `npm run check:data`. A collection with no migration is
+    // made by its first insert.
+    autoIndex: false,
+    autoCreate: false,
   });
 }
 
