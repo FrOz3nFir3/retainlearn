@@ -8,7 +8,7 @@ import { startApi } from "./helpers.js";
 import { ids, PASSWORD } from "./fixtures.js";
 import Users from "../src/models/users/users.mongo.js";
 import Cards from "../src/models/cards/cards.mongo.js";
-import CardReport from "../src/models/cardReports/cardReports.mongo.js";
+import StudySetReport from "../src/models/studySetReports/studySetReports.mongo.js";
 import { sanitizeHTML } from "../src/utils/dom.js";
 import { TRUST } from "../src/config/trust.config.js";
 
@@ -95,8 +95,8 @@ test("reporting a set: one report per person, a reason, a login, and not your ow
 
   assert.equal((await report(lee, { reason: "spam", note: "Links to a shop" })).status, 200);
   assert.equal((await report(lee, { reason: "offensive" })).status, 200, "reporting again changes nothing");
-  assert.equal(await CardReport.countDocuments({ card: ids.js }), 1);
-  assert.equal((await CardReport.findOne({ card: ids.js }).lean()).reason, "spam");
+  assert.equal(await StudySetReport.countDocuments({ setId: ids.js }), 1);
+  assert.equal((await StudySetReport.findOne({ setId: ids.js }).lean()).reason, "spam");
 
   assert.equal((await report(lee, { reason: "because" })).status, 400);
   assert.equal((await report(ada, { reason: "spam" })).status, 400, "the author can't report their own set");

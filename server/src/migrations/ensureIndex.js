@@ -34,7 +34,7 @@ async function countShared(collection, key, filter = {}) {
 
 export async function ensureIndex(db, collectionName, key, options, { dryRun, log, fail }, { replace = false } = {}) {
   const collection = db.collection(collectionName);
-  const label = `${collectionName} ${Object.keys(key).join(" + ")}${options.unique ? " (unique)" : ""}`;
+  const label = `${collectionName} ${Object.keys(key).join(" + ")}${options.unique ? " (unique)" : ""}${options.expireAfterSeconds !== undefined ? " (expiry)" : ""}`;
   const existing = await collection.indexes().catch((error) => {
     if (error.codeName === "NamespaceNotFound") return []; // no collection yet: making the index makes it
     throw error;

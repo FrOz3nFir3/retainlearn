@@ -95,7 +95,7 @@ export async function getUserReviewProgress(
     // { $match: { "studying.review": { $ne: null } } },
     {
       $lookup: {
-        from: "cards",
+        from: Card.collection.name,
         localField: "studying.cardId",
         foreignField: "_id",
         as: "cardDetails",
@@ -188,7 +188,7 @@ export async function getUserQuizProgress(
     // { $match: { "studying.quiz": { $ne: null } } },
     {
       $lookup: {
-        from: "cards",
+        from: Card.collection.name,
         localField: "studying.cardId",
         foreignField: "_id",
         as: "cardDetails",
@@ -274,7 +274,7 @@ export async function getDetailedReport(userId, cardId) {
     { $match: { "studying.cardId": cardObjectId } },
     {
       $lookup: {
-        from: "cards",
+        from: Card.collection.name,
         localField: "studying.cardId",
         foreignField: "_id",
         as: "cardInfo",
@@ -684,7 +684,7 @@ export async function getFocusReviewData(userId, cardId) {
     // Lookup card data from cards collection
     {
       $lookup: {
-        from: "cards",
+        from: Card.collection.name,
         localField: "studying.cardId",
         foreignField: "_id",
         as: "cardDetails",
@@ -832,7 +832,7 @@ export async function getFocusQuizData(userId, cardId) {
     // Lookup card data from cards collection
     {
       $lookup: {
-        from: "cards",
+        from: Card.collection.name,
         localField: "studying.cardId",
         foreignField: "_id",
         as: "cardDetails",
