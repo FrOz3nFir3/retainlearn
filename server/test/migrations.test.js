@@ -13,6 +13,8 @@ import { assertLocalRetainlearn } from "../scripts/local-only.js";
 import { migrationStatus, runAtStartup, runMigrations, shouldRunMigrations } from "../src/migrations/runner.js";
 import migrations from "../src/migrations/index.js";
 import Users from "../src/models/users/users.mongo.js";
+import Cards from "../src/models/cards/cards.mongo.js";
+import StudySetReport from "../src/models/studySetReports/studySetReports.mongo.js";
 
 let db;
 before(async () => {
@@ -161,6 +163,9 @@ test("running them again changes nothing, and 0001 is safe to run again by itsel
   assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
   assert.deepEqual((await runMigrations(db, { log: quiet })).ran, []);
 
+  // 0001 again straight after itself (before 0002 renames card_reports), as when a failed run is tried again.
+  await db.dropDatabase();
+  await runMigrations(db, { list: [migrations[0]], log: quiet });
   const made = await db.collection("users").indexes();
   const lines = [];
   await migrations[0].up(db, { dryRun: false, log: (text) => lines.push(text), fail: (text) => assert.fail(text) });
@@ -259,7 +264,55 @@ test("0001 keeps the old googleId index while two accounts share a Google id", a
   assert.deepEqual(await recorded(), []);
 });
 
-test("0002 makes answers a time series and expires suggestions by themselves, and is safe to run again", async () => {
+test("0002 renames cards and card_reports with their documents and indexes, and gives reports the new field names", async () => {
+  const [setA, setB, lee, ada] = [1, 2, 3, 4].map(() => new mongoose.Types.ObjectId());
+  await db.collection("cards").insertMany([{ _id: setA, "main-topic": "A" }, { _id: setB, "main-topic": "B" }]);
+  // card_reports as Phase 0 left it: the old field names, and its unique index on them.
+  const oldReports = db.collection("card_reports");
+  await oldReports.createIndex({ card: 1, reporter: 1 }, { unique: true, background: true });
+  await oldReports.insertMany([
+    { card: setA, reporter: lee, reason: "spam", note: "", createdAt: new Date("2026-11-01") },
+    { card: setA, reporter: ada, reason: "wrong", note: "typo", createdAt: new Date("2026-11-02") },
+  ]);
+
+  const lines = [];
+  await runMigrations(db, { dryRun: true, log: (text) => lines.push(text), problem: assert.fail });
+  for (const line of [
+    "  cards → study_sets: will be renamed, with its 2 document(s) and its indexes",
+    "  card_reports → study_set_reports: will be renamed, with its 2 document(s) and its indexes",
+    '  study_set_reports: its index "card_1_reporter_1" on card + reporter will be dropped for one on setId + by',
+    "  study_set_reports: 2 report(s) will get the new field names (setId, by, at)",
+  ]) {
+    assert.ok(lines.includes(line), `${line}\nnot in:\n${lines.join("\n")}`);
+  }
+  const names = async () => (await db.listCollections({}, { nameOnly: true }).toArray()).map((c) => c.name).sort();
+  assert.deepEqual(await names(), ["card_reports", "cards"], "the dry run renamed nothing");
+
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
+  assert.ok(!(await names()).some((name) => name === "cards" || name === "card_reports"));
+  assert.equal(await Cards.countDocuments(), 2, "the study set model reads study_sets");
+  const reports = await db.collection("study_set_reports").find({}, { projection: { _id: 0 } }).sort({ at: 1 }).toArray();
+  assert.deepEqual(reports, [
+    { setId: setA, by: lee, reason: "spam", note: "", at: new Date("2026-11-01") },
+    { setId: setA, by: ada, reason: "wrong", note: "typo", at: new Date("2026-11-02") },
+  ]);
+  assert.deepEqual(await StudySetReport.diffIndexes(), { toDrop: [], toCreate: [] }, "only the index on setId + by");
+  await assert.rejects(StudySetReport.create({ setId: setA, by: lee, reason: "other" }), { code: 11000 });
+});
+
+test("0002 won't merge cards into a study_sets that's already there: that's sorted out by hand", async () => {
+  await db.collection("cards").insertOne({ "main-topic": "old" });
+  await db.collection("study_sets").insertOne({ "main-topic": "new" });
+  const problems = [];
+  await runMigrations(db, { dryRun: true, log: quiet, problem: (text) => problems.push(text) });
+  assert.deepEqual(problems, ["0002-study-set-names: cards → study_sets: both are here. Sort it out by hand first."]);
+  await assert.rejects(runMigrations(db, { log: quiet }), /0002-study-set-names stopped: cards → study_sets/);
+  assert.deepEqual(await recorded(), ["0001-indexes"], "0001 ran; 0002 waits");
+  assert.equal(await db.collection("cards").countDocuments(), 1);
+  assert.equal(await db.collection("study_sets").countDocuments(), 1);
+});
+
+test("0003 makes answers a time series and expires suggestions by themselves, and is safe to run again", async () => {
   await runMigrations(db, { log: quiet });
   const [answers] = await db.listCollections({ name: "answers" }).toArray();
   assert.equal(answers.type, "timeseries");
@@ -267,24 +320,24 @@ test("0002 makes answers a time series and expires suggestions by themselves, an
     { timeField: answers.options.timeseries.timeField, metaField: answers.options.timeseries.metaField },
     { timeField: "at", metaField: "meta" },
   );
-  const expiry = (await db.collection("review_queue").indexes()).find((index) => index.expireAfterSeconds !== undefined);
+  const expiry = (await db.collection("study_set_suggestions").indexes()).find((index) => index.expireAfterSeconds !== undefined);
   assert.deepEqual({ key: expiry.key, seconds: expiry.expireAfterSeconds }, { key: { expiresAt: 1 }, seconds: 0 });
 
   const lines = [];
-  await migrations[1].up(db, { dryRun: false, log: (text) => lines.push(text), fail: (text) => assert.fail(text) });
-  assert.equal(lines.length, 7);
+  await migrations[2].up(db, { dryRun: false, log: (text) => lines.push(text), fail: (text) => assert.fail(text) });
+  assert.equal(lines.length, 6);
   assert.ok(lines.every((line) => line.endsWith(": already there")), lines.join("\n"));
 });
 
-test("0002 won't take over an ordinary collection called answers: that's sorted out by hand", async () => {
+test("0003 won't take over an ordinary collection called answers: that's sorted out by hand", async () => {
   await db.createCollection("answers");
   const problems = [];
   await runMigrations(db, { dryRun: true, log: quiet, problem: (text) => problems.push(text) });
   assert.deepEqual(problems, [
-    '0002-new-collections: answers (time series on at, by meta): "answers" is already there as an ordinary collection. Sort it out by hand first.',
+    '0003-new-collections: answers (time series on at, by meta): "answers" is already there as an ordinary collection. Sort it out by hand first.',
   ]);
-  await assert.rejects(runMigrations(db, { log: quiet }), /0002-new-collections stopped: answers/);
-  assert.deepEqual(await recorded(), ["0001-indexes"], "0001 ran; 0002 waits");
+  await assert.rejects(runMigrations(db, { log: quiet }), /0003-new-collections stopped: answers/);
+  assert.deepEqual(await recorded(), ["0001-indexes", "0002-study-set-names"], "0001 and 0002 ran; 0003 waits");
 });
 
 test("every numbered file in src/migrations is in the list, in order", async () => {

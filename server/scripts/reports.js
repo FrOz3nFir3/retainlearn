@@ -5,25 +5,25 @@
 // It reads the database in MONGO_URI: .env.local locally, or production's when run in Dokploy or over NetBird.
 // A set reported by enough people is already unlisted (config/trust.config.js). After checking one, in mongosh:
 // - to list it again and clear its reports:
-//     db.cards.updateOne({ _id: ObjectId("<id>") }, { $set: { listed: true }, $unset: { listAt: 1 } })
-//     db.card_reports.deleteMany({ card: ObjectId("<id>") })
+//     db.study_sets.updateOne({ _id: ObjectId("<id>") }, { $set: { listed: true }, $unset: { listAt: 1 } })
+//     db.study_set_reports.deleteMany({ setId: ObjectId("<id>") })
 // - to keep it unlisted: leave it as it is.
 import { initMongoDB, mongoDisconnect } from "../src/services/mongo.js";
-import CardReport from "../src/models/cardReports/cardReports.mongo.js";
+import StudySetReport from "../src/models/studySetReports/studySetReports.mongo.js";
 import Card from "../src/models/cards/cards.mongo.js";
 import Users from "../src/models/users/users.mongo.js";
 
 await initMongoDB();
 try {
-  const reported = await CardReport.aggregate([
+  const reported = await StudySetReport.aggregate([
     {
       $group: {
-        _id: "$card",
+        _id: "$setId",
         reports: { $sum: 1 },
         reasons: { $push: "$reason" },
         notes: { $push: "$note" },
-        reporters: { $push: "$reporter" },
-        last: { $max: "$createdAt" },
+        reporters: { $push: "$by" },
+        last: { $max: "$at" },
       },
     },
     { $sort: { reports: -1, last: -1 } },

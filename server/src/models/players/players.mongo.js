@@ -4,16 +4,17 @@ import { Schema, model } from "mongoose";
 // paths. Read on every campus load; written when a class ends, and by settings and the coach. Its only index is _id.
 // Days ("2026-11-20") are the player's local day, from `settings.timeZone` (PLAN 14.3b).
 
-// A building on your campus: a subject you study, its place, and its summary, refreshed when a class ends.
+// A building on your campus: a subject you study, its place, and your summary of it, refreshed when a class ends.
+// Only what your own writes change lives here. What changes without you doesn't: how many cards are fading changes
+// as days pass (today's activity has it, worked out at the day's first load), and how many sets a subject has
+// changes when anyone adds one (the public category list has it). Warm, cooling or cold comes from lastAt.
 const subjectSchema = new Schema(
   {
     category: { type: String, required: true },
     plot: { type: Number, required: true },
-    sets: { type: Number, default: 0 },
-    started: { type: Number, default: 0 },
+    started: { type: Number, default: 0 }, // sets you've started here
     mastery: { type: Number, default: 0 },
     missed: { type: Number, default: 0 },
-    fading: { type: Number, default: 0 },
     lastAt: { type: Date },
   },
   { _id: false }

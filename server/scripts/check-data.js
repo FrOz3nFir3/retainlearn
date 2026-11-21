@@ -66,6 +66,10 @@ try {
   // --- Study sets
   const sets = await Cards.countDocuments();
   console.log(`\nStudy sets: ${sets}`);
+  const stillCards = (await mongoose.connection.db.listCollections({ name: "cards" }, { nameOnly: true }).toArray()).length > 0;
+  if (!sets && stillCards) {
+    note(`they're still in \`cards\` here: 0002 renames it to \`${Cards.collection.name}\` when this version starts, so check again after the deploy`);
+  }
   const badLists = await Cards.countDocuments({ $or: [notArray("review"), notArray("quizzes"), notArray("reviewQueue")] });
   check(badLists === 0, `every set has flashcard, question and review-queue lists (its page counts them): ${badLists} don't`);
   const noCategory = await Cards.countDocuments({ category: { $not: { $type: "string" } } });

@@ -19,8 +19,10 @@ const flashcardSchema = new Schema(
 
 const questionSchema = new Schema(
   {
-    level: { type: Number, min: 0, max: 5, default: 0 }, // 1 to 5: a player card; fading once past its interval
-    lastAt: { type: Date },
+    level: { type: Number, min: 0, max: 5, default: 0 }, // 1 to 5: a player card
+    // When you last remembered it (a right answer, or its flashcard reviewed). It fades once its level's interval has
+    // passed since then; the intervals are rules in code, so they can change without touching the data.
+    refreshedAt: { type: Date },
     right: { type: Number, default: 0 },
     wrong: { type: Number, default: 0 },
     missedOn: { type: String, default: null },
@@ -33,7 +35,8 @@ const progressSchema = new Schema(
   {
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     setId: { type: Schema.Types.ObjectId, ref: "Card", required: true },
-    // Copied from the set (`set` itself would hide Mongoose's document.set()).
+    // Copied from the set (`set` itself would hide Mongoose's document.set()). `version` is the set's updatedAt (as a
+    // number) when it was copied: a newer one means the next write refreshes the copy.
     setInfo: {
       category: String,
       topic: String,
@@ -54,7 +57,9 @@ const progressSchema = new Schema(
   { timestamps: true, versionKey: false }
 );
 
+// The only index, on the collection written most often (every few answers). It serves both reads: one set's progress
+// (userId + setId), and all of yours (userId). The report card sorts your few dozen sets by lastAt in memory, which
+// is cheaper than an index on lastAt that every save would have to rewrite.
 progressSchema.index({ userId: 1, setId: 1 }, { unique: true });
-progressSchema.index({ userId: 1, lastAt: -1 });
 
 export default model("Progress", progressSchema, "progress");

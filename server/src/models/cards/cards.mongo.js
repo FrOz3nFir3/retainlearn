@@ -128,4 +128,7 @@ const cardsSchema = new Schema(
   { timestamps: true }
 );
 
-export default model("Card", cardsSchema);
+// Study sets. The code still calls them "cards" (the model, the routes, cards.model.js); the collection was renamed
+// from `cards` to `study_sets` (migrations/0002-study-set-names.js), so the database says what they are. Raw queries
+// name it through `Card.collection.name`, never as a string.
+export default model("Card", cardsSchema, "study_sets");
