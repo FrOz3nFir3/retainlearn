@@ -25,6 +25,7 @@ beforeEach(() => db.dropDatabase());
 after(() => mongoDisconnect());
 
 const quiet = () => {};
+const everyId = migrations.map((migration) => migration.id);
 const recorded = async () => (await db.collection("migrations").find().sort({ _id: 1 }).toArray()).map((m) => m._id);
 const locks = () => db.collection("migrations_lock").countDocuments();
 // A made-up migration that notes each time it runs.
@@ -157,7 +158,7 @@ test("on an empty database, the migrations make every index the models declare, 
 });
 
 test("running them again changes nothing, and 0001 is safe to run again by itself", async () => {
-  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0001-indexes"]);
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
   assert.deepEqual((await runMigrations(db, { log: quiet })).ran, []);
 
   const made = await db.collection("users").indexes();
@@ -194,7 +195,7 @@ test("0001 keeps the indexes Mongoose made, and won't make emails unique while t
 
   // Once the email is sorted out, it runs. The two accounts without a Google id don't clash.
   await users.updateOne({ username: "two" }, { $set: { email: "two@example.test" } });
-  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0001-indexes"]);
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
   await assert.rejects(users.insertOne({ username: "four", email: "three@example.test" }), { code: 11000 });
   await assert.rejects(users.insertOne({ username: "five", email: "five@example.test", googleId: "google-3" }), { code: 11000 });
 });
@@ -233,7 +234,7 @@ test("0001 replaces an older googleId index with other options, as production ha
   );
   assert.equal((await googleIndex()).sparse, true, "the dry run left it as it was");
 
-  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0001-indexes"]);
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
   const replaced = await googleIndex();
   assert.equal(replaced.sparse, undefined);
   assert.deepEqual(replaced.partialFilterExpression, { googleId: { $exists: true } });
@@ -256,6 +257,34 @@ test("0001 keeps the old googleId index while two accounts share a Google id", a
   const kept = (await users.indexes()).find((index) => index.name === "googleId_1");
   assert.ok(kept && !kept.unique && !kept.partialFilterExpression, "not dropped");
   assert.deepEqual(await recorded(), []);
+});
+
+test("0002 makes answers a time series and expires suggestions by themselves, and is safe to run again", async () => {
+  await runMigrations(db, { log: quiet });
+  const [answers] = await db.listCollections({ name: "answers" }).toArray();
+  assert.equal(answers.type, "timeseries");
+  assert.deepEqual(
+    { timeField: answers.options.timeseries.timeField, metaField: answers.options.timeseries.metaField },
+    { timeField: "at", metaField: "meta" },
+  );
+  const expiry = (await db.collection("review_queue").indexes()).find((index) => index.expireAfterSeconds !== undefined);
+  assert.deepEqual({ key: expiry.key, seconds: expiry.expireAfterSeconds }, { key: { expiresAt: 1 }, seconds: 0 });
+
+  const lines = [];
+  await migrations[1].up(db, { dryRun: false, log: (text) => lines.push(text), fail: (text) => assert.fail(text) });
+  assert.equal(lines.length, 7);
+  assert.ok(lines.every((line) => line.endsWith(": already there")), lines.join("\n"));
+});
+
+test("0002 won't take over an ordinary collection called answers: that's sorted out by hand", async () => {
+  await db.createCollection("answers");
+  const problems = [];
+  await runMigrations(db, { dryRun: true, log: quiet, problem: (text) => problems.push(text) });
+  assert.deepEqual(problems, [
+    '0002-new-collections: answers (time series on at, by meta): "answers" is already there as an ordinary collection. Sort it out by hand first.',
+  ]);
+  await assert.rejects(runMigrations(db, { log: quiet }), /0002-new-collections stopped: answers/);
+  assert.deepEqual(await recorded(), ["0001-indexes"], "0001 ran; 0002 waits");
 });
 
 test("every numbered file in src/migrations is in the list, in order", async () => {
