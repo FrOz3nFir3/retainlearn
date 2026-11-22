@@ -6,8 +6,11 @@ import { isTimeZone } from "./days.ts";
 
 export { z };
 
-// A MongoDB id as it travels in a URL or JSON: 24 hexadecimal digits.
-export const ObjectIdHex = z.string().regex(/^[0-9a-f]{24}$/i, "must be an id");
+// A MongoDB id as it travels in a URL or JSON: 24 hexadecimal digits, given back in lower case (as ids are stored).
+export const ObjectIdHex = z
+  .string()
+  .regex(/^[0-9a-f]{24}$/i, "must be an id")
+  .transform((id) => id.toLowerCase());
 
 // A time zone this machine knows, as the browser names it ("Asia/Kolkata").
 export const TimeZone = z.string().refine(isTimeZone, "must be a time zone");

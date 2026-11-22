@@ -22,7 +22,8 @@ export const CLASSES_A_DAY = 2;
 const W = { missed: 3, fading: 2, coldPerDay: 2, coldFrom: 3, coldMax: 40, unstarted: 10, sameSubject: 0.6 };
 
 // The four kinds of class: a review, a quiz, going over the flashcards you missed, and retrying the questions you missed.
-export type ClassMode = "review" | "quiz" | "reviewMissed" | "retryMissed";
+export const CLASS_MODES = ["review", "quiz", "reviewMissed", "retryMissed"] as const;
+export type ClassMode = (typeof CLASS_MODES)[number];
 export type Why =
   | { kind: "missed" | "fading" | "cold"; n: number } // n: items due back, cards fading, or days away
   | { kind: "continue"; n: number; of: number } // n of the set's flashcards reviewed

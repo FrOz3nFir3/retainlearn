@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answerQuestion, linkedQuestionIds, refreshPlayerCard, reviewFlashcard } from "@retainlearn/core";
+import { answerQuestion, applyAnswers, linkedQuestionIds, refreshPlayerCard, reviewFlashcard } from "@retainlearn/core";
 import { IST, noon } from "./helpers.ts";
 
 const inIndia = (at: Date) => ({ at, timeZone: IST });
@@ -96,4 +96,48 @@ test("a flashcard's linked questions are the ones that name it, whatever form th
   assert.deepEqual(linkedQuestionIds(set, "f1"), ["q1", "q4"]);
   assert.deepEqual(linkedQuestionIds(set, objectId("f2")), ["q2"]);
   assert.deepEqual(linkedQuestionIds(set, "f9"), []);
+});
+
+test("a batch of answers changes only the items it touched, earns cards and XP, and refreshes the cards of known flashcards", () => {
+  const set = { questions: [{ _id: "q1", flashcardId: "f1" }, { _id: "q2", flashcardId: "f2" }, { _id: "q3" }] };
+  const p = {
+    questions: {
+      q1: { level: 2, refreshedAt: noon("2026-11-10"), right: 2, wrong: 0, missedOn: null },
+      q2: { level: 0, wrong: 1, missedOn: "2026-11-19" },
+    },
+  };
+  const four = ["a", "b", "c", "d"].map((key) => ({ key, knew: true }));
+  const result = applyAnswers(
+    p,
+    set,
+    [
+      { kind: "question", itemId: "q2", correct: true }, // a new player card
+      { kind: "question", itemId: "q3", correct: false }, // missed
+      { kind: "flashcard", itemId: "f1", knew: false, points: [...four, { key: "e", knew: false }] }, // 4 of 5: known
+    ],
+    inIndia(noon("2026-11-20")),
+  );
+  assert.deepEqual(Object.keys(result.questions).sort(), ["q1", "q2", "q3"]);
+  assert.equal(result.questions.q2?.level, 1);
+  assert.equal(result.questions.q3?.missedOn, "2026-11-20");
+  assert.equal(result.questions.q1?.level, 3, "f1 was known, so the card of its linked question moved up");
+  assert.deepEqual(Object.keys(result.flashcards), ["f1"]);
+  assert.equal(result.flashcards.f1?.missedOn, null);
+  assert.equal(result.earned, 1);
+  assert.equal(result.xp, 12 + 3 + (4 + 2 * 5));
+  assert.equal(p.questions.q2.level, 0, "the progress it was given is left alone");
+});
+
+test("answering the same question twice in one batch builds on the first answer", () => {
+  const result = applyAnswers(
+    undefined,
+    { questions: [{ _id: "q1" }] },
+    [
+      { kind: "question", itemId: "q1", correct: false },
+      { kind: "question", itemId: "q1", correct: true },
+    ],
+    inIndia(noon("2026-11-20")),
+  );
+  assert.deepEqual(result.questions.q1, { level: 1, refreshedAt: noon("2026-11-20"), right: 1, wrong: 1, missedOn: null });
+  assert.equal(result.earned, 1);
 });
