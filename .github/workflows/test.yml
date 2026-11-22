@@ -38,8 +38,13 @@ jobs:
           # The Node that production runs (the Dockerfile's).
           node-version: 26
           cache: npm
-          cache-dependency-path: server/package-lock.json
+          cache-dependency-path: |
+            server/package-lock.json
+            packages/core/package-lock.json
+      # The shared rules' own dependencies (Zod) first: the server links to them (file:../packages/core).
+      - run: npm ci --omit=dev --prefix ../packages/core
       - run: npm ci
+      - run: npm run typecheck
       - run: npm test
 
   client:
@@ -112,6 +117,8 @@ jobs:
           grep -q '"state":"done"' health.json
           curl -fsS -o /dev/null -H "X-Forwarded-Proto: https" "http://localhost:3000/api/cards/categories?page=1"
           docker exec api node --version
+          # The shared rules (TypeScript, run by Node directly) and Zod load in the image.
+          docker exec api node --input-type=module -e 'const core = await import("@retainlearn/core"); if (typeof core.planDay !== "function" || !core.TimeZone.safeParse("Asia/Kolkata").success) process.exit(1); console.log("The shared rules load in the image");'
           docker exec api npm run cron:cleanup
           start=$(date +%s); docker stop api; test $(( $(date +%s) - start )) -lt 5
       - name: The server's log

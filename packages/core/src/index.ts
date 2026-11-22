@@ -6,3 +6,4 @@ export * from "./playerCards.ts";
 export * from "./answers.ts";
 export * from "./progress.ts";
 export * from "./timetable.ts";
+export * from "./schemas.ts";

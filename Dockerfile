@@ -15,12 +15,14 @@ ENV NPM_CONFIG_UPDATE_NOTIFIER=false
 # `npm run reports`) work as before. The shared rules sit at ../packages/core from it, as in the repo.
 WORKDIR /app
 
-# The dependencies first, so a code change doesn't reinstall them: production ones only. bcrypt comes with ready-made
-# Linux builds, so nothing is compiled.
+# The dependencies first, so a code change doesn't reinstall them, and production ones only. The shared rules bring
+# their own (Zod); the server's link to the shared rules (file:../packages/core), so those go first. bcrypt comes with
+# ready-made Linux builds, so nothing is compiled.
+COPY packages/core/package.json packages/core/package-lock.json /packages/core/
+RUN npm ci --omit=dev --prefix /packages/core && npm cache clean --force
 COPY server/package.json server/package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-COPY packages/core/package.json /packages/core/package.json
 COPY packages/core/src /packages/core/src
 COPY server/src ./src
 COPY server/scripts ./scripts

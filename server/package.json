@@ -4,14 +4,18 @@
   "description": "Backend API for RetainLearn, built with Express and MongoDB.",
   "main": "src/server.js",
   "type": "module",
+  "imports": {
+    "#*": "./src/*"
+  },
   "engines": {
-    "node": "22.x"
+    "node": ">=22.18"
   },
   "scripts": {
     "start": "node src/server.js",
     "watch": "nodemon src/server.js",
     "cron:cleanup": "node src/cron-jobs/index.js",
-    "test": "node --test --test-concurrency=1 --test-force-exit \"test/**/*.test.js\"",
+    "test": "node --test --test-concurrency=1 --test-force-exit \"test/**/*.test.js\" \"test/**/*.test.ts\"",
+    "typecheck": "tsc",
     "db:copy": "node scripts/copy-db.js",
     "db:seed": "node scripts/seed.js",
     "reports": "node scripts/reports.js",
@@ -21,6 +25,7 @@
   "author": "FrOz3nFir3",
   "license": "Unlicense",
   "dependencies": {
+    "@retainlearn/core": "file:../packages/core",
     "bcrypt": "^6.0.0",
     "compression": "^1.8.2",
     "cookie-parser": "^1.4.7",
@@ -40,6 +45,9 @@
     "redis": "^5.8.3"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "@types/express": "5.0.6",
+    "@types/node": "26.6.6",
+    "nodemon": "^3.1.10",
+    "typescript": "7.0.2"
   }
 }

@@ -27,6 +27,7 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
 
 ### Backend (`/server`)
 *   **Runtime:** Node.js 26, in a Docker image (the root `Dockerfile`)
+*   **Language:** JavaScript, and TypeScript for new code. Node runs the `.ts` files directly and `tsc` type-checks them. What a request sends is checked with Zod (`src/middleware/validate.ts`), and new code imports the server's own files with `#` (`#middleware/validate.ts`)
 *   **Framework:** Express 5
 *   **Database:** MongoDB (Mongoose 8)
 *   **Caching:** Redis & LRU Cache
@@ -52,7 +53,7 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
     ```
 
 2.  **Install dependencies:**
-    This project is set up as a monorepo. Use the root script to install dependencies for both client and server:
+    This project is set up as a monorepo. Use the root script to install dependencies for the client, the server and the shared study rules (the server links to them):
     ```bash
     npm run install-all
     ```
@@ -107,12 +108,13 @@ These scripts and the tests only ever write to a **local** database whose name s
 ### Tests
 
 ```bash
-npm test --prefix server
+npm install --prefix packages/core   # once: the shared rules' own dependencies, which the server uses too
+npm run typecheck --prefix server && npm test --prefix server
 npm test --prefix client
-npm ci --prefix packages/core && npm run typecheck --prefix packages/core && npm test --prefix packages/core
+npm run typecheck --prefix packages/core && npm test --prefix packages/core
 ```
 
-The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`), along with a fourth check that builds the server's Docker image and starts it.
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The server's TypeScript has a type check of its own. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`), along with a fourth check that builds the server's Docker image and starts it.
 
 ### Deploying
 
