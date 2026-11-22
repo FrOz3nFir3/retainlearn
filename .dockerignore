@@ -1,0 +1,9 @@
+# What the server's image build may see (Dockerfile): only the files it copies. Everything else stays out: the client
+# (Cloudflare builds it), node_modules (installed fresh in the image), tests, env files and notes.
+*
+!server/package.json
+!server/package-lock.json
+!server/src
+!server/scripts
+!packages/core/package.json
+!packages/core/src

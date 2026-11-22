@@ -26,7 +26,7 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
 *   **Key Libraries:** `@dnd-kit` (Drag & Drop), `@tiptap` (Rich Text), `react-hot-toast`
 
 ### Backend (`/server`)
-*   **Runtime:** Node.js v22
+*   **Runtime:** Node.js 26, in a Docker image (the root `Dockerfile`)
 *   **Framework:** Express 5
 *   **Database:** MongoDB (Mongoose 8)
 *   **Caching:** Redis & LRU Cache
@@ -112,7 +112,21 @@ npm test --prefix client
 npm ci --prefix packages/core && npm run typecheck --prefix packages/core && npm test --prefix packages/core
 ```
 
-The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`), along with a fourth check that builds the server's Docker image and starts it.
+
+### Deploying
+
+Every push to `main` deploys. **Dokploy** builds the server from the root `Dockerfile` (Build Type "Dockerfile", Build Path `/`) and starts it with its settings as environment variables. **Cloudflare** builds and serves the site from `client/`. The image holds only the server and the shared rules (`.dockerignore` keeps everything else out), runs Node 26 as a non-root user, and stops cleanly when a deploy replaces it.
+
+To build and try the image on your machine, against a local database:
+```bash
+docker build -t retainlearn-api .
+docker run --rm -p 3998:3000 -e MONGO_URI=mongodb://host.docker.internal:27017/retainlearn_rehearsal \
+  -e REDIS_URI=redis://host.docker.internal:6379/3 \
+  -e ACCESS_TOKEN_SECRET=local -e REFRESH_TOKEN_SECRET=local -e COOKIE_SECRET=local retainlearn-api
+curl -H "X-Forwarded-Proto: https" http://localhost:3998/api/health
+```
+In production mode the server redirects plain HTTP to HTTPS. The header stands in for the proxy that marks real requests as HTTPS.
 
 ### Database changes (migrations)
 
