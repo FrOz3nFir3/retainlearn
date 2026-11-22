@@ -10,7 +10,8 @@ const periodSchema = new Schema(
     setId: { type: Schema.Types.ObjectId },
     mode: { type: String },
     arena: { type: String },
-    why: { type: String },
+    why: { type: Schema.Types.Mixed }, // why it's on today's timetable: { kind, n, of? } (packages/core, planDay)
+    set: { type: Schema.Types.Mixed }, // the set's { topic, subtopic, category }, copied, so the campus needs no lookup
     done: { type: Boolean, default: false },
   },
   { _id: false }
@@ -21,6 +22,7 @@ const activitySchema = new Schema(
     userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
     day: { type: String, required: true, match: /^\d{4}-\d{2}-\d{2}$/ },
     timetable: { type: [periodSchema], default: [] },
+    doneAt: { type: Date }, // when the last period was done: the timetable's bonus XP is given once, then
     fading: { type: [new Schema({ category: String, count: Number }, { _id: false })], default: [] },
     xp: { type: Number, default: 0 },
     answers: { type: Number, default: 0 },

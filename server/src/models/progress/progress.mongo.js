@@ -49,8 +49,12 @@ const progressSchema = new Schema(
     questions: { type: Map, of: questionSchema, default: {} },
     order: { type: [Schema.Types.ObjectId], default: undefined }, // your own round order (none: the author's)
     quiz: { started: { type: Number, default: 0 }, finished: { type: Number, default: 0 } },
-    // { key, mode, day, ids, index, seq, ... }: seq lets a batch of answers sent twice be applied once.
+    // A class left halfway, so it can carry on (on another device too): { key, mode, day, seq, ids, index }. None once
+    // the class is finished.
     classInProgress: { type: Schema.Types.Mixed, default: null },
+    // The last batch of answers saved: its class (one sitting's key) and number. A batch sent again (a retry, a flaky
+    // connection) is caught here, even the class's last one, after classInProgress is cleared.
+    lastBatch: { type: new Schema({ key: String, seq: Number }, { _id: false }), default: undefined },
     lastAt: { type: Date },
     // When it was copied from the old app's users.studying[] (migration 0004); missing on documents the new app made.
     copiedAt: { type: Date },

@@ -4,7 +4,8 @@
 // they return (P1-07), and the client shows it straight away.
 import { dayKey, daysSince } from "./days.ts";
 import { MAX_LEVEL, isPlayerCard } from "./playerCards.ts";
-import type { DateLike, FlashcardProgress, Id, QuestionItem, QuestionProgress, RecallMark } from "./types.ts";
+import { knewFlashcard, xpForFlashcard, xpForQuestion } from "./rewards.ts";
+import type { DateLike, FlashcardProgress, Id, ItemMap, Progress, QuestionItem, QuestionProgress, RecallMark } from "./types.ts";
 
 // When an answer was given, and where: the player's time zone decides which day it was.
 export type AnswerTime = { at: DateLike; timeZone?: string };
@@ -50,3 +51,48 @@ export const refreshPlayerCard = (q: QuestionProgress | null | undefined, time: 
 // The questions linked to a flashcard (by their flashcardId), as id strings.
 export const linkedQuestionIds = (set: { questions: readonly QuestionItem[] }, flashcardId: Id): string[] =>
   set.questions.filter((q) => q.flashcardId != null && String(q.flashcardId) === String(flashcardId)).map((q) => String(q._id));
+
+// One answer in a class: a question answered, or a flashcard reviewed, with the recall points you marked. (What the
+// API accepts, ClassAnswer in api.ts, fits this.)
+export type GivenAnswer =
+  | { kind: "question"; itemId: string; correct: boolean }
+  | { kind: "flashcard"; itemId: string; knew: boolean; points?: readonly { key: string; knew: boolean }[] };
+
+const itemOf = <T>(map: ItemMap<T> | undefined, id: string): T | undefined => (map instanceof Map ? map.get(id) : map?.[id]);
+
+// A batch of a class's answers applied to a set's progress, in order. Returns only the items it changed (so the server
+// can $set just those), how many player cards it earned, and the XP it earned. A flashcard counts as known from 80%
+// of its recall points (knewFlashcard), and then also refreshes the cards of its linked questions.
+export function applyAnswers(
+  p: Progress | null | undefined,
+  set: { questions: readonly QuestionItem[] },
+  answers: readonly GivenAnswer[],
+  time: AnswerTime,
+): { flashcards: Record<string, FlashcardProgress>; questions: Record<string, QuestionProgress>; earned: number; xp: number } {
+  const flashcards: Record<string, FlashcardProgress> = {};
+  const questions: Record<string, QuestionProgress> = {};
+  const question = (id: string) => questions[id] ?? itemOf(p?.questions, id);
+  let earned = 0;
+  let xp = 0;
+  for (const answer of answers) {
+    if (answer.kind === "question") {
+      const was = question(answer.itemId);
+      const now = answerQuestion(was, answer.correct, time);
+      if (!isPlayerCard(was) && isPlayerCard(now)) earned++;
+      questions[answer.itemId] = now;
+      xp += xpForQuestion(answer.correct);
+      continue;
+    }
+    const points = answer.points ?? [];
+    const knew = knewFlashcard(points, answer.knew);
+    flashcards[answer.itemId] = reviewFlashcard(flashcards[answer.itemId] ?? itemOf(p?.flashcards, answer.itemId), knew, { ...time, points });
+    if (knew) {
+      for (const id of linkedQuestionIds(set, answer.itemId)) {
+        const was = question(id);
+        if (isPlayerCard(was)) questions[id] = refreshPlayerCard(was, time) as QuestionProgress;
+      }
+    }
+    xp += xpForFlashcard(points.length);
+  }
+  return { flashcards, questions, earned, xp };
+}
