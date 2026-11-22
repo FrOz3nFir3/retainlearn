@@ -1,0 +1,21 @@
+{
+  "name": "@retainlearn/core",
+  "version": "1.0.0",
+  "private": true,
+  "description": "RetainLearn's study rules, shared by the server and the client: plain TypeScript functions, run by Node directly.",
+  "type": "module",
+  "exports": "./src/index.ts",
+  "engines": {
+    "node": ">=22.18"
+  },
+  "scripts": {
+    "test": "node --test \"test/**/*.test.ts\"",
+    "typecheck": "tsc"
+  },
+  "author": "FrOz3nFir3",
+  "license": "Unlicense",
+  "devDependencies": {
+    "@types/node": "22.20.5",
+    "typescript": "7.0.2"
+  }
+}

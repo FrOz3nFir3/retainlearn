@@ -32,6 +32,10 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
 *   **Caching:** Redis & LRU Cache
 *   **Security:** Helmet (CSP), Rate Limiting, CORS, Bcrypt, JWT
 
+### Shared study rules (`/packages/core`)
+*   **What:** the rules both the server and the client use, so the two never disagree: the player's local day, player cards and how they fade, what an answer changes, progress and statuses, and today's timetable.
+*   **How:** plain TypeScript functions with no database, network or screen. Node 22.18 and newer runs the `.ts` files directly, and Vite handles them in the client. Imported by name, `@retainlearn/core`.
+
 ## 🏁 Getting Started
 
 ### Prerequisites
@@ -90,8 +94,9 @@ A server started on your machine should never touch production's database.
 3.  **Data** in the working database, `retainlearn`, either:
     *   copied from another local database, e.g. an imported copy of production (collections and indexes, the target dropped first):
         ```bash
-        npm run db:copy --prefix server -- --from repetitions --to retainlearn
+        npm run db:copy --prefix server -- --from <imported copy> --to retainlearn
         ```
+        With no arguments, `npm run db:copy --prefix server` copies `retainlearn` into `retainlearn_rehearsal`, to rehearse a migration on a copy first.
     *   or made-up data:
         ```bash
         npm run db:seed --prefix server
@@ -104,9 +109,10 @@ These scripts and the tests only ever write to a **local** database whose name s
 ```bash
 npm test --prefix server
 npm test --prefix client
+npm ci --prefix packages/core && npm run typecheck --prefix packages/core && npm test --prefix packages/core
 ```
 
-The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. Both run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`).
 
 ### Database changes (migrations)
 
