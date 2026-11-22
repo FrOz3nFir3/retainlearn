@@ -1,10 +1,11 @@
-// Copies one local MongoDB database into another, collections and indexes. For example, your untouched copy of
-// production (`repetitions`) into the working copy (`retainlearn`), to develop on or to rehearse a migration. The
-// target is dropped first, so every copy starts clean. Local only, and only into a database whose name starts with
-// "retainlearn" (scripts/local-only.js). Prints counts, never documents.
+// Copies one local MongoDB database into another, collections and indexes. By default your working copy
+// (`retainlearn`) into `retainlearn_rehearsal`, to rehearse a migration on a copy before it runs on the real thing. Or
+// an imported copy of production into the working copy. The target is dropped first, so every copy starts clean.
+// Local only, and only into a database whose name starts with "retainlearn" (scripts/local-only.js). Prints counts,
+// never documents.
 //
-//   npm run db:copy                                     repetitions -> retainlearn
-//   npm run db:copy -- --from repetitions --to retainlearn_rehearsal
+//   npm run db:copy                                         retainlearn -> retainlearn_rehearsal
+//   npm run db:copy -- --from <imported copy> --to retainlearn
 import mongoose from "mongoose";
 import { assertLocalRetainlearn } from "./local-only.js";
 
@@ -13,8 +14,8 @@ const arg = (name, fallback) => {
   return i > 0 && process.argv[i + 1] ? process.argv[i + 1] : fallback;
 };
 const base = process.env.LOCAL_MONGO ?? "mongodb://localhost:27017";
-const from = arg("from", "repetitions");
-const to = arg("to", "retainlearn");
+const from = arg("from", "retainlearn");
+const to = arg("to", "retainlearn_rehearsal");
 
 async function copy() {
   assertLocalRetainlearn(`${base}/${to}`);
