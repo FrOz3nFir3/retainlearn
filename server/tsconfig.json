@@ -1,0 +1,27 @@
+{
+  // Type-checks the server's TypeScript (new code only: the JavaScript stays as it is until it's deleted). Nothing is
+  // built: Node runs the .ts files itself by stripping their types. So only TypeScript that can be stripped
+  // (erasableSyntaxOnly: no enums, namespaces, parameter properties or decorators), type imports marked `import type`
+  // (verbatimModuleSyntax), and imports with their .ts extension. The JavaScript the TypeScript imports is read for
+  // its types (allowJs), not checked. PLAN 14.15.
+  "compilerOptions": {
+    "target": "es2024",
+    "lib": ["es2024"],
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "types": ["node"],
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*.ts", "test/**/*.ts"]
+}

@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "description": "A full-stack spaced repetition and flashcard application built with React and Node.js.",
   "scripts": {
-    "install-all": "npm install && npm install --prefix ./client && npm install --prefix ./server",
-    "install-server": "npm install --prefix server",
+    "install-all": "npm install && npm install --prefix ./client && npm install --prefix ./packages/core && npm install --prefix ./server",
+    "install-server": "npm install --prefix packages/core && npm install --prefix server",
     "install-client": "npm install --prefix client",
     "server": "npm run start --prefix server",
     "client": "npm run build --prefix client",

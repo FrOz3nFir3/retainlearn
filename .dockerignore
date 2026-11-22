@@ -6,4 +6,5 @@
 !server/src
 !server/scripts
 !packages/core/package.json
+!packages/core/package-lock.json
 !packages/core/src
