@@ -118,6 +118,8 @@ The API tests use Node's built-in test runner against a local database of their 
 
 Every push to `main` deploys. **Dokploy** builds the server from the root `Dockerfile` (Build Type "Dockerfile", Build Path `/`) and starts it with its settings as environment variables. **Cloudflare** builds and serves the site from `client/`. The image holds only the server and the shared rules (`.dockerignore` keeps everything else out), runs Node 26 as a non-root user, and stops cleanly when a deploy replaces it.
 
+In Dokploy, the Build Path must be `/`, saved with its own Save button in the GitHub section. With `server`, Dokploy looks for `server/Dockerfile`, and the build fails. Leave Docker File, Docker Context Path and Docker Build Stage empty.
+
 To build and try the image on your machine, against a local database:
 ```bash
 docker build -t retainlearn-api .
