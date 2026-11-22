@@ -1,8 +1,9 @@
 name: Tests
 
-# Runs the server's API tests, the client's unit tests, and the shared study rules' type check and tests on every pull
-# request. A merge to main deploys production (deploy.yml) with no tests of its own, so this is the gate: protect
-# `main` and require all three checks ("api", "client" and "core") to pass before merging.
+# Runs on every pull request: the server's API tests, the client's unit tests, the shared study rules' type check and
+# tests, and a build and start of the server's Docker image. A merge to main deploys production (deploy.yml) with no
+# tests of its own, so this is the gate: protect `main` and require all four checks ("api", "client", "core" and
+# "image") to pass before merging.
 on:
   pull_request:
 
@@ -34,7 +35,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # The Node that production runs (the Dockerfile's).
+          node-version: 26
           cache: npm
           cache-dependency-path: server/package-lock.json
       - run: npm ci
@@ -63,11 +65,55 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          # Node 22.18 or newer runs the .ts files directly (it strips their types), as production will.
-          node-version: 22
-          check-latest: true
+          # The Node that production runs (the Dockerfile's). It runs the .ts files directly, stripping their types.
+          node-version: 26
           cache: npm
           cache-dependency-path: packages/core/package-lock.json
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
+
+  image:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ ping: 1 })'"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      # Built as Dokploy builds it: the root Dockerfile, with the whole repo as its context.
+      - run: docker build -t retainlearn-api .
+      # Started as Dokploy starts it, with its settings as environment variables, on this job's database. Then: it
+      # answers, its migrations run, a public page works, the cleanup job runs inside it, and it stops at once when
+      # asked. Requests behind Cloudflare and Dokploy's proxy arrive marked as HTTPS; plain HTTP is redirected.
+      - name: Start the image and check it
+        run: |
+          docker run -d --name api --network host \
+            -e MONGO_URI=mongodb://localhost:27017/retainlearn_image \
+            -e REDIS_URI=redis://localhost:6379/2 \
+            -e ACCESS_TOKEN_SECRET=ci-only -e REFRESH_TOKEN_SECRET=ci-only -e COOKIE_SECRET=ci-only \
+            retainlearn-api
+          health() { curl -fsS -H "X-Forwarded-Proto: https" http://localhost:3000/api/health; }
+          for i in $(seq 1 30); do health | grep -q '"state":"done"' && break; sleep 2; done
+          health | tee health.json
+          echo
+          grep -q '"status":"ok"' health.json
+          grep -q '"state":"done"' health.json
+          curl -fsS -o /dev/null -H "X-Forwarded-Proto: https" "http://localhost:3000/api/cards/categories?page=1"
+          docker exec api node --version
+          docker exec api npm run cron:cleanup
+          start=$(date +%s); docker stop api; test $(( $(date +%s) - start )) -lt 5
+      - name: The server's log
+        if: always()
+        run: docker logs api || true
