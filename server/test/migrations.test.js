@@ -340,6 +340,124 @@ test("0003 won't take over an ordinary collection called answers: that's sorted 
   assert.deepEqual(await recorded(), ["0001-indexes", "0002-study-set-names"], "0001 and 0002 ran; 0003 waits");
 });
 
+// A study set with three flashcards and three questions, and an account with today's study history for it, plus an
+// entry for a set deleted since, and a flashcard and a question deleted since. Stored as the old app stores them.
+async function studied() {
+  const newId = () => new mongoose.Types.ObjectId();
+  const t = { lee: newId(), ada: newId(), set: newId(), goneSet: newId(), f: [newId(), newId(), newId()], q: [newId(), newId(), newId()] };
+  await db.collection("study_sets").insertOne({
+    _id: t.set,
+    category: "Programming",
+    "main-topic": "JavaScript",
+    "sub-topic": "Basics",
+    review: t.f.map((_id) => ({ _id, question: "<p>Q</p>", answer: "<p>A</p>" })),
+    quizzes: t.q.map((_id) => ({ _id, quizQuestion: "<p>Q</p>", quizAnswer: "<p>A</p>", options: [] })),
+    updatedAt: new Date("2026-11-01T00:00:00Z"),
+  });
+  await db.collection("users").insertMany([
+    {
+      _id: t.lee,
+      username: "lee_learner",
+      email: "lee@example.test",
+      studying: [
+        {
+          cardId: t.set,
+          review: {
+            lastReviewedCardNo: 2,
+            weakCards: [
+              { flashcardId: t.f[1], addedAt: new Date("2026-11-09T23:30:00Z") },
+              { flashcardId: t.f[2], addedAt: new Date("2026-11-10T08:00:00Z") },
+              { flashcardId: newId(), addedAt: new Date("2026-11-10T08:00:00Z") }, // deleted from the set since
+            ],
+            updatedAt: new Date("2026-11-10T09:00:00Z"),
+          },
+          quiz: {
+            timesStarted: 3,
+            timesFinished: 2,
+            attempts: [
+              { quizId: t.q[0], timesCorrect: 2, timesIncorrect: 1, struggling: false },
+              { quizId: t.q[1], timesCorrect: 1, timesIncorrect: 2, struggling: true },
+              { quizId: t.q[2], timesCorrect: 0, timesIncorrect: 1, struggling: false },
+              { quizId: newId(), timesCorrect: 1, timesIncorrect: 0, struggling: false }, // deleted from the set since
+            ],
+            updatedAt: new Date("2026-11-12T20:00:00Z"),
+          },
+        },
+        { cardId: t.goneSet, review: { lastReviewedCardNo: 5, updatedAt: new Date("2026-10-01") }, quiz: {} },
+      ],
+    },
+    { _id: t.ada, username: "ada_author", email: "ada@example.test", studying: [] },
+  ]);
+  return t;
+}
+
+test("0004 copies each account's study history into progress, for the sets that still exist, and leaves the old data as it is", async () => {
+  const t = await studied();
+  const lines = [];
+  await runMigrations(db, { dryRun: true, log: (text) => lines.push(text), problem: assert.fail });
+  for (const line of [
+    "  progress: 1 document(s) will be made, from 1 account(s) with a study history",
+    "  progress: 1 entr(y/ies) for study set(s) deleted since, left out",
+    "  progress: 2 flashcard(s) or question(s) deleted from their sets since, left out",
+  ]) {
+    assert.ok(lines.includes(line), `${line}\nnot in:\n${lines.join("\n")}`);
+  }
+  assert.equal(await db.collection("progress").countDocuments(), 0, "the dry run made nothing");
+
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, everyId);
+  const docs = await db.collection("progress").find({}, { projection: { _id: 0 } }).toArray();
+  assert.equal(docs.length, 1);
+  const { copiedAt, createdAt, updatedAt, ...copied } = docs[0];
+  assert.ok(copiedAt instanceof Date);
+  assert.deepEqual([createdAt, updatedAt], [copiedAt, copiedAt]);
+  const [f1, f2, f3] = t.f.map(String);
+  const [q1, q2, q3] = t.q.map(String);
+  assert.deepEqual(copied, {
+    userId: t.lee,
+    setId: t.set,
+    setInfo: { category: "Programming", topic: "JavaScript", subtopic: "Basics", flashcards: 3, questions: 3, version: Date.parse("2026-11-01T00:00:00Z") },
+    // The first 2 flashcards were reviewed (lastReviewedCardNo). The 2nd and 3rd were marked weak: missed on the
+    // (UTC) day they were marked.
+    flashcards: {
+      [f1]: { seenAt: new Date("2026-11-10T09:00:00Z"), missedOn: null },
+      [f2]: { seenAt: new Date("2026-11-10T09:00:00Z"), missedOn: "2026-11-09" },
+      [f3]: { seenAt: new Date("2026-11-10T08:00:00Z"), missedOn: "2026-11-10" },
+    },
+    questions: {
+      [q1]: { level: 1, refreshedAt: new Date("2026-11-12T20:00:00Z"), right: 2, wrong: 1, missedOn: null }, // a player card
+      [q2]: { level: 0, right: 1, wrong: 2, missedOn: "2026-11-12" }, // marked struggling
+      [q3]: { level: 0, right: 0, wrong: 1, missedOn: null }, // never got right
+    },
+    quiz: { started: 3, finished: 2 },
+    lastAt: new Date("2026-11-12T20:00:00Z"),
+  });
+
+  const lee = await db.collection("users").findOne({ _id: t.lee });
+  assert.equal(lee.studying.length, 2, "the old study history stays");
+  assert.equal(lee.studying[0].quiz.attempts.length, 4);
+});
+
+test("0004 makes only missing documents: it never overwrites progress that's there, and running it again changes nothing", async () => {
+  const t = await studied();
+  await runMigrations(db, { log: quiet });
+  // The new app saves to the copied document.
+  await db.collection("progress").updateOne({ userId: t.lee, setId: t.set }, { $set: { [`questions.${t.q[2]}.right`]: 1, updatedAt: new Date() } });
+  const saved = await db.collection("progress").findOne({ userId: t.lee, setId: t.set });
+
+  const lines = [];
+  await migrations[3].up(db, { dryRun: false, log: (text) => lines.push(text), fail: (text) => assert.fail(text) });
+  assert.deepEqual(await db.collection("progress").findOne({ userId: t.lee, setId: t.set }), saved);
+  assert.equal(await db.collection("progress").countDocuments(), 1);
+  assert.ok(lines.includes("progress: 0 document(s) made, from 1 account(s) with a study history"), lines.join("\n"));
+  assert.ok(lines.includes("progress: 1 already there, kept as they are"), lines.join("\n"));
+});
+
+test("0004 says so when there's no study history to copy", async () => {
+  const lines = [];
+  await runMigrations(db, { log: (text) => lines.push(text) });
+  assert.ok(lines.includes("  progress: no study history to copy"), lines.join("\n"));
+});
+
 test("every numbered file in src/migrations is in the list, in order", async () => {
   const files = (await readdir(new URL("../src/migrations/", import.meta.url))).filter((file) => /^\d{4}-.+\.js$/.test(file)).sort();
   assert.deepEqual(migrations.map((migration) => `${migration.id}.js`), files);
