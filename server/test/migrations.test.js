@@ -134,6 +134,18 @@ test("at startup, a migration that fails is logged and shown in /api/health, and
   assert.deepEqual(migrationStatus(), { state: "done", latest: "0001-fixed" });
 });
 
+test("at startup, while another server holds the lock, this one looks again and runs them once it's let go", async () => {
+  // A deploy can stop a server part-way, leaving its lock: the next server mustn't give up on the migrations.
+  await db.collection("migrations_lock").insertOne({ _id: "lock", owner: "another server", renewedAt: new Date() });
+  await runAtStartup(db, { list: [step("0001-a")], log: quiet, retryEvery: 20, retryFor: 2000 });
+  assert.deepEqual(migrationStatus(), { state: "running on another server" });
+
+  await db.collection("migrations_lock").deleteOne({ _id: "lock" });
+  for (let i = 0; i < 50 && migrationStatus().state !== "done"; i++) await wait(20);
+  assert.deepEqual(migrationStatus(), { state: "done", latest: "0001-a" });
+  assert.deepEqual(await recorded(), ["0001-a"]);
+});
+
 test("the deployed server runs them; a development server only when its database is on this machine", () => {
   const remote = "mongodb://user:secret@db.example.net:27017/app";
   assert.equal(shouldRunMigrations({ nodeEnv: "production", uri: remote }), true);
@@ -148,7 +160,7 @@ test("on an empty database, the migrations make every index the models declare, 
   // Every model, including any added later.
   const models = new URL("../src/models/", import.meta.url);
   for (const file of await readdir(models, { recursive: true })) {
-    if (file.endsWith(".mongo.js")) await import(new URL(file, models));
+    if (/\.mongo\.(js|ts)$/.test(file)) await import(new URL(file, models)); // JavaScript today, TypeScript for the new ones
   }
   assert.ok(mongoose.modelNames().length >= 3, mongoose.modelNames().join(", "));
 
