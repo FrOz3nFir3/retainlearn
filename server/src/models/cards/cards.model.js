@@ -57,6 +57,9 @@ export function listedFilter(now = new Date()) {
   return { $or: [{ listed: { $ne: false } }, { listAt: { $lte: now } }] };
 }
 
+// The same as a yes/no for a set already read (the new study endpoints).
+export const isListed = (set, now = new Date()) => set.listed !== false || (set.listAt instanceof Date && set.listAt <= now);
+
 // The same as a yes/no inside an aggregation, for a single set's page (search engines are told not to index it).
 const isListedExpression = (now) => ({
   $or: [

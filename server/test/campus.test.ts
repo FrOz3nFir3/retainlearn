@@ -7,8 +7,8 @@ import { dayKey } from "@retainlearn/core";
 import type { Campus, SavedAnswers } from "@retainlearn/core";
 import { startApi } from "./helpers.js";
 import { ids, PASSWORD } from "./fixtures.js";
-import Player from "#models/players/players.mongo.js";
-import Progress from "#models/progress/progress.mongo.js";
+import Player from "#models/players/players.mongo.ts";
+import Progress from "#models/progress/progress.mongo.ts";
 import Users from "#models/users/users.mongo.js";
 
 const IST = "Asia/Kolkata";

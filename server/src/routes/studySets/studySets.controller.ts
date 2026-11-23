@@ -56,9 +56,9 @@ export async function postAnswers(req: Request, res: Response) {
     if (body.finished) {
       bonus = await finishPeriod(userId, when.today, set._id, body.mode, at);
       await addXp(userId, bonus);
-      const { streak, firstToday } = await finishClass(userId, when.today, await subjectSummary(userId, set.category, when));
+      const { streak, firstToday } = await finishClass(userId, when.today, await subjectSummary(userId, set.category, when), body.classKey);
       finished = { streak: streak.count, firstToday, timetableDone: bonus > 0 };
-    } else if (body.seq === 1) {
+    } else if (saved.firstOfSitting) {
       await setClassLeft(userId, { setId: set._id, key: body.classKey, day: when.today });
     }
   } catch (error) {

@@ -1,9 +1,11 @@
 import { Schema, model } from "mongoose";
+import type { InferSchemaType, Types } from "mongoose";
+import type { Lean } from "#models/lean.ts";
 
 // Every answer, from the day the new screens go live: never edited, and never read while answering a request (later
 // features read it: measured difficulty, ghosts, ratings). A time-series collection, made as one by
 // migrations/0003-new-collections.js. A time series can't have unique indexes, so a batch sent twice is caught by
-// progress.classInProgress.seq instead. A flashcard reviewed is one "flashcard" answer (known or not), plus one "point"
+// progress.sittings instead, before anything is logged. A flashcard reviewed is one "flashcard" answer (known or not), plus one "point"
 // answer for each recall point marked.
 const answerSchema = new Schema(
   {
@@ -21,5 +23,7 @@ const answerSchema = new Schema(
   },
   { timeseries: { timeField: "at", metaField: "meta", granularity: "seconds" }, versionKey: false }
 );
+
+export type AnswerDoc = Lean<InferSchemaType<typeof answerSchema>> & { _id: Types.ObjectId };
 
 export default model("Answer", answerSchema, "answers");

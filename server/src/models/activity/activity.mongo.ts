@@ -1,4 +1,6 @@
 import { Schema, model } from "mongoose";
+import type { InferSchemaType, Types } from "mongoose";
+import type { Lean } from "#models/lean.ts";
 
 // One per account and day (the player's local day). Today's is read on every campus load (PLAN 14.3b). The work that
 // depends on the date rather than on a write happens once, at the day's first load, and is kept here: the timetable
@@ -33,5 +35,7 @@ const activitySchema = new Schema(
 );
 
 activitySchema.index({ userId: 1, day: -1 }, { unique: true });
+
+export type ActivityDoc = Lean<InferSchemaType<typeof activitySchema>> & { _id: Types.ObjectId };
 
 export default model("Activity", activitySchema, "activity");

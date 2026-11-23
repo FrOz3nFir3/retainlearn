@@ -7,9 +7,11 @@ import { dayKey } from "@retainlearn/core";
 import type { ProgressView, SavedAnswers, StudySetContent } from "@retainlearn/core";
 import { startApi } from "./helpers.js";
 import { ids } from "./fixtures.js";
-import Answer from "#models/answers/answers.mongo.js";
-import Activity from "#models/activity/activity.mongo.js";
-import Player from "#models/players/players.mongo.js";
+import Answer from "#models/answers/answers.mongo.ts";
+import Activity from "#models/activity/activity.mongo.ts";
+import Player from "#models/players/players.mongo.ts";
+import type { PlayerDoc } from "#models/players/players.mongo.ts";
+import Cards from "#models/cards/cards.mongo.js";
 
 const IST = "Asia/Kolkata";
 const js = String(ids.js);
@@ -51,6 +53,15 @@ test("a set's content comes in the new names, for anyone", async () => {
     },
   ]);
   for (const old of ["main-topic", "review", "quizzes", "logs", "reviewQueue", "author"]) assert.equal(old in set, false, `no ${old}`);
+});
+
+test("a new account's set reads as listed once its day to be listed has come, as the category pages show it", async () => {
+  const listed = async () => ((await (await t.api(`/api/study-sets/${ids.bio}`)).json()) as StudySetContent).listed;
+  await Cards.updateOne({ _id: ids.bio }, { $set: { listed: false, listAt: new Date(Date.now() - 60_000) } });
+  assert.equal(await listed(), true);
+  await Cards.updateOne({ _id: ids.bio }, { $set: { listAt: new Date(Date.now() + 24 * 60 * 60 * 1000) } });
+  assert.equal(await listed(), false);
+  await Cards.updateOne({ _id: ids.bio }, { $unset: { listed: 1, listAt: 1 } });
 });
 
 test("an unknown set is a 404, and an id that isn't one is a 400 saying so", async () => {
@@ -146,16 +157,17 @@ test("finishing a class: the streak starts, the subject joins the campus, and th
   const saved = (await res.json()) as SavedAnswers;
   assert.deepEqual(saved.finished, { streak: 1, firstToday: true, timetableDone: false });
 
-  const player = await Player.findById(ids.learner).lean<{ streak: { count: number }; classLeft: unknown; subjects: { category: string; started: number; missed: number }[] }>();
-  assert.equal(player?.streak.count, 1);
-  assert.equal(player?.classLeft, null);
+  // The review started in the test before, and never finished, is still left halfway: only the quiz was finished.
+  const player = await Player.findById(ids.learner).lean<PlayerDoc>();
+  assert.equal(player?.streak?.count, 1);
+  assert.equal(player?.classLeft?.key, "review:round-1:b");
   assert.deepEqual(
     player?.subjects.map(({ category, started, missed }) => ({ category, started, missed })),
     [{ category: "Programming", started: 1, missed: 2 }],
     "the question just missed, and loopCard",
   );
   const progress = (await (await t.api(`/api/study-sets/${js}/progress`, { headers: lee })).json()) as ProgressView;
-  assert.equal(progress.classInProgress, null);
+  assert.equal(progress.classInProgress?.key, "review:round-1:b", "the review can still carry on");
   assert.deepEqual(progress.quiz, { started: 1, finished: 1 });
 
   // The finished batch sent again (its answer lost on the way back) changes nothing, even with the class closed.

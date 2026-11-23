@@ -1,7 +1,7 @@
 // Every answer, logged as it's saved (PLAN 14.3b): a time series, never edited and never read while answering a
 // request. A flashcard reviewed is one "flashcard" answer (known or not) plus one "point" answer per recall point.
 import { Types } from "mongoose";
-import Answer from "#models/answers/answers.mongo.js";
+import Answer from "#models/answers/answers.mongo.ts";
 import { knewFlashcard } from "@retainlearn/core";
 import type { SaveAnswers } from "@retainlearn/core";
 
