@@ -1,0 +1,201 @@
+/* The new screens' design system (PLAN 14.13): colour roles, and the CSS the building blocks in components/ui need
+   that utility classes can't say. Ported from the prototype's styles.css, built to the modern web guidance.
+
+   Colour by role, each a light and a dark value in one place (light-dark()): the `dark` class on <html> (the theme
+   setting) switches color-scheme, and every role follows, with the browser's own scrollbars and form controls.
+   ink: text and lines (faint fills at low opacity). surface: panels, cards, inputs. mist: a panel within a panel.
+   chalk: the page. night: dark fills in both themes, with white text. The tones (mint, bell, rose, cold, orange) each
+   have a wash (a tinted background) and an ink (text on it), so a badge reads in both themes. */
+
+:root {
+  color-scheme: light;
+}
+:root.dark {
+  color-scheme: dark;
+}
+
+/* static: every role is output, even one no class uses yet, since components also read them as var(--color-…)
+   (Bar's fill). Tailwind otherwise drops the unused ones. */
+@theme static {
+  --color-ink: light-dark(#1e1b4b, #e7e8f6);
+  --color-surface: light-dark(#ffffff, #1f2242);
+  --color-mist: light-dark(#f4f5fb, #282b4f);
+  --color-chalk: light-dark(#e6e9f6, #12142d);
+  --color-night: #1e1b4b;
+  --color-brand: light-dark(#4f46e5, #6d66f7);
+  --color-brand-deep: light-dark(#3b33c4, #5b53ef);
+  --color-bell: #f59e0b;
+  --color-mint: #34b27d;
+  --color-cold: #8e92b6;
+
+  --color-mint-wash: light-dark(#ecfdf5, rgb(16 185 129 / 0.14));
+  --color-mint-ink: light-dark(#047857, #6ee7b7);
+  --color-bell-wash: light-dark(rgb(245 158 11 / 0.15), rgb(245 158 11 / 0.14));
+  --color-bell-ink: light-dark(#92400e, #fde68a);
+  --color-rose-wash: light-dark(#fff1f2, rgb(244 63 94 / 0.14));
+  --color-rose-ink: light-dark(#be123c, #fda4af);
+  --color-cold-wash: light-dark(#f1f5f9, rgb(148 163 184 / 0.16));
+  --color-cold-ink: light-dark(#475569, #cbd5e1);
+  --color-orange-wash: light-dark(#fff7ed, rgb(249 115 22 / 0.14));
+  --color-orange-ink: light-dark(#c2410c, #fdba74);
+  --color-danger: light-dark(#e11d48, #f43f5e);
+  --color-danger-deep: light-dark(#be123c, #e11d48);
+
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+}
+
+/* A frosted card: dialogs, sheets and panels. */
+@utility panel {
+  border-radius: 20px;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 7%, transparent);
+  background: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow:
+    0 1px 2px rgb(30 27 75 / 0.05),
+    0 18px 40px -20px rgb(30 27 75 / 0.3);
+}
+
+/* Dialog (components/ui/Dialog.tsx): the native <dialog>, opened with showModal(). Scrolling over the backdrop or
+   inside the dialog mustn't scroll the page behind it (both rules are needed). It fades and grows in as it opens
+   (@starting-style); closing is instant, which is all some browsers can do (guide: animate-to-from-top-layer). */
+dialog.kit-dialog {
+  max-height: min(92dvh, 52rem);
+  margin: auto; /* the browser centres a modal with margin: auto, which Tailwind's reset sets to 0 */
+  padding: 0;
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+dialog.kit-dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog.kit-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgb(30 27 75 / 0.4);
+  backdrop-filter: blur(2px);
+}
+dialog.kit-dialog[open] {
+  opacity: 1;
+  transition: opacity 0.2s ease-out, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: none;
+
+    @starting-style {
+      transform: scale(0.96);
+    }
+  }
+
+  &::backdrop {
+    transition: background-color 0.2s ease-out;
+
+    @starting-style {
+      background-color: transparent;
+    }
+  }
+}
+
+/* Sheet (components/ui/Sheet.tsx): a panel you keep working beside, in the top layer (popover="manual"). A bottom
+   sheet on phones, a side panel from the md breakpoint. Display only while open, so a closed one stays hidden. */
+.kit-sheet[popover] {
+  inset: auto 0 0 0;
+  width: auto;
+  max-height: 78dvh;
+  margin: 0;
+  padding: 0;
+  border-radius: 20px 20px 0 0;
+  color: var(--color-ink);
+}
+.kit-sheet[popover]:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 48rem) {
+  .kit-sheet[popover] {
+    inset: 5rem 1.5rem 1rem auto;
+    width: var(--kit-sheet-width, 380px);
+    height: auto; /* the popover default (fit-content) would stop it short of the bottom */
+    max-height: none;
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-sheet[popover]:popover-open {
+    transition: translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    @starting-style {
+      translate: 0 1.5rem;
+    }
+  }
+}
+
+/* Bar (components/ui/Bar.tsx): a native <progress>, styled (guide: progress). The track is the element; the fill is
+   each engine's own pseudo-element, in separate rules (one rule naming both would be dropped). --kit-bar-fill sets
+   the tone. */
+progress.kit-bar {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 0.375rem;
+  border: 0 solid;
+  border-radius: 999px;
+  overflow: clip;
+  background: color-mix(in oklab, var(--color-ink) 7%, transparent);
+}
+progress.kit-bar::-webkit-progress-bar {
+  background: transparent;
+}
+progress.kit-bar::-webkit-progress-value {
+  background: var(--kit-bar-fill, var(--color-brand));
+  border-radius: 999px;
+  transition: inline-size 0.7s;
+}
+progress.kit-bar::-moz-progress-bar {
+  background: var(--kit-bar-fill, var(--color-brand));
+  border-radius: 999px;
+}
+
+/* Skeleton (components/ui/Skeleton.tsx): the shape of what's loading, so the page doesn't jump when it arrives. A
+   light passes over it (moved with translate, so it stays off the main thread); with reduced motion it only fades
+   gently. Hidden from screen readers, which hear the loading status instead. In forced colours, an outline. */
+.kit-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-ink) 8%, transparent);
+}
+.kit-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: -100% 0;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-surface) 60%, transparent), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-skeleton::after {
+    animation: kit-shimmer 1.6s ease-in-out infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-skeleton {
+    animation: kit-pulse 3s ease-in-out infinite;
+  }
+}
+@media (forced-colors: active) {
+  .kit-skeleton {
+    border: 1px solid GrayText;
+  }
+}
+@keyframes kit-shimmer {
+  to {
+    translate: 100% 0;
+  }
+}
+@keyframes kit-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}

@@ -37,6 +37,8 @@ export const SaveAnswers = z.object({
   finished: z.boolean().default(false),
 });
 export type SaveAnswers = z.infer<typeof SaveAnswers>;
+// What the client sends: the same, before the defaults are filled in (finished, and a flashcard's points, may be left out).
+export type SaveAnswersBody = z.input<typeof SaveAnswers>;
 
 // GET /api/study-sets/:id: a study set's content, in the new names. answer is the right answer to a question, and
 // wrongAnswers the others offered with it. version changes whenever the content does.
