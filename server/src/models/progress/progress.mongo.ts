@@ -1,12 +1,16 @@
 import { Schema, model } from "mongoose";
+import type { InferSchemaType, Types } from "mongoose";
+import type { Lean } from "#models/lean.ts";
 
 // One per account and study set: where you stand with each flashcard and question, your own round order, and the
 // class in progress (so it resumes on another device). Read when a classroom or class opens, and by the report card;
 // written every few answers. It copies the set's category, titles and counts, so reading it never joins
-// `study_sets` (PLAN 14.3b). "Reviewed" counts the flashcards with a seenAt (packages/core). Flashcards and questions are maps keyed by their id, so a batch of answers can `$set` just the items
-// it touched. Recall-point keys are free text (they can hold dots), so they're stored as values, never as field names.
+// `study_sets` (PLAN 14.3b). "Reviewed" counts the flashcards with a seenAt (packages/core). Flashcards and questions
+// are maps keyed by their id, so a batch of answers can `$set` just the items it touched. Recall-point keys are free
+// text (they can hold dots), so they're stored as values, never as field names. The types the code reads come from
+// these schemas (InferSchemaType), so the two can't drift apart (PLAN 14.15).
 
-const pointSchema = new Schema({ key: { type: String, required: true }, knew: { type: Boolean, required: true }, at: { type: Date } }, { _id: false });
+const pointSchema = new Schema({ key: { type: String, required: true }, knew: { type: Boolean, required: true }, at: { type: Date, required: true } }, { _id: false });
 
 const flashcardSchema = new Schema(
   {
@@ -14,7 +18,7 @@ const flashcardSchema = new Schema(
     missedOn: { type: String, default: null }, // the day it was last missed, until you get it
     points: { type: [pointSchema], default: undefined },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const questionSchema = new Schema(
@@ -28,7 +32,14 @@ const questionSchema = new Schema(
     missedOn: { type: String, default: null },
     opponent: { type: new Schema({ asked: Number, lastAt: Date, right: Number }, { _id: false }), default: undefined },
   },
-  { _id: false }
+  { _id: false },
+);
+
+// One sitting of a class whose batches were saved: its key, the numbers of the batches saved, and whether its last
+// batch came. A batch is saved once, whatever order the batches arrive in, and a batch sent again changes nothing.
+const sittingSchema = new Schema(
+  { key: { type: String, required: true }, seqs: { type: [Number], default: [] }, done: { type: Boolean, default: false } },
+  { _id: false },
 );
 
 const progressSchema = new Schema(
@@ -52,19 +63,21 @@ const progressSchema = new Schema(
     // A class left halfway, so it can carry on (on another device too): { key, mode, day, seq, ids, index }. None once
     // the class is finished.
     classInProgress: { type: Schema.Types.Mixed, default: null },
-    // The last batch of answers saved: its class (one sitting's key) and number. A batch sent again (a retry, a flaky
-    // connection) is caught here, even the class's last one, after classInProgress is cleared.
-    lastBatch: { type: new Schema({ key: String, seq: Number }, { _id: false }), default: undefined },
+    // The last few sittings whose answers were saved (the newest last). They catch a batch sent twice (a retry, a
+    // flaky connection) or late, even after its class is finished (progress.model.ts, SITTINGS_KEPT).
+    sittings: { type: [sittingSchema], default: undefined },
     lastAt: { type: Date },
     // When it was copied from the old app's users.studying[] (migration 0004); missing on documents the new app made.
     copiedAt: { type: Date },
   },
-  { timestamps: true, versionKey: false }
+  { timestamps: true, versionKey: false },
 );
 
 // The only index, on the collection written most often (every few answers). It serves both reads: one set's progress
 // (userId + setId), and all of yours (userId). The report card sorts your few dozen sets by lastAt in memory, which
 // is cheaper than an index on lastAt that every save would have to rewrite.
 progressSchema.index({ userId: 1, setId: 1 }, { unique: true });
+
+export type ProgressDoc = Lean<InferSchemaType<typeof progressSchema>> & { _id: Types.ObjectId };
 
 export default model("Progress", progressSchema, "progress");

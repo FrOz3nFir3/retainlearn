@@ -125,9 +125,16 @@ export function shouldRunMigrations({ nodeEnv = env.NODE_ENV, uri = env.MONGO_UR
 let status = { state: "not started" };
 export const migrationStatus = () => status;
 
+// While another server holds the lock, how often to look again, and for how long: past the point a lock left by a
+// server that stopped part-way goes stale and is taken over.
+const LOCKED_RETRY_MS = 30 * 1000;
+const LOCKED_RETRY_FOR_MS = LOCK_STALE_MS + 5 * 60 * 1000;
+
 // What server.js runs once the server is answering requests. It never throws: a migration that fails is logged,
-// shown in /api/health, and run again at the next start, and the site carries on (rule 1).
-export async function runAtStartup(db, options = {}) {
+// shown in /api/health, and run again at the next start, and the site carries on (rule 1). While another server holds
+// the lock (still running them, or stopped part-way by a deploy), it looks again every 30 seconds, so the migrations
+// never wait for the next start.
+export async function runAtStartup(db, options = {}, firstTry = Date.now()) {
   if (!shouldRunMigrations()) {
     console.warn("Migrations not run: this development server's database is on another machine. The deployed server runs them.");
     status = { state: "skipped" };
@@ -138,6 +145,9 @@ export async function runAtStartup(db, options = {}) {
     const { pending, locked } = await runMigrations(db, options);
     if (!pending.length) (options.log ?? console.log)("Migrations: up to date");
     status = locked ? { state: "running on another server" } : { state: "done", latest: (options.list ?? migrations).at(-1)?.id ?? null };
+    if (locked && Date.now() - firstTry < (options.retryFor ?? LOCKED_RETRY_FOR_MS)) {
+      setTimeout(() => runAtStartup(db, options, firstTry), options.retryEvery ?? LOCKED_RETRY_MS).unref();
+    }
   } catch (error) {
     console.error(`Migrations stopped: ${error.message}`);
     status = { state: "failed" };

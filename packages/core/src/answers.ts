@@ -30,8 +30,12 @@ export function answerQuestion(q: QuestionProgress | null | undefined, correct: 
   return { ...was, level, wrong: (was.wrong ?? 0) + 1, missedOn: dayKey(time.at, time.timeZone) };
 }
 
+// The most recall points a review can mark, and a flashcard keeps: the latest marks. Editing an answer can leave keys
+// that no longer exist, and this stops them piling up.
+export const MAX_RECALL_POINTS = 30;
+
 // A flashcard reviewed. knew: you recalled all of it; anything less puts it on what you missed, from today. points:
-// the recall points you marked, kept one per key, the latest mark winning.
+// the recall points you marked, kept one per key, the latest mark winning (and moving to the end, as the newest).
 export function reviewFlashcard(
   f: FlashcardProgress | null | undefined,
   knew: boolean,
@@ -39,8 +43,12 @@ export function reviewFlashcard(
 ): FlashcardProgress {
   const was = f ?? {};
   const byKey = new Map<string, RecallMark>((was.points ?? []).map((p) => [p.key, p]));
-  for (const p of time.points ?? []) byKey.set(p.key, { key: p.key, knew: p.knew, at: new Date(time.at) });
-  return { ...was, seenAt: new Date(time.at), missedOn: knew ? null : dayKey(time.at, time.timeZone), points: [...byKey.values()] };
+  for (const p of time.points ?? []) {
+    byKey.delete(p.key);
+    byKey.set(p.key, { key: p.key, knew: p.knew, at: new Date(time.at) });
+  }
+  const points = [...byKey.values()].slice(-MAX_RECALL_POINTS);
+  return { ...was, seenAt: new Date(time.at), missedOn: knew ? null : dayKey(time.at, time.timeZone), points };
 }
 
 // Recalling a flashcard whole also refreshes the player cards of the questions linked to it, as remembering them
