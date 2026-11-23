@@ -10,6 +10,7 @@
   "scripts": {
     "start": "vite build",
     "watch": "vite",
+    "prebuild": "npm ci --prefix ../packages/core",
     "build": "vite build",
     "preview": "vite preview",
     "analyze": "ANALYZE=true vite build",

@@ -61,14 +61,14 @@ jobs:
           cache-dependency-path: |
             client/package-lock.json
             packages/core/package-lock.json
-      # Installed and built as Cloudflare builds the site: the client's packages, then the shared rules' own (Zod),
-      # since the client links to them (file:../packages/core). So a change that would break the site's build fails
-      # here first.
+      # Installed and built exactly as Cloudflare builds the site: `npm ci`, then `npm run build`, whose prebuild script
+      # installs the shared rules' own packages (Zod), since the client links to them (file:../packages/core). So a
+      # change that would break the site's build fails here first. The type check and tests come after, once the
+      # shared rules' packages are there.
       - run: npm ci
-      - run: npm ci --omit=dev --prefix ../packages/core
+      - run: npm run build
       - run: npm run typecheck
       - run: npm test
-      - run: npm run build
 
   core:
     runs-on: ubuntu-latest
