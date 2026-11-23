@@ -38,6 +38,8 @@ test("saving answers: what a batch must hold, with defaults filled in", () => {
     "an item that isn't an id": { ...batch, answers: [{ ...batch.answers[0], itemId: "q1" }] },
     "an unknown time zone": { ...batch, timeZone: "Mars/Olympus_Mons" },
     "a batch number of 0": { ...batch, seq: 0 },
+    "more than 30 recall points": { ...batch, answers: [{ kind: "flashcard", itemId: id, knew: true, ms: 1, points: Array.from({ length: 31 }, (_, i) => ({ key: `p${i}`, knew: true })) }] },
+    "a recall point's key over 160 characters": { ...batch, answers: [{ kind: "flashcard", itemId: id, knew: true, ms: 1, points: [{ key: "x".repeat(161), knew: true }] }] },
   };
   for (const [what, body] of Object.entries(bad)) assert.equal(SaveAnswers.safeParse(body).success, false, what);
 });

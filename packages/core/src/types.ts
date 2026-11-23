@@ -26,11 +26,11 @@ export type QuestionProgress = {
 // A recall point you marked in a review.
 export type RecallMark = { key: string; knew: boolean; at: DateLike };
 
-// A flashcard you've reviewed: progress.flashcards[id].
+// A flashcard you've reviewed: progress.flashcards[id]. A field the database left empty can be null.
 export type FlashcardProgress = {
   seenAt?: DateLike | null;
   missedOn?: Day | null; // the day you last missed it, until you recall all of it
-  points?: RecallMark[];
+  points?: RecallMark[] | null;
 };
 
 // A map keyed by item id: a plain object (read with lean(), or sent as JSON) or a Map (a Mongoose document).

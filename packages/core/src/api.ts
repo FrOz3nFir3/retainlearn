@@ -2,6 +2,7 @@
 // (PLAN 14.15). What they accept is a Zod schema, which the server checks every request against; its type is inferred
 // from it. What they return is a plain type: it comes from our own server, so nothing checks it while the app runs.
 import { ObjectIdHex, TimeZone, z } from "./schemas.ts";
+import { MAX_RECALL_POINTS } from "./answers.ts";
 import { CLASS_MODES } from "./timetable.ts";
 import type { ClassMode, Period } from "./timetable.ts";
 import type { SubjectStatus } from "./progress.ts";
@@ -14,10 +15,11 @@ export const SetParams = z.object({ id: ObjectIdHex });
 export const CampusQuery = z.object({ tz: TimeZone });
 
 const ms = z.number().int().min(0).max(3_600_000); // how long it took to answer, up to an hour
-const RecallPoint = z.object({ key: z.string().min(1).max(300), knew: z.boolean() });
+// A recall point's key comes from the answer's text (its section and first words), under 150 characters.
+const RecallPoint = z.object({ key: z.string().min(1).max(160), knew: z.boolean() });
 export const ClassAnswer = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("question"), itemId: ObjectIdHex, correct: z.boolean(), ms }),
-  z.object({ kind: z.literal("flashcard"), itemId: ObjectIdHex, knew: z.boolean(), points: z.array(RecallPoint).max(60).default([]), ms }),
+  z.object({ kind: z.literal("flashcard"), itemId: ObjectIdHex, knew: z.boolean(), points: z.array(RecallPoint).max(MAX_RECALL_POINTS).default([]), ms }),
 ]);
 
 // POST /api/study-sets/:id/answers: a class's answers, sent a few at a time as the class goes, so leaving halfway

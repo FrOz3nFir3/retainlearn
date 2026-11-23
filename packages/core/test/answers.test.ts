@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { answerQuestion, applyAnswers, linkedQuestionIds, refreshPlayerCard, reviewFlashcard } from "@retainlearn/core";
+import { MAX_RECALL_POINTS, answerQuestion, applyAnswers, linkedQuestionIds, refreshPlayerCard, reviewFlashcard } from "@retainlearn/core";
 import { IST, noon } from "./helpers.ts";
 
 const inIndia = (at: Date) => ({ at, timeZone: IST });
@@ -71,6 +71,15 @@ test("a reviewed flashcard is seen, goes on what you missed unless you recalled 
     { key: "a", knew: true, at: noon("2026-11-20") },
     { key: "b", knew: true, at: noon("2026-11-22") },
   ]);
+});
+
+test("a flashcard keeps its latest 30 recall marks, so keys left by an edited answer don't pile up", () => {
+  const marks = (from: number, n: number) => Array.from({ length: n }, (_, i) => ({ key: `p${from + i}`, knew: true }));
+  let f = reviewFlashcard(undefined, true, { ...inIndia(noon("2026-11-20")), points: marks(0, 30) });
+  f = reviewFlashcard(f, true, { ...inIndia(noon("2026-11-21")), points: [...marks(30, 5), { key: "p0", knew: false }] });
+  assert.equal(f.points?.length, MAX_RECALL_POINTS);
+  assert.deepEqual(f.points?.slice(0, 2).map((p) => p.key), ["p6", "p7"], "the oldest marks went first");
+  assert.deepEqual(f.points?.at(-1), { key: "p0", knew: false, at: noon("2026-11-21") }, "marked again: kept, as the newest");
 });
 
 test("recalling a flashcard whole refreshes its linked questions' player cards, and only player cards", () => {

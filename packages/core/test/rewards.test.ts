@@ -7,6 +7,7 @@ test("XP: a right answer earns more than a wrong one, and a review earns for the
   assert.equal(xpForQuestion(false), 3);
   assert.equal(xpForFlashcard(0), 6, "reviewed whole: 4 + 2");
   assert.equal(xpForFlashcard(5), 14, "4 + 2 for each recall point");
+  assert.equal(xpForFlashcard(60), 20, "up to 8 points: the browser says how many, so it's capped");
   assert.equal(XP.timetableDone, 50);
 });
 

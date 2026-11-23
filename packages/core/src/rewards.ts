@@ -1,6 +1,7 @@
 // What studying earns: XP for each answer, a bonus for finishing the day's timetable, levels from XP, and the daily
-// streak. Ported from the prototype's store (recordClass, finishClass). The server works these out from what it saves;
-// it never takes a number from the client.
+// streak. Ported from the prototype's store (recordClass, finishClass). The server works these out from the answers it
+// saves, never from an XP figure the client sends. Practice is marked in the browser (D-01), so what the server can't
+// check, such as how many recall points a review asked, is capped.
 import { daysBetween } from "./days.ts";
 import type { Day } from "./types.ts";
 
@@ -9,9 +10,11 @@ export const XP_PER_LEVEL = 300;
 export const levelOf = (xp: number): number => Math.floor(Math.max(0, xp) / XP_PER_LEVEL) + 1;
 
 // A quiz is marked for you, so a right answer earns more. A review earns for the effort, not the verdict: you mark
-// your own recall, so "knew it" can't pay more than "didn't know" or it would pay to fib.
+// your own recall, so "knew it" can't pay more than "didn't know" or it would pay to fib. A long answer is more effort
+// than a short one, up to XP_POINTS recall points, since the browser says how many it asked.
+export const XP_POINTS = 8;
 export const xpForQuestion = (correct: boolean): number => (correct ? XP.questionRight : XP.questionWrong);
-export const xpForFlashcard = (points: number): number => XP.flashcard + XP.perPoint * Math.max(1, points);
+export const xpForFlashcard = (points: number): number => XP.flashcard + XP.perPoint * Math.min(XP_POINTS, Math.max(1, points));
 
 // A flashcard counts as known when you recalled 80% of its recall points (the prototype's "perfect"). One reviewed
 // whole, with no points, is known or not as you marked it.
