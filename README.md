@@ -20,6 +20,7 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
 
 ### Frontend (`/client`)
 *   **Framework:** React 19 (via Vite)
+*   **Language:** JavaScript, and TypeScript for the new screens. Vite builds it and `tsc` type-checks it. New code imports the client's own files with `#` (`#components/ui/Button.tsx`), and the shared rules by name
 *   **Styling:** Tailwind CSS 4
 *   **State Management:** Redux Toolkit
 *   **Routing:** React Router DOM 7
@@ -35,7 +36,7 @@ RetainLearn is a full-stack spaced repetition and flashcard application designed
 
 ### Shared study rules (`/packages/core`)
 *   **What:** the rules both the server and the client use, so the two never disagree: the player's local day, player cards and how they fade, what an answer changes, progress and statuses, and today's timetable.
-*   **How:** plain TypeScript functions with no database, network or screen. Node 22.18 and newer runs the `.ts` files directly, and Vite handles them in the client. Imported by name, `@retainlearn/core`.
+*   **How:** plain TypeScript functions with no database, network or screen. Node 22.18 and newer runs the `.ts` files directly, and Vite handles them in the client. Imported by name, `@retainlearn/core`. Marked free of side effects (`"sideEffects": false`), so the site bundles only the rules it uses, and Zod only where something is checked.
 
 ## 🏁 Getting Started
 
@@ -108,19 +109,21 @@ These scripts and the tests only ever write to a **local** database whose name s
 ### Tests
 
 ```bash
-npm install --prefix packages/core   # once: the shared rules' own dependencies, which the server uses too
+npm install --prefix packages/core   # once: the shared rules' own dependencies, which the server and the client use too
 npm run typecheck --prefix server && npm test --prefix server
-npm test --prefix client
+npm run typecheck --prefix client && npm test --prefix client
 npm run typecheck --prefix packages/core && npm test --prefix packages/core
 ```
 
-The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The server's TypeScript has a type check of its own. The client's unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`), along with a fourth check that builds the server's Docker image and starts it.
+The API tests use Node's built-in test runner against a local database of their own, `retainlearn_test`, which is dropped and filled with made-up data at the start of each run, and Redis database 1. The server's TypeScript has a type check of its own. The client has a type check too, and its unit tests use the same runner and need no browser. The shared study rules have a type check and tests of their own: each test is one rule, written as an example. All three run on every pull request in GitHub Actions (`.github/workflows/test.yml`), where the client is also built as Cloudflare builds it, along with a fourth check that builds the server's Docker image and starts it.
 
 ### Deploying
 
 Every push to `main` deploys. **Dokploy** builds the server from the root `Dockerfile` (Build Type "Dockerfile", Build Path `/`) and starts it with its settings as environment variables. **Cloudflare** builds and serves the site from `client/`. The image holds only the server and the shared rules (`.dockerignore` keeps everything else out), runs Node 26 as a non-root user, and stops cleanly when a deploy replaces it.
 
 In Dokploy, the Build Path must be `/`, saved with its own Save button in the GitHub section. With `server`, Dokploy looks for `server/Dockerfile`, and the build fails. Leave Docker File, Docker Context Path and Docker Build Stage empty.
+
+In Cloudflare, the site's build command installs the shared rules' own packages before building: `npm ci --omit=dev --prefix ../packages/core && npm run build`. The client links to the rules (`file:../packages/core`), and npm doesn't install a linked package's dependencies, so without the first part the build can't find Zod once a screen uses the rules.
 
 To build and try the image on your machine, against a local database:
 ```bash
