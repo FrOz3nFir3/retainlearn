@@ -1,7 +1,7 @@
 name: Tests
 
-# Runs on every pull request: the server's API tests, the client's unit tests, the shared study rules' type check and
-# tests, and a build and start of the server's Docker image. A merge to main deploys production (deploy.yml) with no
+# Runs on every pull request: the server's API tests, the client's type check, unit tests and build, the shared study
+# rules' type check and tests, and a build and start of the server's Docker image. A merge to main deploys production (deploy.yml) with no
 # tests of its own, so this is the gate: protect `main` and require all four checks ("api", "client", "core" and
 # "image") to pass before merging.
 on:
@@ -57,9 +57,18 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      # The client's unit tests are plain modules run by Node's built-in runner: no browser and no dependencies, so
-      # there's nothing to install.
+          cache: npm
+          cache-dependency-path: |
+            client/package-lock.json
+            packages/core/package-lock.json
+      # Installed and built as Cloudflare builds the site: the client's packages, then the shared rules' own (Zod),
+      # since the client links to them (file:../packages/core). So a change that would break the site's build fails
+      # here first.
+      - run: npm ci
+      - run: npm ci --omit=dev --prefix ../packages/core
+      - run: npm run typecheck
       - run: npm test
+      - run: npm run build
 
   core:
     runs-on: ubuntu-latest

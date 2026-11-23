@@ -1,0 +1,25 @@
+{
+  // Type-checks the client's TypeScript (the new screens), and builds nothing: Vite turns it into JavaScript. The old
+  // JavaScript is read, so TypeScript can import it, but not checked: it's replaced, never converted (PLAN 14.15).
+  // The same rules as the server and packages/core, so code reads the same everywhere: erasable syntax only (no enums),
+  // `import type` for types, and imports with their extension (`#components/ui/Button.tsx`).
+  "compilerOptions": {
+    "target": "es2023",
+    "lib": ["es2023", "dom", "dom.iterable"],
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "jsx": "react-jsx",
+    "types": ["vite/client"],
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": false,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "isolatedModules": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true
+  },
+  "include": ["src"]
+}
