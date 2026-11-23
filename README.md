@@ -123,7 +123,7 @@ Every push to `main` deploys. **Dokploy** builds the server from the root `Docke
 
 In Dokploy, the Build Path must be `/`, saved with its own Save button in the GitHub section. With `server`, Dokploy looks for `server/Dockerfile`, and the build fails. Leave Docker File, Docker Context Path and Docker Build Stage empty.
 
-In Cloudflare, the site's build command installs the shared rules' own packages before building: `npm ci --omit=dev --prefix ../packages/core && npm run build`. The client links to the rules (`file:../packages/core`), and npm doesn't install a linked package's dependencies, so without the first part the build can't find Zod once a screen uses the rules.
+In Cloudflare, the site's build command is plain `npm run build`, with root directory `/client`. Its `prebuild` script installs the shared rules' own packages first (`npm ci --prefix ../packages/core`): the client links to the rules (`file:../packages/core`), and npm doesn't install a linked package's dependencies, so without it the build couldn't find Zod once a screen uses the rules. Because this lives in the repo, any place that runs `npm run build` works without extra settings.
 
 To build and try the image on your machine, against a local database:
 ```bash
