@@ -3,7 +3,6 @@ import { useSelector } from "react-redux";
 import { usePostAuthDetailsMutation } from "../../../api/apiSlice";
 import { selectCurrentUser } from "../../../features/authentication/state/authSlice";
 
-import useAuthEffect from "../../../hooks/useAuthEffect";
 import useClickOutside from "../../../hooks/useClickOutside";
 import useHeaderScroll from "../../../hooks/useHeaderScroll";
 
@@ -18,13 +17,13 @@ const ProfileMenu = React.lazy(() => import("./ProfileMenu"));
 const MobileMenu = React.lazy(() => import("./MobileMenu"));
 
 function Header() {
-  const [postAuthDetails, { isLoading }] = usePostAuthDetailsMutation();
+  // The session is checked once, in the root layout (app/session.ts): this reads how that check is going.
+  const [, { isLoading }] = usePostAuthDetailsMutation({ fixedCacheKey: "session" });
   const user = useSelector(selectCurrentUser);
   const [isOpen, setIsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const profileMenuRef = useRef(null);
 
-  useAuthEffect(postAuthDetails);
   useClickOutside(profileMenuRef, () => setIsProfileOpen(false));
   const { isScrolled, isFocusedSession, isTransparent } = useHeaderScroll();
 

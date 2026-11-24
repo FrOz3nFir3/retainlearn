@@ -6,7 +6,7 @@ import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { MIX_READY, dayKey, isPlayerCard, mixableCount, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, When } from "@retainlearn/core";
-import { useSignedIn } from "#app/hooks.ts";
+import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
@@ -26,7 +26,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 export default function Classroom() {
   const { id = "" } = useParams();
-  const signedIn = useSignedIn();
+  const session = useSession();
+  const signedIn = session === "in";
   const set = useGetStudySetQuery(id);
   const progress = useGetProgressQuery(id, { skip: !signedIn });
   const [when] = useState<When>(() => {
@@ -40,13 +41,13 @@ export default function Classroom() {
       </Page>
     );
   }
-  if (!set.data || (signedIn && progress.isLoading)) return <ClassroomSkeleton />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassroomSkeleton />;
   return <ClassroomView set={set.data} progress={progress.data ?? null} when={when} signedIn={signedIn} />;
 }
 
 function ClassroomSkeleton() {
   return (
-    <div className="min-h-dvh bg-mist">
+    <div className="flex-1 bg-mist">
       <Loading label="Loading the classroom" className="mx-auto max-w-3xl space-y-4 px-4 py-5 sm:px-6">
         <SkeletonLine className="h-6 w-1/2" />
         <SkeletonBlock className="h-28" />
@@ -105,7 +106,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
         {!signedIn && (
           <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm text-bell-ink">
             You can study as a guest, but nothing is saved.{" "}
-            <Link to="/sign-in" className="font-semibold underline">
+            <Link to="/sign-in" state={{ returnTo: home }} className="font-semibold underline">
               Sign in
             </Link>{" "}
             to keep your progress and earn player cards.

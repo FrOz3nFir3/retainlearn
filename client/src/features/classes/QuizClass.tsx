@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { dayKey, reviewLoad } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, When } from "@retainlearn/core";
-import { useSignedIn } from "#app/hooks.ts";
+import { useSession } from "#app/session.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { browserTimeZone } from "#features/campus/campusApi.ts";
@@ -24,7 +24,8 @@ type Mode = "quiz" | "retryMissed";
 export default function QuizClass({ mode }: { mode: Mode }) {
   const { id = "" } = useParams();
   const [params] = useSearchParams();
-  const signedIn = useSignedIn();
+  const session = useSession();
+  const signedIn = session === "in";
   const set = useGetStudySetQuery(id);
   const progress = useGetProgressQuery(id, { skip: !signedIn });
   if (set.isError) {
@@ -34,7 +35,7 @@ export default function QuizClass({ mode }: { mode: Mode }) {
       </div>
     );
   }
-  if (!set.data || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the quiz" />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the quiz" />;
   return <QuizStart key={`${mode}:${id}?${params}`} set={set.data} progress={progress.data ?? null} mode={mode} params={params} />;
 }
 

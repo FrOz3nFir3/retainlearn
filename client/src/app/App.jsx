@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast";
 import Header from "../components/layout/Header/Header";
 import Footer from "../components/layout/Footer/Footer";
 import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
+import { useSessionCheck } from "#app/session.ts";
 
 // Lazy-loaded route wrappers
 const LandingPageRoute = lazy(() =>
@@ -24,9 +25,7 @@ const CardsPageRoute = lazy(() =>
 const IndividualCardPageRoute = lazy(() =>
   import("../features/cards/routes/IndividualCardPageRoute")
 );
-const ProgressPageRoute = lazy(() =>
-  import("../features/progress/routes/ProgressPageRoute")
-);
+const ReportCard = lazy(() => import("#features/report-card/ReportCard.tsx"));
 const ProfilePageRoute = lazy(() =>
   import("../features/profile/routes/ProfilePageRoute")
 );
@@ -46,12 +45,14 @@ const NotFoundRoute = lazy(() =>
   import("../features/not-found/routes/NotFoundRoute")
 );
 
-// Root layout component
-const RootLayout = () => (
+// Root layout component. The session is checked once, here, as the app opens (app/session.ts).
+const RootLayout = () => {
+  useSessionCheck();
+  return (
   <ErrorBoundary>
     <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
       <Header />
-      <main className="flex-grow">
+      <main className="flex grow flex-col">
         <Outlet />
       </main>
       <Footer />
@@ -73,7 +74,8 @@ const RootLayout = () => (
       />
     </div>
   </ErrorBoundary>
-);
+  );
+};
 
 // Create the router
 const router = createBrowserRouter([
@@ -99,7 +101,7 @@ const router = createBrowserRouter([
       },
       {
         path: "report-card",
-        element: <ProgressPageRoute />,
+        element: <ReportCard />,
       },
       {
         path: "profile",
