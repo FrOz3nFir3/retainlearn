@@ -73,6 +73,14 @@ test("when the page is hidden, what's waiting goes at once with keepalive, still
   assert.deepEqual(sent.at(-1)?.body.finished, true);
 });
 
+test("a class carried on numbers its batches on from the last one saved, so none is taken for one sent before", async () => {
+  const { sent, send } = recorder();
+  const saver = new ClassSaver(send, sitting, { wait: async () => {}, afterSeq: 3 });
+  saver.record(answer(1));
+  await saver.finish();
+  assert.deepEqual(sent.map(({ body }) => body.seq), [4]);
+});
+
 test("a sitting's key says the kind of class and its round, and is new each time", () => {
   assert.equal(newClassKey("review", 2, 1_700_000_000_000), "review:2:loyw3v28");
   assert.notEqual(newClassKey("quiz", 1, 1), newClassKey("quiz", 1, 2));

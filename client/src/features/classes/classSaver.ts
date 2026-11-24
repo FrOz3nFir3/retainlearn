@@ -20,7 +20,9 @@ export class Refused extends Error {}
 export const BATCH = 5;
 const RETRY_AFTER_MS = [1_000, 3_000, 10_000];
 
-type Options = { batch?: number; retryAfterMs?: readonly number[]; wait?: (ms: number) => Promise<void> };
+// afterSeq: a class left halfway and carried on keeps its sitting's key, and its batches number on from the last one
+// saved (progress.classInProgress.seq), since the server saves each number once.
+type Options = { batch?: number; retryAfterMs?: readonly number[]; wait?: (ms: number) => Promise<void>; afterSeq?: number };
 
 export class ClassSaver {
   private pending: GivenAnswer[] = [];
@@ -40,6 +42,7 @@ export class ClassSaver {
     this.send = send;
     this.sitting = sitting;
     this.batch = options.batch ?? BATCH;
+    this.seq = options.afterSeq ?? 0;
     this.retryAfterMs = options.retryAfterMs ?? RETRY_AFTER_MS;
     this.wait = options.wait ?? ((ms) => new Promise((resolve) => setTimeout(resolve, ms)));
   }
