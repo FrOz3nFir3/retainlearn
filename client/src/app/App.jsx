@@ -64,8 +64,7 @@ const RootLayout = () => (
             location.search.includes("quizNo") ||
             location.search.includes("flashcardFilter") ||
             location.search.includes("search") ||
-            location.pathname === "/categories" ||
-            location.pathname.startsWith("/category")
+            location.pathname.startsWith("/subjects")
           ) {
             return location.pathname;
           }
@@ -87,11 +86,11 @@ const router = createBrowserRouter([
         element: <LandingPageRoute />,
       },
       {
-        path: "categories",
+        path: "subjects",
         element: <CategoryPageRoute />,
       },
       {
-        path: "category/:name",
+        path: "subjects/:name",
         element: <CardsPageRoute />,
       },
       {
@@ -99,7 +98,7 @@ const router = createBrowserRouter([
         element: <IndividualCardPageRoute />,
       },
       {
-        path: "progress",
+        path: "report-card",
         element: <ProgressPageRoute />,
       },
       {
@@ -111,8 +110,12 @@ const router = createBrowserRouter([
         element: <PublicPageRoute />,
       },
       {
-        path: "authenticate",
-        element: <AuthenticationRoute />,
+        path: "sign-in",
+        element: <AuthenticationRoute mode="sign-in" />,
+      },
+      {
+        path: "sign-up",
+        element: <AuthenticationRoute mode="sign-up" />,
       },
       {
         path: "privacy",

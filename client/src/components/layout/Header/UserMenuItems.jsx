@@ -44,7 +44,7 @@ const UserMenuItems = ({ isMobile = false, closeMenu = () => {} }) => {
         <UserIcon className={commonIconClasses} />
         <span>Your Profile</span>
       </Link>
-      <Link to="/progress" onClick={closeMenu} className={commonLinkClasses}>
+      <Link to="/report-card" onClick={closeMenu} className={commonLinkClasses}>
         <ChartBarIcon className={commonIconClasses} />
         <span>Your Progress</span>
       </Link>

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "../state/authSlice";
 import { useNavigate } from "react-router-dom";
@@ -6,10 +6,12 @@ import { Helmet } from "@dr.pogodin/react-helmet";
 import BenefitsSection from "../components/BenefitsSection";
 import AuthFormCard from "../components/AuthFormCard";
 
-function AuthenticationPage() {
+// /sign-in and /sign-up: the form the address names. Switching tabs changes the address, so each can be linked.
+function AuthenticationPage({ mode }) {
   const user = useSelector(selectCurrentUser);
-  const [isLogin, setIsLogin] = useState(true);
+  const isLogin = mode !== "sign-up";
   const navigate = useNavigate();
+  const setIsLogin = (login) => navigate(login ? "/sign-in" : "/sign-up", { replace: true });
 
   useEffect(() => {
     if (user) navigate("/");

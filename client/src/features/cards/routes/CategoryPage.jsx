@@ -32,11 +32,11 @@ function CategoryPage() {
   const filteredItemsCount = currentCategories.length;
 
   const handleCategoryClick = (category) => {
-    navigate(`/category/${category}`);
+    navigate(`/subjects/${category}`);
   };
 
   const handleCreateCategory = (newCategoryName) => {
-    navigate(`/category/${newCategoryName}`);
+    navigate(`/subjects/${newCategoryName}`);
     setShowCreateForm(false);
   };
 

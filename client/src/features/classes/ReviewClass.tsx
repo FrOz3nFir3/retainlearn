@@ -30,7 +30,7 @@ export default function ReviewClass({ mode }: { mode: Mode }) {
   if (set.isError) {
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-mist p-4">
-        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/categories" className={buttonClass("primary")}>Find a set</Link>} />
+        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/subjects" className={buttonClass("primary")}>Find a set</Link>} />
       </div>
     );
   }

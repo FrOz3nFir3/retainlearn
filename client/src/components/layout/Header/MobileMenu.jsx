@@ -65,7 +65,7 @@ const MobileMenu = ({ isOpen, navigation, user, setIsOpen, isLoading }) => {
             <MobileMenuSkeleton />
           ) : (
             <Link
-              to="/authenticate"
+              to="/sign-in"
               onClick={closeMenu}
               className="flex items-center justify-center w-full px-4 py-3 rounded-xl bg-brand-accent hover:bg-amber-400 text-brand-dark font-semibold text-sm transition-colors duration-150"
             >

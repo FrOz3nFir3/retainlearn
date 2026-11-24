@@ -55,7 +55,7 @@ const DeckProgressList = ({ user, onViewReport }) => {
         title="Ready to start learning?"
         message="Your progress will appear here after your first quiz. Choose a deck and go."
         ctaText="Explore decks"
-        ctaLink="/categories"
+        ctaLink="/subjects"
         icon={RocketLaunchIcon}
       />
     );

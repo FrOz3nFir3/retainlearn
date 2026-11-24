@@ -78,7 +78,7 @@ export function Summary({ setId, title = "Class finished", result, hero, lines, 
       {extra}
       <div className="flex flex-wrap justify-end gap-2">
         {!signedIn && (
-          <Link to="/authenticate" className={buttonClass("quiet")}>
+          <Link to="/sign-in" className={buttonClass("quiet")}>
             Sign in to keep this
           </Link>
         )}

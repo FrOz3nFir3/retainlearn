@@ -76,7 +76,7 @@ const HeroSection = ({ onLearnMoreClick }) => {
             {/* CTAs */}
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                to="/categories"
+                to="/subjects"
                 className="inline-flex items-center justify-center px-7 py-3.5 text-sm font-semibold text-brand-dark bg-brand-accent hover:bg-amber-400 rounded-xl transition-colors duration-150 shadow-lg shadow-brand-accent/20"
               >
                 Browse flashcards

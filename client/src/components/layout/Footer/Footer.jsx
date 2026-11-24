@@ -38,7 +38,7 @@ const Footer = () => {
                 </li>
                 <li>
                   <Link
-                    to="/categories"
+                    to="/subjects"
                     className="text-sm text-white/65 hover:text-white transition-colors duration-200"
                   >
                     Categories

@@ -35,8 +35,8 @@ export default function Classroom() {
   });
   if (set.isError) {
     return (
-      <Page title="Not found" back="/categories">
-        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/categories" className={buttonClass("primary")}>Find a set</Link>} />
+      <Page title="Not found" back="/subjects">
+        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/subjects" className={buttonClass("primary")}>Find a set</Link>} />
       </Page>
     );
   }
@@ -91,7 +91,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
     <Page
       title={set.subtopic}
       eyebrow={`${set.topic} in ${set.category}`}
-      back={`/category/${encodeURIComponent(set.category)}`}
+      back={`/subjects/${encodeURIComponent(set.category)}`}
       width="max-w-3xl"
       actions={
         signedIn && (
@@ -105,7 +105,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
         {!signedIn && (
           <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm text-bell-ink">
             You can study as a guest, but nothing is saved.{" "}
-            <Link to="/authenticate" className="font-semibold underline">
+            <Link to="/sign-in" className="font-semibold underline">
               Sign in
             </Link>{" "}
             to keep your progress and earn player cards.

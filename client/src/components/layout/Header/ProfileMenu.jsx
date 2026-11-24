@@ -46,7 +46,7 @@ const ProfileMenu = ({
         </div>
       ) : (
         <Link
-          to="/authenticate"
+          to="/sign-in"
           className={`inline-flex items-center justify-center px-4 py-2 rounded-lg text-sm font-semibold transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-brand-accent/30 ${
             isTransparent
               ? "bg-brand-accent hover:bg-amber-400 text-brand-dark shadow-md shadow-brand-accent/20"
