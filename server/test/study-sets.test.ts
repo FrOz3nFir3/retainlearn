@@ -3,7 +3,7 @@
 // streak and the campus's summary.
 import { after, before, test } from "node:test";
 import assert from "node:assert/strict";
-import { dayKey } from "@retainlearn/core";
+import { XP, dayKey } from "@retainlearn/core";
 import type { ProgressView, SavedAnswers, StudySetContent } from "@retainlearn/core";
 import { startApi } from "./helpers.js";
 import { ids } from "./fixtures.js";
@@ -225,4 +225,21 @@ test("the reset is for signed-in players and a set that's there, with the time z
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), await progressOf(bio));
   assert.equal(await Progress.exists({ userId: ids.learner, setId: ids.bio }), null, "no progress made for it");
+});
+
+test("a reset takes today's retry of that set off the timetable, and rings the last bell when the rest is done", async () => {
+  const day = { userId: ids.learner, day: dayKey(new Date(), IST) };
+  const period = (mode: string, done: boolean) => ({ kind: "class", setId: ids.js, mode, why: { kind: "missed", n: 1 }, done });
+  await Activity.updateOne(day, { $set: { timetable: [period("reviewMissed", true), period("retryMissed", false)] }, $unset: { doneAt: 1 } }, { upsert: true });
+  const xp = async () => (await Player.findById(ids.learner).lean<PlayerDoc>())?.xp ?? 0;
+  const before = await xp();
+
+  assert.equal((await resetQuiz()).status, 200);
+  const after = await Activity.findOne(day).lean<{ timetable: { mode: string }[]; doneAt?: Date }>();
+  assert.deepEqual(after?.timetable.map((p) => p.mode), ["reviewMissed"], "the retry is off; what was done stays");
+  assert.ok(after?.doneAt, "the last bell rang");
+  assert.equal((await xp()) - before, XP.timetableDone);
+
+  await resetQuiz();
+  assert.equal((await xp()) - before, XP.timetableDone, "a second reset has nothing to take off, and the bell rings once");
 });

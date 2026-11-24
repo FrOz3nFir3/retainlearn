@@ -7,7 +7,7 @@ import { userIdOf } from "#middleware/routeHelpers.ts";
 import { studySetContent, studySetExists, studySetOutline } from "#models/studySets/studySets.model.ts";
 import { progressView, resetQuiz, saveAnswers } from "#models/progress/progress.model.ts";
 import { logAnswers } from "#models/answers/answers.model.ts";
-import { countAnswers, finishPeriod } from "#models/activity/activity.model.ts";
+import { countAnswers, dropRetryPeriods, finishPeriod } from "#models/activity/activity.model.ts";
 import { addXp, finishClass, playerOf, refreshSubject, setClassLeft } from "#models/players/players.model.ts";
 import { subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
@@ -32,21 +32,23 @@ export async function getProgress(req: Request, res: Response) {
   res.json(await progressView(userIdOf(req), params.id));
 }
 
-// DELETE /api/study-sets/:id/progress/quiz?tz=…: the set's quizzes afresh. Its subject's summary on your campus is
-// refreshed after, as after a class: what you missed there changed. A set you haven't started has nothing to reset.
+// DELETE /api/study-sets/:id/progress/quiz?tz=…: the set's quizzes afresh. After it, as after a class: its subject's
+// summary on your campus is refreshed (what you missed there changed), and today's periods to retry what you missed in
+// the set come off the timetable, since there's nothing left to retry. A set you haven't started has nothing to reset.
 export async function deleteQuizProgress(req: Request, res: Response) {
   const { params, query } = inputOf<typeof resetQuizInput>(res);
   const userId = userIdOf(req);
   const reset = await resetQuiz(userId, params.id);
   if (!reset) return (await studySetExists(params.id)) ? res.json(await progressView(userId, params.id)) : notFound(res);
-  if (reset.category) {
-    // The reset is saved by now, so a failure here is logged rather than refused: the next class refreshes it anyway.
-    try {
-      const when: When = { today: dayKey(new Date(), query.tz), timeZone: query.tz };
-      await refreshSubject(userId, await subjectSummary(userId, reset.category, when));
-    } catch (error) {
-      console.error("After resetting a quiz:", error);
-    }
+  // The reset is saved by now, so a failure here is logged rather than refused: the next class refreshes these anyway.
+  try {
+    const at = new Date();
+    const when: When = { today: dayKey(at, query.tz), timeZone: query.tz };
+    const bonus = await dropRetryPeriods(userId, when.today, params.id, at);
+    await addXp(userId, bonus);
+    if (reset.category) await refreshSubject(userId, await subjectSummary(userId, reset.category, when));
+  } catch (error) {
+    console.error("After resetting a quiz:", error);
   }
   res.json(reset.view);
 }
