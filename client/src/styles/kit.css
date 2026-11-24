@@ -291,6 +291,63 @@ progress.kit-bar::-moz-progress-bar {
     transform: none;
   }
 }
+/* Classes, at the moment an answer lands (classes/AnswerOption.tsx): a right answer glows and throws sparks (each its
+   own way out, --dx and --dy set inline), a miss shakes, the XP floats up. Only then: the screen stays still while you
+   think. All under motion-safe. */
+@keyframes kit-glow {
+  from {
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgb(16 185 129 / 0);
+  }
+}
+@keyframes kit-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+@keyframes kit-spark {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3);
+  }
+}
+@keyframes kit-float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.15);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-26px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
 @keyframes kit-rise {
   from {
     opacity: 0;
