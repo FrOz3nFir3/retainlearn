@@ -1,50 +1,26 @@
 import { lazy } from "react";
 import { Routes, Route } from "react-router-dom";
 import IndividualCardPage from "./IndividualCardPage"; // Eager load the layout component
-import CardActions from "../components/CardActions";
 import NotFound from "../../not-found/components/NotFound";
 
-// Standalone routes that manage their own data fetching
-const StandaloneReviewRoute = lazy(() => import("./StandaloneReviewRoute"));
-const StandaloneFocusReviewRoute = lazy(() =>
-  import("./StandaloneFocusReviewRoute")
-);
-const StandaloneQuizRoute = lazy(() => import("./StandaloneQuizRoute"));
-const StandaloneFocusQuizRoute = lazy(() =>
-  import("./StandaloneFocusQuizRoute")
-);
+// A study set's pages, under /study-sets/:id (App.jsx). The new study screens (D-17), each its own chunk: the set's
+// classroom, and its classes, named as the API names them (your decision, 2026-11-24).
+const Classroom = lazy(() => import("#features/classroom/Classroom.tsx"));
+const ReviewClass = lazy(() => import("#features/classes/ReviewClass.tsx"));
+const QuizClass = lazy(() => import("#features/classes/QuizClass.tsx"));
 
-// Outlet-based routes that benefit from shared layout
+// Today's editor, in its layout, until the editor is replaced (its own release, D-17).
 const EditCardRoute = lazy(() => import("./EditCardRoute"));
 
 const IndividualCardPageRoute = () => (
   <Routes>
-    {/* Standalone routes with full-screen experience */}
-    <Route path="review" element={<StandaloneReviewRoute />} />
-    <Route path="focus-review" element={<StandaloneFocusReviewRoute />} />
-    <Route path="quiz" element={<StandaloneQuizRoute />} />
-    <Route path="focus-quiz" element={<StandaloneFocusQuizRoute />} />
+    <Route index element={<Classroom />} />
+    <Route path="review" element={<ReviewClass mode="review" />} />
+    <Route path="review-missed" element={<ReviewClass mode="reviewMissed" />} />
+    <Route path="quiz" element={<QuizClass mode="quiz" />} />
+    <Route path="retry-missed" element={<QuizClass mode="retryMissed" />} />
 
-    {/* Outlet-based routes that benefit from shared layout */}
     <Route element={<IndividualCardPage />}>
-      <Route
-        index
-        element={
-          <div className="text-center py-12 bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl p-8">
-            <div className="mb-6">
-              <h3 className="font-heading text-3xl text-gray-900 dark:text-white mb-3">
-                Ready to Learn?
-              </h3>
-              <p className="text-base text-gray-500 dark:text-white/45 max-w-md mx-auto">
-                Choose your learning adventure and start mastering your content!
-              </p>
-            </div>
-            <div className="mt-8">
-              <CardActions layout="horizontal" isRelative />
-            </div>
-          </div>
-        }
-      />
       <Route path="edit" element={<EditCardRoute />} />
     </Route>
 

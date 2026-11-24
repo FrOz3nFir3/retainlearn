@@ -101,7 +101,7 @@ export const generateSitemap = async (req, res) => {
 
     // 3. Dynamic Individual Card Routes
     allCards.forEach((card) => {
-      const cardUrl = `${baseUrl}/card/${card._id}`;
+      const cardUrl = `${baseUrl}/study-sets/${card._id}`;
       xml += `  <url>\n`;
       xml += `    <loc>${escapeXml(cardUrl)}</loc>\n`;
       if (card.updatedAt) {

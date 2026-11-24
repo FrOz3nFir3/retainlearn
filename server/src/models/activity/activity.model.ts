@@ -1,4 +1,4 @@
-// Your activity, one document per day (PLAN 14.3b): the day's timetable and fading cards, worked out at its first load
+// Your activity, one document per day (PLAN 14.3b): the day's timetable and fading player cards, worked out at its first load
 // so they don't reshuffle, then what you did.
 import { Types } from "mongoose";
 import Activity from "#models/activity/activity.mongo.ts";
@@ -30,7 +30,7 @@ const fromDoc = (doc: ActivityDoc | null): StoredDay => ({
   doneAt: doc?.doneAt ?? null,
 });
 
-// Today's activity. At the day's first load the timetable and fading cards are drawn up by plan() and kept. A plan
+// Today's activity. At the day's first load the timetable and fading player cards are drawn up by plan() and kept. A plan
 // with no classes isn't kept: a new player's first class can put something on today's timetable at the next load.
 // Planning again is cheap then, since there's next to nothing to read.
 export async function activityOf(userId: string, day: Day, plan: () => Promise<{ timetable: PlannedPeriod[]; fading: Fading }>): Promise<StoredDay> {

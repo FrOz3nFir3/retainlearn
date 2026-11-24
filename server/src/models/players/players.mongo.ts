@@ -7,7 +7,7 @@ import type { Lean } from "#models/lean.ts";
 // Days ("2026-11-20") are the player's local day, from `settings.timeZone` (PLAN 14.3b).
 
 // A building on your campus: a subject you study, its place, and your summary of it, refreshed when a class ends.
-// Only what your own writes change lives here. What changes without you doesn't: how many cards are fading changes
+// Only what your own writes change lives here. What changes without you doesn't: how many player cards are fading changes
 // as days pass (today's activity has it, worked out at the day's first load), and how many sets a subject has
 // changes when anyone adds one (the public category list has it). Warm, cooling or cold comes from lastAt.
 const subjectSchema = new Schema(
