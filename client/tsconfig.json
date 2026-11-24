@@ -21,5 +21,7 @@
     "noUncheckedIndexedAccess": true,
     "skipLibCheck": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // Tests run on Node and are checked by tsconfig.test.json, with Node's types, which the site's code mustn't see.
+  "exclude": ["src/**/*.test.ts"]
 }

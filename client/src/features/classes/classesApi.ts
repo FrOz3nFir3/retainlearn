@@ -5,12 +5,14 @@
 import type { SaveAnswersBody, SavedAnswers } from "@retainlearn/core";
 import { classroomApi } from "#features/classroom/classroomApi.ts";
 
-type SaveArgs = { setId: string; batch: SaveAnswersBody };
+// keepalive: the browser finishes the request even if the page is closed meanwhile (the last batch, sent as the page
+// is hidden).
+type SaveArgs = { setId: string; batch: SaveAnswersBody; keepalive?: boolean };
 
 export const classesApi = classroomApi.enhanceEndpoints({ addTagTypes: ["Campus"] }).injectEndpoints({
   endpoints: (build) => ({
     saveAnswers: build.mutation<SavedAnswers, SaveArgs>({
-      query: ({ setId, batch }) => ({ url: `/study-sets/${setId}/answers`, method: "POST", body: batch }),
+      query: ({ setId, batch, keepalive = false }) => ({ url: `/study-sets/${setId}/answers`, method: "POST", body: batch, keepalive }),
       invalidatesTags: (result) => (result?.saved ? ["Campus"] : []),
       async onQueryStarted({ setId }, { dispatch, queryFulfilled }) {
         const { data } = await queryFulfilled.catch(() => ({ data: null }));
