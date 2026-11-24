@@ -25,7 +25,18 @@
   }
 }
 
-@custom-variant dark (&:where(.dark, .dark *));
+/* dark: the dark scheme, picked in the account menu, or the device's while none is picked: the same choice the kit's
+   colours follow (styles/kit.css, app/colorScheme.ts). */
+@custom-variant dark {
+  &:where(:root:has(> head > meta[name="color-scheme"][content="dark"]) *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:has(> head > meta[name="color-scheme"][content="light dark"]) *) {
+      @slot;
+    }
+  }
+}
 
 .break-word {
   word-break: break-word;
@@ -36,26 +47,17 @@
   scroll-margin-top: 6rem;
 }
 .legal-content section + section {
-  @apply mt-10 pt-10 border-t border-gray-100;
-}
-.dark .legal-content section + section {
-  @apply border-white/6;
+  @apply mt-10 pt-10 border-t border-gray-100 dark:border-white/6;
 }
 .legal-content h2 {
-  @apply font-heading text-2xl text-gray-900 leading-snug mb-4 flex items-baseline gap-3;
-}
-.dark .legal-content h2 {
-  @apply text-white;
+  @apply font-heading text-2xl text-gray-900 dark:text-white leading-snug mb-4 flex items-baseline gap-3;
 }
 .legal-content h2::before {
   content: "";
   @apply inline-block w-1 h-6 rounded-full bg-brand-accent self-center shrink-0;
 }
 .legal-content p {
-  @apply text-gray-600 leading-relaxed text-[15px];
-}
-.dark .legal-content p {
-  @apply text-white/70;
+  @apply text-gray-600 dark:text-white/70 leading-relaxed text-[15px];
 }
 .legal-content p + p,
 .legal-content p + ul,
@@ -63,28 +65,16 @@
   @apply mt-3;
 }
 .legal-content ul {
-  @apply list-disc pl-6 space-y-2 mt-3 text-gray-600 leading-relaxed text-[15px] marker:text-brand-accent/60;
-}
-.dark .legal-content ul {
-  @apply text-white/70;
+  @apply list-disc pl-6 space-y-2 mt-3 text-gray-600 dark:text-white/70 leading-relaxed text-[15px] marker:text-brand-accent/60;
 }
 .legal-content strong {
-  @apply text-gray-900 font-semibold;
-}
-.dark .legal-content strong {
-  @apply text-white/90;
+  @apply text-gray-900 dark:text-white/90 font-semibold;
 }
 .legal-content a {
-  @apply text-brand-primary hover:underline font-medium;
-}
-.dark .legal-content a {
-  @apply text-brand-accent;
+  @apply text-brand-primary dark:text-brand-accent hover:underline font-medium;
 }
 .legal-content .legal-callout {
-  @apply mt-4 p-4 rounded-xl bg-gray-50 border border-gray-200 text-xs text-gray-600 leading-relaxed font-mono uppercase tracking-wide;
-}
-.dark .legal-content .legal-callout {
-  @apply bg-white/4 border-white/8 text-white/60;
+  @apply mt-4 p-4 rounded-xl bg-gray-50 dark:bg-white/4 border border-gray-200 dark:border-white/8 text-xs text-gray-600 dark:text-white/60 leading-relaxed font-mono uppercase tracking-wide;
 }
 
 /* Tiptap Editor Styles */

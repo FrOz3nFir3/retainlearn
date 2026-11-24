@@ -1,18 +1,19 @@
 // Studying a set (PLAN 14.4, 14.10): its content, your progress in it, and saving your answers as a class goes.
 import type { Request, Response } from "express";
-import { SaveAnswers, SetParams, dayKey } from "@retainlearn/core";
+import { ResetQuizQuery, SaveAnswers, SetParams, dayKey } from "@retainlearn/core";
 import type { SavedAnswers, When } from "@retainlearn/core";
 import { inputOf } from "#middleware/validate.ts";
 import { userIdOf } from "#middleware/routeHelpers.ts";
 import { studySetContent, studySetExists, studySetOutline } from "#models/studySets/studySets.model.ts";
-import { progressView, saveAnswers } from "#models/progress/progress.model.ts";
+import { progressView, resetQuiz, saveAnswers } from "#models/progress/progress.model.ts";
 import { logAnswers } from "#models/answers/answers.model.ts";
-import { countAnswers, finishPeriod } from "#models/activity/activity.model.ts";
-import { addXp, finishClass, playerOf, setClassLeft } from "#models/players/players.model.ts";
+import { countAnswers, dropRetryPeriods, finishPeriod } from "#models/activity/activity.model.ts";
+import { addXp, finishClass, playerOf, refreshSubject, setClassLeft } from "#models/players/players.model.ts";
 import { subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const setInput = { params: SetParams };
 export const answersInput = { params: SetParams, body: SaveAnswers };
+export const resetQuizInput = { params: SetParams, query: ResetQuizQuery };
 
 const notFound = (res: Response) => res.status(404).json({ error: "There's no such study set" });
 
@@ -29,6 +30,27 @@ export async function getProgress(req: Request, res: Response) {
   const { params } = inputOf<typeof setInput>(res);
   if (!(await studySetExists(params.id))) return notFound(res);
   res.json(await progressView(userIdOf(req), params.id));
+}
+
+// DELETE /api/study-sets/:id/progress/quiz?tz=…: the set's quizzes afresh. After it, as after a class: its subject's
+// summary on your campus is refreshed (what you missed there changed), and today's periods to retry what you missed in
+// the set come off the timetable, since there's nothing left to retry. A set you haven't started has nothing to reset.
+export async function deleteQuizProgress(req: Request, res: Response) {
+  const { params, query } = inputOf<typeof resetQuizInput>(res);
+  const userId = userIdOf(req);
+  const reset = await resetQuiz(userId, params.id);
+  if (!reset) return (await studySetExists(params.id)) ? res.json(await progressView(userId, params.id)) : notFound(res);
+  // The reset is saved by now, so a failure here is logged rather than refused: the next class refreshes these anyway.
+  try {
+    const at = new Date();
+    const when: When = { today: dayKey(at, query.tz), timeZone: query.tz };
+    const bonus = await dropRetryPeriods(userId, when.today, params.id, at);
+    await addXp(userId, bonus);
+    if (reset.category) await refreshSubject(userId, await subjectSummary(userId, reset.category, when));
+  } catch (error) {
+    console.error("After resetting a quiz:", error);
+  }
+  res.json(reset.view);
 }
 
 // POST /api/study-sets/:id/answers

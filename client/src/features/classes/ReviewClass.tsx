@@ -6,7 +6,7 @@ import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { dayKey } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, When } from "@retainlearn/core";
-import { useSignedIn } from "#app/hooks.ts";
+import { useSession } from "#app/session.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { browserTimeZone } from "#features/campus/campusApi.ts";
@@ -24,17 +24,18 @@ type Mode = "review" | "reviewMissed";
 export default function ReviewClass({ mode }: { mode: Mode }) {
   const { id = "" } = useParams();
   const [params] = useSearchParams();
-  const signedIn = useSignedIn();
+  const session = useSession();
+  const signedIn = session === "in";
   const set = useGetStudySetQuery(id);
   const progress = useGetProgressQuery(id, { skip: !signedIn });
   if (set.isError) {
     return (
       <div className="fixed inset-0 z-50 grid place-items-center bg-mist p-4">
-        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/categories" className={buttonClass("primary")}>Find a set</Link>} />
+        <Empty icon="x" title="This study set isn't here" body="It may have been deleted, or the link is wrong." action={<Link to="/subjects" className={buttonClass("primary")}>Find a set</Link>} />
       </div>
     );
   }
-  if (!set.data || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the review" />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the review" />;
   return <ReviewStart key={`${mode}:${id}?${params}`} set={set.data} progress={progress.data ?? null} mode={mode} params={params} />;
 }
 

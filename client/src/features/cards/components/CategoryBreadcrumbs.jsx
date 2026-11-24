@@ -45,7 +45,7 @@ const CategoryBreadcrumbs = ({ categoryName }) => {
           {/* Categories */}
           <li className="shrink-0">
             <Link
-              to="/categories"
+              to="/subjects"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-gray-500 dark:text-white/40 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-white/6 transition-colors duration-150"
             >
               <RectangleStackIcon className="w-3.5 h-3.5 shrink-0" />

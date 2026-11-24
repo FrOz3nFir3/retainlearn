@@ -50,7 +50,7 @@ test("the first visit makes the player: nothing studied yet, so no subjects and 
   assert.equal(first.day, dayKey(new Date(), IST));
   assert.deepEqual(
     { xp: first.player.xp, level: first.player.level, streak: first.player.streak, timeZone: first.player.settings.timeZone, toured: first.player.coach.toured },
-    { xp: 0, level: 1, streak: { count: 0, freezes: 0 }, timeZone: IST, toured: false },
+    { xp: 0, level: 1, streak: { count: 0, freezes: 0, keptToday: false }, timeZone: IST, toured: false },
   );
   assert.deepEqual([first.subjects, first.timetable, first.today], [[], [], { xp: 0, answers: 0 }]);
   assert.ok(await Player.exists({ _id: ids.author }));
@@ -59,7 +59,7 @@ test("the first visit makes the player: nothing studied yet, so no subjects and 
 test("after a class, the campus shows the subject, today's timetable, XP and streak", async () => {
   await finishClass(lee, "review:round-1:a", String(ids.constCard));
   const now = await campus(lee);
-  assert.deepEqual({ xp: now.player.xp, level: now.player.level, streak: now.player.streak.count }, { xp: 6, level: 1, streak: 1 });
+  assert.deepEqual({ xp: now.player.xp, level: now.player.level, streak: now.player.streak }, { xp: 6, level: 1, streak: { count: 1, freezes: 0, keptToday: true } });
   assert.deepEqual(
     now.subjects.map(({ category, plot, started, missed, status }) => ({ category, plot, started, missed, status })),
     [{ category: "Programming", plot: 0, started: 1, missed: 0, status: "warm" }],

@@ -18,7 +18,7 @@ const RestrictedAccess = ({ description }) => {
         </p>
         <div className="mt-8">
           <Link
-            to="/authenticate"
+            to="/sign-in"
             className="w-full inline-flex justify-center items-center rounded-xl bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 px-6 py-3 text-base font-semibold text-white dark:text-brand-dark transition-colors duration-200"
           >
             Login or Sign Up

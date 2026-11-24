@@ -80,6 +80,28 @@ export type SavedAnswers = {
   finished?: { streak: number; firstToday: boolean; timetableDone: boolean };
 };
 
+// DELETE /api/study-sets/:id/progress/quiz?tz=…: the set's quizzes afresh, from the report card. What you missed, your
+// record of answers (right and wrong) and the quizzes counted are cleared; your player cards and flashcards stay. It
+// returns your progress in the set (ProgressView), as it is now.
+export const ResetQuizQuery = CampusQuery;
+
+// GET /api/report-card?tz=…: your progress in every set you've started (its copied titles and counts, so no set is
+// read), and your player's totals, for the report card. The browser's time zone decides the streak's "today".
+export const ReportCardQuery = CampusQuery;
+export type ReportCardSet = {
+  setId: string;
+  category: string;
+  topic: string;
+  subtopic: string;
+  flashcardCount: number;
+  questionCount: number;
+  flashcards: Record<string, FlashcardProgress>;
+  questions: Record<string, QuestionProgress>;
+  quiz: { started: number; finished: number };
+  lastAt: string | null;
+};
+export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[] };
+
 // GET /api/campus: everything the campus shows, in one call.
 export type CampusSubject = {
   category: string;
@@ -97,7 +119,7 @@ export type Campus = {
     coach: { heard: string | null; quiet: string | null; toured: boolean };
     xp: number;
     level: number;
-    streak: { count: number; freezes: number };
+    streak: { count: number; freezes: number; keptToday: boolean }; // keptToday: a class finished today already
     unlocks: string[];
     classLeft: { setId: string; key: string; day: Day } | null;
   };

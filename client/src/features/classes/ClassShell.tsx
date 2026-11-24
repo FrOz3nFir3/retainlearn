@@ -50,7 +50,7 @@ export function ClassShell({ set, mode, progressText, progress, track, bar, chil
         <div className="mx-auto max-w-3xl px-4 pt-3">
           <p className="rounded-xl bg-bell-wash px-3 py-2 text-sm text-bell-ink">
             Trying it out: this class isn't saved.{" "}
-            <Link to="/authenticate" className="font-semibold underline">
+            <Link to="/sign-in" className="font-semibold underline">
               Sign in
             </Link>{" "}
             to keep your progress and player cards.

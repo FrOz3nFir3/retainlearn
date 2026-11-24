@@ -3,9 +3,10 @@ import AuthenticationPageSkeleton from "../../../components/ui/skeletons/Authent
 
 const AuthenticationPage = lazy(() => import("./AuthenticationPage"));
 
-const AuthenticationRoute = () => (
+// mode: "sign-in" or "sign-up", from the address (/sign-in, /sign-up), so each form has its own link (D-18).
+const AuthenticationRoute = ({ mode }) => (
   <Suspense fallback={<AuthenticationPageSkeleton />}>
-    <AuthenticationPage />
+    <AuthenticationPage mode={mode} />
   </Suspense>
 );
 

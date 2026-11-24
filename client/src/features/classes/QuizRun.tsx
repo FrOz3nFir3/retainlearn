@@ -77,7 +77,8 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
 
   const pick = (i: number) => {
     const option = opts[i];
-    if (answered || !question || !option) return;
+    // Never more answers than questions: an answer key pressed while the class finishes isn't another answer.
+    if (answered || finishing || marks.length >= questions.length || !question || !option) return;
     const had = mine[question._id];
     const now = answerQuestion(had, option.correct, { at: new Date(), timeZone: when.timeZone });
     const next = [...marks, { correct: option.correct }];
@@ -115,7 +116,7 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
   // next question for you).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (result || (e.target as Element | null)?.closest?.("input, textarea, [contenteditable='true']")) return;
+      if (result || finishing || (e.target as Element | null)?.closest?.("input, textarea, [contenteditable='true']")) return;
       const n = "1234".includes(e.key) ? Number(e.key) - 1 : "abcd".indexOf(e.key.toLowerCase());
       if (!answered && n >= 0) pick(n);
       else if (answered && (e.key === "Enter" || e.key === "ArrowRight")) {

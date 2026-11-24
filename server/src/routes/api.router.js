@@ -10,6 +10,7 @@ import sitemapRouter from "./sitemap.router.js";
 // The new endpoints (TypeScript, PLAN 14.15). Nothing uses them until the new screens do.
 import studySetsRouter from "./studySets/studySets.router.ts";
 import campusRouter from "./campus/campus.router.ts";
+import reportCardRouter from "./reportCard/reportCard.router.ts";
 import { csrfProtectionMiddleware } from "../middleware/csrf.middleware.js";
 
 apiRouter.use(csrfProtectionMiddleware);
@@ -21,5 +22,6 @@ apiRouter.use("/health", healthRouter);
 apiRouter.use("/sitemap.xml", sitemapRouter);
 apiRouter.use("/study-sets", studySetsRouter);
 apiRouter.use("/campus", campusRouter);
+apiRouter.use("/report-card", reportCardRouter);
 
 export default apiRouter;
