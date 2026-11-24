@@ -5,8 +5,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Link } from "react-router-dom";
-import { dayKey } from "@retainlearn/core";
-import type { ReportCard as ReportCardData, StudySetStatus, When } from "@retainlearn/core";
+import type { ReportCard as ReportCardData, StudySetStatus } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import type { BarTone } from "#components/ui/Bar.tsx";
@@ -20,7 +19,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
-import { browserTimeZone } from "#features/campus/campusApi.ts";
+import { browserTimeZone, useToday } from "#features/campus/campusApi.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { QuizReport } from "./QuizReport.tsx";
 import { useReportCard, useResetQuizMutation } from "./reportCardApi.ts";
@@ -89,10 +88,7 @@ function Failed({ retry }: { retry: () => void }) {
 type Notice = { tone: "done" | "failed"; text: string };
 
 function ReportCardView({ card }: { card: ReportCardData }) {
-  const [when] = useState<When>(() => {
-    const timeZone = browserTimeZone();
-    return { today: dayKey(new Date(), timeZone), timeZone };
-  });
+  const when = useToday();
   const sets = useMemo(() => studiedSets(card, when), [card, when]);
   const totals = useMemo(() => overview(card, sets), [card, sets]);
   const [reportFor, setReportFor] = useState<string | null>(null);
@@ -302,7 +298,8 @@ function SetRow({ studied, onQuizReport, linkRef }: { studied: StudiedSet; onQui
             tone="mint"
           />
         </div>
-        {Object.keys(set.questions).length > 0 && (
+        {/* For any set with questions, so it stays where focus comes back to after a reset. */}
+        {set.questionCount > 0 && (
           <footer className="mt-3 flex justify-end">
             <Button size="sm" icon="report" onClick={onQuizReport} className="relative z-1">
               Quiz report

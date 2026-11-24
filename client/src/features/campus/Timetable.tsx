@@ -79,7 +79,7 @@ export function Timetable({ campus }: { campus: Campus }) {
       tone: allDone ? "bg-bell text-night" : "bg-ink/6 text-ink/50",
     },
   ];
-  const stop = tabStop ?? shown;
+  const stop = Math.min(tabStop ?? shown, dots.length - 1); // the timetable may have changed since (a new day)
   // Without the browser's focusgroup: arrow keys, Home and End move between the buttons, wrapping at the ends.
   const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const buttons = [...e.currentTarget.querySelectorAll<HTMLButtonElement>("button")];

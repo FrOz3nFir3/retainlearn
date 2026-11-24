@@ -2,9 +2,9 @@
 // over or retrying what you missed, a mixed quiz of what you hold, and its rounds, each with its review and quiz. While
 // the set and your progress load, its skeleton. Someone not signed in can study, and is told nothing is saved. The
 // set's editor is today's (/study-sets/:id/edit) until it's replaced (D-17).
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
-import { MIX_READY, dayKey, isPlayerCard, mixableCount, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
+import { MIX_READY, isPlayerCard, mixableCount, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, When } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
@@ -15,7 +15,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
-import { browserTimeZone } from "#features/campus/campusApi.ts";
+import { useToday } from "#features/campus/campusApi.ts";
 import { classPath, setPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
@@ -30,10 +30,7 @@ export default function Classroom() {
   const signedIn = session === "in";
   const set = useGetStudySetQuery(id);
   const progress = useGetProgressQuery(id, { skip: !signedIn });
-  const [when] = useState<When>(() => {
-    const timeZone = browserTimeZone();
-    return { today: dayKey(new Date(), timeZone), timeZone };
-  });
+  const when = useToday();
   if (set.isError) {
     return (
       <Page title="Not found" back="/subjects">

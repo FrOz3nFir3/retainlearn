@@ -38,21 +38,23 @@ export function setColorScheme(choice: SchemeChoice): void {
   notify();
 }
 
-const onStorage = (event: StorageEvent) => {
-  if (event.key !== KEY && event.key !== null) return;
-  current = stored();
-  apply(current);
-  notify();
-};
+// A pick made in another tab, followed for as long as the app is open: not only while a menu shows it (a tab in the
+// middle of a class has none), so the page changes with it and the menu, when it comes back, says so.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (event: StorageEvent) => {
+    if (event.key !== KEY && event.key !== null) return;
+    current = stored();
+    apply(current);
+    notify();
+  });
+}
 
 function subscribe(listener: () => void): () => void {
-  if (!listeners.size) window.addEventListener("storage", onStorage);
   listeners.add(listener);
   darkQuery?.addEventListener("change", listener);
   return () => {
     listeners.delete(listener);
     darkQuery?.removeEventListener("change", listener);
-    if (!listeners.size) window.removeEventListener("storage", onStorage);
   };
 }
 
