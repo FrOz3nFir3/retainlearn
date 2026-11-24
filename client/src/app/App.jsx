@@ -4,13 +4,16 @@ import {
   RouterProvider,
   Outlet,
   ScrollRestoration,
+  useLocation,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import Header from "../components/layout/Header/Header";
 import Footer from "../components/layout/Footer/Footer";
 import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
-import { useSessionCheck } from "#app/session.ts";
+import { useSession, useSessionCheck } from "#app/session.ts";
+import { TabBar } from "#components/layout/TabBar.tsx";
+import { TopBar } from "#components/layout/TopBar.tsx";
+import { isClassPath } from "#features/classes/modes.ts";
 
 // Lazy-loaded route wrappers
 const LandingPageRoute = lazy(() =>
@@ -45,17 +48,24 @@ const NotFoundRoute = lazy(() =>
   import("../features/not-found/routes/NotFoundRoute")
 );
 
-// Root layout component. The session is checked once, here, as the app opens (app/session.ts).
+// The root layout: the top bar, the page, and on phones the tab bar, except in a class, which takes the whole screen.
+// The old footer stays on the public pages only, until the landing page is rebuilt. The session is checked once, here,
+// as the app opens (app/session.ts).
 const RootLayout = () => {
   useSessionCheck();
+  const session = useSession();
+  const { pathname } = useLocation();
+  const inClass = isClassPath(pathname);
+  const publicPage = pathname === "/privacy" || pathname === "/terms" || (pathname === "/" && session === "out");
   return (
   <ErrorBoundary>
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
-      <Header />
+    <div className={`bg-gray-100 dark:bg-gray-900 min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+      {!inClass && <TopBar />}
       <main className="flex grow flex-col">
         <Outlet />
       </main>
-      <Footer />
+      {publicPage && <Footer />}
+      {!inClass && <TabBar />}
       <Toaster />
       <ScrollRestoration
         getKey={(location, matches) => {

@@ -1,17 +1,24 @@
 /* The new screens' design system (PLAN 14.13): colour roles, and the CSS the building blocks in components/ui need
    that utility classes can't say. Ported from the prototype's styles.css, built to the modern web guidance.
 
-   Colour by role, each a light and a dark value in one place (light-dark()): the `dark` class on <html> (the theme
-   setting) switches color-scheme, and every role follows, with the browser's own scrollbars and form controls.
-   ink: text and lines (faint fills at low opacity). surface: panels, cards, inputs. mist: a panel within a panel.
-   chalk: the page. night: dark fills in both themes, with white text. The tones (mint, bell, rose, cold, orange) each
-   have a wash (a tinted background) and an ink (text on it), so a badge reads in both themes. */
+   Colour by role, each a light and a dark value in one place (light-dark()): color-scheme picks which, and every role
+   follows, with the browser's own scrollbars and form controls. ink: text and lines (faint fills at low opacity).
+   surface: panels, cards, inputs. mist: a panel within a panel. chalk: the page. night: dark fills in both themes,
+   with white text. The tones (mint, bell, rose, cold, orange) each have a wash (a tinted background) and an ink (text
+   on it), so a badge reads in both themes. */
 
+/* The colour scheme is the device's, unless you pick light or dark in the account menu (app/colorScheme.ts). The pick
+   is the <meta name="color-scheme">'s content, set before the page paints by the script beside it in index.html, and
+   mapped here to the property the colours follow; CSS alone would ignore the meta (guide: dark-mode-toggle). Without
+   any script, the device's scheme. */
 :root {
-  color-scheme: light;
-}
-:root.dark {
-  color-scheme: dark;
+  color-scheme: light dark;
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
 }
 
 /* static: every role is output, even one no class uses yet, since components also read them as var(--color-…)
@@ -399,5 +406,83 @@ progress.kit-bar::-moz-progress-bar {
 @keyframes kit-pulse {
   50% {
     opacity: 0.55;
+  }
+}
+
+/* The app's bars (components/layout): the top bar at the top, and the tab bar at the bottom on phones. Both slide out
+   of the way while you scroll down, and back as soon as you scroll up or one of them holds keyboard focus: a
+   scroll-state query on the page's scroller, with no script (Chrome 144 on; elsewhere the bars just stay, compact).
+   The page scrolls a focused element clear of them (guides: content-first-noise-reduction, form-factor-adaptation). */
+html {
+  container-type: scroll-state;
+  scroll-padding-top: 4.5rem;
+}
+@media (width < 48rem) {
+  html {
+    scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-top-bar,
+  .kit-tab-bar {
+    transition: translate 0.25s ease-out;
+  }
+}
+@container scroll-state((scrolled: bottom) and (scrollable: top)) {
+  .kit-top-bar:not(:focus-within) {
+    translate: 0 -100%;
+  }
+  .kit-tab-bar:not(:focus-within) {
+    translate: 0 100%;
+  }
+}
+
+/* Menu (components/ui/Menu.tsx): a popover under its button, placed by CSS anchor positioning (the button's command
+   makes it the anchor), its right edge on the button's, flipping above or the other way where it would overflow. It
+   drops in quickly, motion permitting, and a radio item's check mark is drawn here, with no alternative text: its
+   aria-checked says it (guide: menu). */
+.kit-menu {
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  inset: auto;
+  margin: 0.5rem 0;
+  min-inline-size: 15rem;
+  max-block-size: calc(100dvh - 5rem);
+  overflow: auto;
+  padding: 0.375rem;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 9%, transparent);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 2px rgb(30 27 75 / 0.06),
+    0 18px 40px -18px rgb(30 27 75 / 0.35);
+}
+.kit-menu [role="menuitemradio"]::before {
+  content: "";
+  flex: none;
+  inline-size: 1rem;
+  text-align: center;
+  color: var(--color-brand);
+}
+.kit-menu [role="menuitemradio"][aria-checked="true"]::before {
+  content: "✓" / "";
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-menu {
+    opacity: 0;
+    translate: 0 -0.25rem;
+    transition: opacity, translate, display, overlay;
+    transition-duration: 0.15s;
+    transition-behavior: allow-discrete;
+  }
+  .kit-menu:popover-open {
+    opacity: 1;
+    translate: 0 0;
+    transition-duration: 0.1s;
+    @starting-style {
+      opacity: 0;
+      translate: 0 -0.25rem;
+    }
   }
 }
