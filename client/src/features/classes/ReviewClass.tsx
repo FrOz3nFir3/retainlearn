@@ -1,4 +1,4 @@
-// A review class, at today's URLs: /card/:id/review (?round=n or ?ids=…) and /card/:id/focus-review (go over what
+// A review class: /study-sets/:id/review (?round=n or ?ids=…) and /study-sets/:id/review-missed (go over what
 // you missed). While the set and your progress load, the class's skeleton. A review of this kind left halfway today is
 // carried on, with the way to start afresh. The flashcards are chosen once, as the class starts, so saving (which
 // updates your progress) never changes them under you.

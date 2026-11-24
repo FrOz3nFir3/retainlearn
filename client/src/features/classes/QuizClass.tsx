@@ -1,4 +1,4 @@
-// A quiz class, at today's URLs: /card/:id/quiz (?round=n, ?mix=1 or ?ids=…) and /card/:id/focus-quiz (retry what
+// A quiz class: /study-sets/:id/quiz (?round=n, ?mix=1 or ?ids=…) and /study-sets/:id/retry-missed (retry what
 // you missed). While the set and your progress load, the class's skeleton. A class of this kind left halfway today is
 // carried on, with the way to start afresh. The questions are chosen once, as the class starts, so saving answers
 // (which updates your progress) never reshuffles them.

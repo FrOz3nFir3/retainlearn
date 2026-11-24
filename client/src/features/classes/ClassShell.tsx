@@ -9,12 +9,12 @@ import { useSignedIn } from "#app/hooks.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { IconButton } from "#components/ui/IconButton.tsx";
-import { CLASS_KINDS } from "./modes.ts";
+import { CLASS_KINDS, setPath } from "./modes.ts";
 
 // Where Leave and "Back to…" go: where the class was started from (the campus passes it), else the set's classroom.
 export function useReturnTo(setId: string): string {
   const state = useLocation().state as { returnTo?: string } | null;
-  return state?.returnTo ?? `/card/${setId}`;
+  return state?.returnTo ?? setPath(setId);
 }
 
 type Props = {

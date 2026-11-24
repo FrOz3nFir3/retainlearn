@@ -22,27 +22,27 @@ const StudiedCardGridItem = ({ card }) => {
       ? Math.round((lastReviewedCardNo / totalReviewCards) * 100)
       : 0;
   const continueReviewLink = isCompleted
-    ? `/card/${card._id}/review`
+    ? `/study-sets/${card._id}/review`
     : hasStarted
-    ? `/card/${card._id}/review?cardNo=${lastReviewedCardNo}`
-    : `/card/${card._id}/review`;
+    ? `/study-sets/${card._id}/review`
+    : `/study-sets/${card._id}/review`;
 
   const handleQuizClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/card/${card._id}/quiz`);
+    navigate(`/study-sets/${card._id}/quiz`);
   };
 
   const handleFocusReviewClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/card/${card._id}/focus-review`);
+    navigate(`/study-sets/${card._id}/review-missed`);
   };
 
   const handleFocusQuizClick = (e) => {
     e.preventDefault();
     e.stopPropagation();
-    navigate(`/card/${card._id}/focus-quiz`);
+    navigate(`/study-sets/${card._id}/retry-missed`);
   };
 
   return (

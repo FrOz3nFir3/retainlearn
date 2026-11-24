@@ -3,7 +3,8 @@ import { Routes, Route } from "react-router-dom";
 import IndividualCardPage from "./IndividualCardPage"; // Eager load the layout component
 import NotFound from "../../not-found/components/NotFound";
 
-// The new study screens (D-17), each its own chunk: the set's classroom, and its classes at today's URLs.
+// A study set's pages, under /study-sets/:id (App.jsx). The new study screens (D-17), each its own chunk: the set's
+// classroom, and its classes, named as the API names them (your decision, 2026-11-24).
 const Classroom = lazy(() => import("#features/classroom/Classroom.tsx"));
 const ReviewClass = lazy(() => import("#features/classes/ReviewClass.tsx"));
 const QuizClass = lazy(() => import("#features/classes/QuizClass.tsx"));
@@ -15,9 +16,9 @@ const IndividualCardPageRoute = () => (
   <Routes>
     <Route index element={<Classroom />} />
     <Route path="review" element={<ReviewClass mode="review" />} />
-    <Route path="focus-review" element={<ReviewClass mode="reviewMissed" />} />
+    <Route path="review-missed" element={<ReviewClass mode="reviewMissed" />} />
     <Route path="quiz" element={<QuizClass mode="quiz" />} />
-    <Route path="focus-quiz" element={<QuizClass mode="retryMissed" />} />
+    <Route path="retry-missed" element={<QuizClass mode="retryMissed" />} />
 
     <Route element={<IndividualCardPage />}>
       <Route path="edit" element={<EditCardRoute />} />

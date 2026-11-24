@@ -1,15 +1,14 @@
-// The kinds of class, as the API names them (CLASS_MODES in packages/core) and as their URLs do, which are today's:
-// /card/:id/review, /quiz, /focus-review and /focus-quiz (PLAN 14.13, rule 7).
+// The kinds of class, named as the API names them (CLASS_MODES in packages/core), and their addresses, which use the
+// same names (your decision, 2026-11-24): /study-sets/:id/review, /quiz, /review-missed and /retry-missed.
 import type { ClassMode } from "@retainlearn/core";
 
 export const CLASS_KINDS: Record<ClassMode, { label: string; path: string }> = {
   review: { label: "Review", path: "review" },
   quiz: { label: "Quiz", path: "quiz" },
-  reviewMissed: { label: "Go over what you missed", path: "focus-review" },
-  retryMissed: { label: "Retry what you missed", path: "focus-quiz" },
+  reviewMissed: { label: "Go over what you missed", path: "review-missed" },
+  retryMissed: { label: "Retry what you missed", path: "retry-missed" },
 };
 
-export const modeOfPath = (path: string | undefined): ClassMode | null =>
-  (Object.entries(CLASS_KINDS).find(([, kind]) => kind.path === path)?.[0] as ClassMode | undefined) ?? null;
-
-export const classPath = (setId: string, mode: ClassMode): string => `/card/${setId}/${CLASS_KINDS[mode].path}`;
+// A study set's address (its classroom), and a class's in it: the one place the scheme is written.
+export const setPath = (setId: string): string => `/study-sets/${setId}`;
+export const classPath = (setId: string, mode: ClassMode): string => `${setPath(setId)}/${CLASS_KINDS[mode].path}`;

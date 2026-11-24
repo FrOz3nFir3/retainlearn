@@ -7,7 +7,7 @@ import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
-import { classPath } from "#features/classes/modes.ts";
+import { classPath, setPath } from "#features/classes/modes.ts";
 import { Stars } from "./Stars.tsx";
 
 type Props = { setId: string; round: Round<{ _id: string; question: string }>; state: RoundState; next: boolean };
@@ -15,7 +15,7 @@ type Props = { setId: string; round: Round<{ _id: string; question: string }>; s
 export function RoundRow({ setId, round, state, next }: Props) {
   const first = round.cards[0];
   const topic = first ? shortTopic(textOf(first.question)) : "Questions on their own";
-  const returnTo = { returnTo: `/card/${setId}` };
+  const returnTo = { returnTo: setPath(setId) };
   return (
     <li className={cx("rounded-2xl border bg-surface p-4", next ? "border-brand/40 shadow-[0_8px_24px_-16px_rgb(79_70_229/0.6)]" : "border-ink/[0.07]")}>
       <div className="flex flex-wrap items-start gap-x-3 gap-y-2">

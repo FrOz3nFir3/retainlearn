@@ -108,7 +108,7 @@ const DeckProgressCard = ({ card, onViewReport }) => {
       {/* Footer actions */}
       <div className="px-6 py-4 border-t border-gray-100 dark:border-white/6 space-y-2">
         <Link
-          to={`/card/${progress.card_id}/quiz`}
+          to={`/study-sets/${progress.card_id}/quiz`}
           className="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-brand-primary hover:bg-indigo-700 dark:bg-brand-accent dark:hover:bg-amber-400 dark:text-brand-dark text-white font-semibold text-sm rounded-xl transition-colors duration-150"
         >
           <PlayIcon className="w-4 h-4" />
@@ -118,7 +118,7 @@ const DeckProgressCard = ({ card, onViewReport }) => {
 
         {strugglingQuizCount > 0 && (
           <button
-            onClick={(e) => { e.preventDefault(); navigate(`/card/${progress.card_id}/focus-quiz`); }}
+            onClick={(e) => { e.preventDefault(); navigate(`/study-sets/${progress.card_id}/retry-missed`); }}
             className="cursor-pointer w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 dark:bg-amber-500/10 hover:bg-amber-100 dark:hover:bg-amber-500/20 border border-amber-200 dark:border-amber-500/20 text-amber-700 dark:text-amber-400 font-semibold text-sm rounded-xl transition-colors duration-150"
           >
             <FireIcon className="h-4 w-4" />

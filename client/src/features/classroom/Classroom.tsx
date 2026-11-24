@@ -1,7 +1,7 @@
-// A study set's classroom (/card/:id, the prototype's Classroom): how you stand in it, what to do next, going over or
-// retrying what you missed, a mixed quiz of what you hold, and its rounds, each with its review and quiz. While the set
-// and your progress load, its skeleton. Someone not signed in can study, and is told nothing is saved. The set's
-// editor is today's (/card/:id/edit) until it's replaced (D-17).
+// A study set's classroom (/study-sets/:id, the prototype's Classroom): how you stand in it, what to do next, going
+// over or retrying what you missed, a mixed quiz of what you hold, and its rounds, each with its review and quiz. While
+// the set and your progress load, its skeleton. Someone not signed in can study, and is told nothing is saved. The
+// set's editor is today's (/study-sets/:id/edit) until it's replaced (D-17).
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { MIX_READY, dayKey, isPlayerCard, mixableCount, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
@@ -16,7 +16,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
 import { browserTimeZone } from "#features/campus/campusApi.ts";
-import { classPath } from "#features/classes/modes.ts";
+import { classPath, setPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
 import { RoundRow } from "./RoundRow.tsx";
@@ -59,8 +59,8 @@ function ClassroomSkeleton() {
   );
 }
 
-// A way into a class, as a row: what it is, why, and Start.
-function Action({ to, icon, title, body, primary = false }: { to: string; icon: IconName; title: string; body: string; primary?: boolean }) {
+// A way into a class, as a row: what it is, why, and Start. returnTo: where the class goes back to (the classroom).
+function Action({ to, returnTo, icon, title, body, primary = false }: { to: string; returnTo: string; icon: IconName; title: string; body: string; primary?: boolean }) {
   return (
     <div className="panel flex items-center gap-3 bg-surface p-4">
       <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
@@ -70,7 +70,7 @@ function Action({ to, icon, title, body, primary = false }: { to: string; icon: 
         <p className="font-semibold">{title}</p>
         <p className="text-sm text-ink/55">{body}</p>
       </div>
-      <Link to={to} state={{ returnTo: to.split("/").slice(0, 3).join("/") }} className={buttonClass(primary ? "primary" : "quiet")}>
+      <Link to={to} state={{ returnTo: returnTo }} className={buttonClass(primary ? "primary" : "quiet")}>
         Start
       </Link>
     </div>
@@ -85,6 +85,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
   const next = upNext(rounds, states);
   const held = Object.values(progress?.questions ?? {}).filter((q) => isPlayerCard(q)).length;
   const mixable = held >= MIX_READY ? mixableCount(rounds, progress, when) : 0;
+  const home = setPath(set._id);
 
   return (
     <Page
@@ -94,7 +95,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
       width="max-w-3xl"
       actions={
         signedIn && (
-          <Link to={`/card/${set._id}/edit`} className={buttonClass("quiet", "sm")}>
+          <Link to={`${setPath(set._id)}/edit`} className={buttonClass("quiet", "sm")}>
             Edit
           </Link>
         )
@@ -129,7 +130,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
         )}
 
         {next && (
-          <Action
+          <Action returnTo={home}
             primary
             to={`${classPath(set._id, next.mode)}?round=${next.round.n}`}
             icon={next.mode}
@@ -137,9 +138,9 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
             body={next.mode === "review" ? `${plural(next.round.cards.length, "flashcard")}, about ${next.round.load} recall points.` : `${plural(next.round.questions.length, "question")} on what you've reviewed. Each one you get right becomes a player card.`}
           />
         )}
-        {stats.missedFlashcards > 0 && <Action to={classPath(set._id, "reviewMissed")} icon="focus" title="Go over what you missed" body={`Just the points you missed, on ${plural(Math.min(4, stats.missedFlashcards), "flashcard")}.`} />}
-        {stats.missedQuestions > 0 && <Action to={classPath(set._id, "retryMissed")} icon="focus" title="Retry what you missed" body={`${plural(stats.missedQuestions, "question")} you got wrong, until you get them right.`} />}
-        {mixable > 0 && <Action to={`${classPath(set._id, "quiz")}?mix=1`} icon="layers" title="Mixed quiz" body="Questions you hold, from across the set: the fading ones first." />}
+        {stats.missedFlashcards > 0 && <Action returnTo={home} to={classPath(set._id, "reviewMissed")} icon="focus" title="Go over what you missed" body={`Just the points you missed, on ${plural(Math.min(4, stats.missedFlashcards), "flashcard")}.`} />}
+        {stats.missedQuestions > 0 && <Action returnTo={home} to={classPath(set._id, "retryMissed")} icon="focus" title="Retry what you missed" body={`${plural(stats.missedQuestions, "question")} you got wrong, until you get them right.`} />}
+        {mixable > 0 && <Action returnTo={home} to={`${classPath(set._id, "quiz")}?mix=1`} icon="layers" title="Mixed quiz" body="Questions you hold, from across the set: the fading ones first." />}
 
         <section aria-labelledby="rounds-title">
           <h2 id="rounds-title" className="mb-2 font-display text-xl font-semibold">

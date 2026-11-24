@@ -95,7 +95,7 @@ const router = createBrowserRouter([
         element: <CardsPageRoute />,
       },
       {
-        path: "card/:id/*",
+        path: "study-sets/:id/*",
         element: <IndividualCardPageRoute />,
       },
       {
