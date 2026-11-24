@@ -47,6 +47,10 @@ const TermsOfServiceRoute = lazy(() =>
 const NotFoundRoute = lazy(() =>
   import("../features/not-found/routes/NotFoundRoute")
 );
+const Campus = lazy(() => import("#features/campus/Campus.tsx"));
+
+// "/": the campus for a signed-in player (its skeleton while the session is checked), the landing page for a visitor.
+const HomeRoute = () => (useSession() === "out" ? <LandingPageRoute /> : <Campus />);
 
 // The root layout: the top bar, the page, and on phones the tab bar, except in a class, which takes the whole screen.
 // The old footer stays on the public pages only, until the landing page is rebuilt. The session is checked once, here,
@@ -95,7 +99,7 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <LandingPageRoute />,
+        element: <HomeRoute />,
       },
       {
         path: "subjects",

@@ -17,5 +17,5 @@ export const campusApi = apiSlice.enhanceEndpoints({ addTagTypes: ["Campus"] }).
 });
 
 // The campus, for this browser's time zone, fetched again when the tab comes back into view (the listeners are set up
-// in app/configureStore.js).
-export const useCampus = () => campusApi.useGetCampusQuery(browserTimeZone(), { refetchOnFocus: true });
+// in app/configureStore.js). skip: until someone is signed in.
+export const useCampus = (skip = false) => campusApi.useGetCampusQuery(browserTimeZone(), { skip, refetchOnFocus: true });
