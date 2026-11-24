@@ -77,6 +77,16 @@ export async function playerOf(userId: string, timeZone: string, subjects: () =>
   }
 }
 
+// A subject's summary refreshed outside a class (after a set's quizzes are reset), if the player has the subject. One
+// update of that subject alone: it changes updatedAt, so a class finishing at the same moment reads again (finishClass).
+export async function refreshSubject(userId: string, subject: SubjectSummary): Promise<void> {
+  const { category, started, mastery, missed, lastAt } = subject;
+  await Player.updateOne(
+    { _id: userId, "subjects.category": category },
+    { $set: { "subjects.$.started": started, "subjects.$.mastery": mastery, "subjects.$.missed": missed, "subjects.$.lastAt": lastAt } },
+  );
+}
+
 export async function addXp(userId: string, xp: number): Promise<void> {
   if (xp) await Player.updateOne({ _id: userId }, { $inc: { xp } });
 }

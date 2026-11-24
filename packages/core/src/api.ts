@@ -80,6 +80,11 @@ export type SavedAnswers = {
   finished?: { streak: number; firstToday: boolean; timetableDone: boolean };
 };
 
+// DELETE /api/study-sets/:id/progress/quiz?tz=…: the set's quizzes afresh, from the report card. What you missed, your
+// record of answers (right and wrong) and the quizzes counted are cleared; your player cards and flashcards stay. It
+// returns your progress in the set (ProgressView), as it is now.
+export const ResetQuizQuery = CampusQuery;
+
 // GET /api/report-card?tz=…: your progress in every set you've started (its copied titles and counts, so no set is
 // read), and your player's totals, for the report card. The browser's time zone decides the streak's "today".
 export const ReportCardQuery = CampusQuery;

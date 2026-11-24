@@ -11,6 +11,7 @@ import Answer from "#models/answers/answers.mongo.ts";
 import Activity from "#models/activity/activity.mongo.ts";
 import Player from "#models/players/players.mongo.ts";
 import type { PlayerDoc } from "#models/players/players.mongo.ts";
+import Progress from "#models/progress/progress.mongo.ts";
 import Cards from "#models/cards/cards.mongo.js";
 
 const IST = "Asia/Kolkata";
@@ -177,4 +178,51 @@ test("finishing a class: the streak starts, the subject joins the campus, and th
   // A second class the same day keeps the streak where it is.
   const second = await save(lee, batch({ classKey: "quiz:round-1:c", finished: true, answers: [{ kind: "question", itemId: questionId, correct: true, ms: 2000 }] }));
   assert.deepEqual(((await second.json()) as SavedAnswers).finished, { streak: 1, firstToday: false, timetableDone: false });
+});
+
+// Resetting a set's quizzes, from the report card's quiz report.
+const tz = `tz=${encodeURIComponent(IST)}`;
+const progressOf = async (setId = js) => (await (await t.api(`/api/study-sets/${setId}/progress`, { headers: lee })).json()) as ProgressView;
+const resetQuiz = (setId = js, who: Record<string, string> = lee, query = tz) =>
+  t.api(`/api/study-sets/${setId}/progress/quiz?${query}`, { method: "DELETE", headers: who });
+const missedInSubject = async () => (await Player.findById(ids.learner).lean<PlayerDoc>())?.subjects.find((s) => s.category === "Programming")?.missed;
+
+test("resetting a set's quizzes keeps your player cards and flashcards, and clears what you missed, the record and the count", async () => {
+  // The question missed in a finished quiz: the review left halfway (above) stays left halfway.
+  await save(lee, batch({ classKey: "quiz:round-1:d", finished: true, answers: [{ kind: "question", itemId: questionId, correct: false, ms: 2000 }] }));
+  const before = await progressOf();
+  assert.ok(before.questions[questionId]?.missedOn && (before.questions[questionId]?.level ?? 0) >= 1, "a player card, missed");
+  assert.equal(await missedInSubject(), 2, "the question and loopCard");
+
+  const res = await resetQuiz();
+  assert.equal(res.status, 200);
+  const view = (await res.json()) as ProgressView;
+  const card = before.questions[questionId]!;
+  assert.deepEqual(view.questions, { [questionId]: { level: card.level, refreshedAt: card.refreshedAt } }, "only the player card, with no record");
+  assert.deepEqual(view.quiz, { started: 0, finished: 0 });
+  assert.deepEqual(view.flashcards, before.flashcards);
+  assert.equal(view.classInProgress?.key, "review:round-1:b", "a review left halfway isn't a quiz");
+  assert.deepEqual(await progressOf(), view, "saved as it says");
+  assert.equal(await missedInSubject(), 1, "the campus's summary refreshed: only loopCard is left missed");
+
+  const again = await resetQuiz();
+  assert.deepEqual(await again.json(), view, "resetting again changes nothing");
+});
+
+test("a quiz left halfway is dropped with the reset, since its answers so far are gone", async () => {
+  await save(lee, batch({ classKey: "quiz:round-1:e", answers: [{ kind: "question", itemId: questionId, correct: true, ms: 2000 }] }));
+  assert.equal((await progressOf()).classInProgress?.key, "quiz:round-1:e");
+  const view = (await (await resetQuiz()).json()) as ProgressView;
+  assert.equal(view.classInProgress, null);
+});
+
+test("the reset is for signed-in players and a set that's there, with the time zone; one you haven't started has nothing to reset", async () => {
+  assert.equal((await resetQuiz(js, {})).status, 401);
+  assert.equal((await resetQuiz(js, lee, "")).status, 400);
+  assert.equal((await resetQuiz("000000000000000000000fff")).status, 404);
+  const bio = String(ids.bio);
+  const res = await resetQuiz(bio);
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), await progressOf(bio));
+  assert.equal(await Progress.exists({ userId: ids.learner, setId: ids.bio }), null, "no progress made for it");
 });
