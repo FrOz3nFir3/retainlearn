@@ -13,7 +13,7 @@ import { Stars } from "./Stars.tsx";
 type Props = { setId: string; round: Round<{ _id: string; question: string }>; state: RoundState; next: boolean };
 
 export function RoundRow({ setId, round, state, next }: Props) {
-  const first = round.cards[0];
+  const first = round.flashcards[0];
   const topic = first ? shortTopic(textOf(first.question)) : "Questions on their own";
   const returnTo = { returnTo: setPath(setId) };
   return (
@@ -23,7 +23,7 @@ export function RoundRow({ setId, round, state, next }: Props) {
         <div className="min-w-0 flex-1">
           <h3 className="line-clamp-2 font-semibold">{topic}</h3>
           <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            {state.cards > 0 && <Chip tone={state.reviewed >= state.cards ? "mint" : "neutral"}>{`${state.reviewed} of ${state.cards} flashcards seen`}</Chip>}
+            {state.flashcards > 0 && <Chip tone={state.reviewed >= state.flashcards ? "mint" : "neutral"}>{`${state.reviewed} of ${state.flashcards} flashcards seen`}</Chip>}
             {state.weak > 0 && <Chip tone="bell">{`${state.weak} with points missed`}</Chip>}
             {state.retry > 0 && <Chip tone="rose">{`${state.retry} to retry`}</Chip>}
             {state.fading && <Chip tone="cold">fading</Chip>}
@@ -31,13 +31,13 @@ export function RoundRow({ setId, round, state, next }: Props) {
           </div>
         </div>
         <div className="flex shrink-0 gap-2">
-          {state.cards > 0 && (
-            <Link to={`${classPath(setId, "review")}?round=${round.n}`} state={returnTo} className={buttonClass(next && state.reviewed < state.cards ? "primary" : "quiet", "sm")}>
+          {state.flashcards > 0 && (
+            <Link to={`${classPath(setId, "review")}?round=${round.n}`} state={returnTo} className={buttonClass(next && state.reviewed < state.flashcards ? "primary" : "quiet", "sm")}>
               Review
             </Link>
           )}
           {state.total > 0 && (
-            <Link to={`${classPath(setId, "quiz")}?round=${round.n}`} state={returnTo} className={buttonClass(next && state.reviewed >= state.cards ? "primary" : "quiet", "sm")}>
+            <Link to={`${classPath(setId, "quiz")}?round=${round.n}`} state={returnTo} className={buttonClass(next && state.reviewed >= state.flashcards ? "primary" : "quiet", "sm")}>
               Quiz
             </Link>
           )}

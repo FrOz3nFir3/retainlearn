@@ -1,6 +1,6 @@
 // A quiz under way (the prototype's QuizClass): one question at a time, its options as buttons (or keys 1 to 4, A to
 // D), what the answer did to your player card the moment it lands, and why on a miss. Each answer is saved as you go
-// (useClassSaver), so leaving loses nothing. What an answer does to the card is worked out here with the same rule the
+// (useClassSaver), so leaving loses nothing. What an answer does to the flashcard is worked out here with the same rule the
 // server uses (answerQuestion in packages/core), so the screen never waits for a save. The end: the score as balls,
 // the XP the server counted, the streak and the timetable.
 import { useEffect, useRef, useState } from "react";
@@ -34,9 +34,9 @@ function rewardOf(had: QuestionProgress | undefined, now: QuestionProgress, corr
 const REWARD_TEXT: Record<Reward["kind"], (r: Reward) => string> = {
   new: () => "New player card! Remember it again after a day or more and it levels up.",
   level: (r) => `Level ${r.from} → ${r.to}: remembered after a gap, so it's stronger.`,
-  kept: () => "Right. You hold this card already: come back to it after a day or more and it levels up.",
-  slip: (r) => `Not this time. The card slips to level ${r.to}, and it's on your retry list.`,
-  none: () => "Not this time. It's on your retry list, and you'll earn the card when you get it right.",
+  kept: () => "Right. You hold this player card already: come back to it after a day or more and it levels up.",
+  slip: (r) => `Not this time. Your player card slips to level ${r.to}, and it's on your retry list.`,
+  none: () => "Not this time. It's on your retry list, and you'll earn the player card when you get it right.",
 };
 
 type Props = {

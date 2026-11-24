@@ -1,4 +1,4 @@
-// A class while its set and your progress load: the header, the question card and its options as placeholders, in the
+// A class while its set and your progress load: the header, the question's panel and its options as placeholders, in the
 // shape they'll have, so nothing jumps when they arrive. Screen readers hear what's loading (Loading).
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
 

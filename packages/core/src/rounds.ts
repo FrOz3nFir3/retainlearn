@@ -17,16 +17,16 @@ export const MIN_POINTS = 2; // fewer recall points than this, and a flashcard i
 export const WHOLE_LOAD = 4; // a flashcard reviewed whole, in recall points
 export const MIX_READY = 3; // player cards you must hold in a set before a mixed quiz is worth it
 
-type Card = { _id: string };
+type Flashcard = { _id: string };
 type Question = { _id: string; flashcardId?: string | null };
 type ProgressLike = { flashcards?: ItemMap<FlashcardProgress>; questions?: ItemMap<QuestionProgress> } | null | undefined;
 
-export type Round<C extends Card = Card, Q extends Question = Question> = {
+export type Round<C extends Flashcard = Flashcard, Q extends Question = Question> = {
   n: number;
-  cards: C[];
+  flashcards: C[];
   questions: Q[];
   load: number; // recall points to review
-  cardIds: string[];
+  flashcardIds: string[];
 };
 
 // How much reviewing a flashcard is, in recall points, from how many points its answer has.
@@ -34,36 +34,36 @@ export const reviewLoad = (points: number): number => (points >= MIN_POINTS ? po
 
 // The set's flashcards in your order: the ones you've placed first, then any the author added since, in the set's
 // order. order: flashcard ids, or nothing for the set's own order.
-export function orderedCards<C extends Card>(cards: readonly C[], order: readonly string[] | null | undefined): C[] {
-  if (!order?.length) return [...cards];
-  const byId = new Map(cards.map((c) => [c._id, c]));
+export function orderedFlashcards<C extends Flashcard>(flashcards: readonly C[], order: readonly string[] | null | undefined): C[] {
+  if (!order?.length) return [...flashcards];
+  const byId = new Map(flashcards.map((c) => [c._id, c]));
   const mine = order.flatMap((id) => byId.get(id) ?? []);
   const placed = new Set(mine.map((c) => c._id));
-  return [...mine, ...cards.filter((c) => !placed.has(c._id))];
+  return [...mine, ...flashcards.filter((c) => !placed.has(c._id))];
 }
 
 // A round is a few flashcards in a row with the questions linked to them, so a review and a quiz on the same topics.
 // Questions linked to no flashcard of the set make rounds of their own at the end.
-export function setRounds<C extends Card, Q extends Question>(
+export function setRounds<C extends Flashcard, Q extends Question>(
   set: { flashcards: readonly C[]; questions: readonly Q[] },
   order: readonly string[] | null | undefined,
-  loadOf: (card: C) => number,
+  loadOf: (flashcard: C) => number,
 ): Round<C, Q>[] {
   const ids = new Set(set.flashcards.map((c) => c._id));
-  const byCard = new Map<string, Q[]>();
+  const byFlashcard = new Map<string, Q[]>();
   const extra: Q[] = [];
   for (const q of set.questions) {
-    if (q.flashcardId && ids.has(q.flashcardId)) byCard.set(q.flashcardId, [...(byCard.get(q.flashcardId) ?? []), q]);
+    if (q.flashcardId && ids.has(q.flashcardId)) byFlashcard.set(q.flashcardId, [...(byFlashcard.get(q.flashcardId) ?? []), q]);
     else extra.push(q);
   }
 
-  const built: Omit<Round<C, Q>, "n" | "cardIds">[] = [];
-  let round: Omit<Round<C, Q>, "n" | "cardIds"> | null = null;
-  for (const card of orderedCards(set.flashcards, order)) {
-    round ??= { cards: [], questions: [], load: 0 };
-    round.cards.push(card);
-    round.questions.push(...(byCard.get(card._id) ?? []));
-    round.load += loadOf(card);
+  const built: Omit<Round<C, Q>, "n" | "flashcardIds">[] = [];
+  let round: Omit<Round<C, Q>, "n" | "flashcardIds"> | null = null;
+  for (const flashcard of orderedFlashcards(set.flashcards, order)) {
+    round ??= { flashcards: [], questions: [], load: 0 };
+    round.flashcards.push(flashcard);
+    round.questions.push(...(byFlashcard.get(flashcard._id) ?? []));
+    round.load += loadOf(flashcard);
     if (round.questions.length >= ROUND || round.load >= ROUND_POINTS) {
       built.push(round);
       round = null;
@@ -72,12 +72,12 @@ export function setRounds<C extends Card, Q extends Question>(
   // A short last round joins the one before it.
   const last = built.at(-1);
   if (round && last && round.questions.length < 3 && round.load < ROUND_POINTS / 2) {
-    last.cards.push(...round.cards);
+    last.flashcards.push(...round.flashcards);
     last.questions.push(...round.questions);
     last.load += round.load;
   } else if (round) built.push(round);
-  for (let i = 0; i < extra.length; i += ROUND) built.push({ cards: [], questions: extra.slice(i, i + ROUND), load: 0 });
-  return built.map((r, i) => ({ ...r, n: i + 1, cardIds: r.cards.map((c) => c._id) }));
+  for (let i = 0; i < extra.length; i += ROUND) built.push({ flashcards: [], questions: extra.slice(i, i + ROUND), load: 0 });
+  return built.map((r, i) => ({ ...r, n: i + 1, flashcardIds: r.flashcards.map((c) => c._id) }));
 }
 
 const itemOf = <T>(map: ItemMap<T> | undefined, id: string): T | undefined => (map instanceof Map ? map.get(id) : map?.[id]);
@@ -90,7 +90,7 @@ export type RoundState = {
   tried: boolean;
   stars: number; // 3: all right; 2: all but one (of 3 or more); 1: at least half; 0 otherwise
   fading: boolean; // one of its player cards is fading
-  cards: number;
+  flashcards: number;
   reviewed: number; // its flashcards you've seen
   weak: number; // its flashcards you didn't recall all of, last time
 };
@@ -112,13 +112,13 @@ export function roundState(round: Round, progress: ProgressLike, when: When): Ro
     tried,
     stars: tried && total ? stars : 0,
     fading: round.questions.some((q) => isFading(question(q._id), when)),
-    cards: round.cards.length,
-    reviewed: round.cardIds.filter((id) => flashcard(id)?.seenAt != null).length,
-    weak: round.cardIds.filter((id) => flashcard(id)?.missedOn != null).length,
+    flashcards: round.flashcards.length,
+    reviewed: round.flashcardIds.filter((id) => flashcard(id)?.seenAt != null).length,
+    weak: round.flashcardIds.filter((id) => flashcard(id)?.missedOn != null).length,
   };
 }
 
-export const reviewDone = (s: RoundState): boolean => s.reviewed >= s.cards;
+export const reviewDone = (s: RoundState): boolean => s.reviewed >= s.flashcards;
 // A round's quiz is done once every question in it has been answered: what you missed is then for "Retry".
 export const quizDone = (s: RoundState): boolean => !s.untried;
 
@@ -155,7 +155,7 @@ export function upNext<R extends Round>(rounds: readonly R[], states: readonly R
 // it waits for tomorrow. Questions you've missed are left to "Retry what you missed". random: for the tie-breaking
 // shuffle (Math.random; a fixed one in tests).
 type Mixable<Q> = { q: Q; round: number; fading: boolean; daysAgo: number };
-function mixable<Q extends Question>(rounds: readonly Round<Card, Q>[], progress: ProgressLike, when: When): Mixable<Q>[] {
+function mixable<Q extends Question>(rounds: readonly Round<Flashcard, Q>[], progress: ProgressLike, when: When): Mixable<Q>[] {
   return rounds.flatMap((r) =>
     r.questions.flatMap((q) => {
       const p = itemOf(progress?.questions, q._id);
@@ -166,7 +166,7 @@ function mixable<Q extends Question>(rounds: readonly Round<Card, Q>[], progress
   );
 }
 
-export function mixedQuestions<Q extends Question>(rounds: readonly Round<Card, Q>[], progress: ProgressLike, when: When, n = ROUND, random: () => number = Math.random): Q[] {
+export function mixedQuestions<Q extends Question>(rounds: readonly Round<Flashcard, Q>[], progress: ProgressLike, when: When, n = ROUND, random: () => number = Math.random): Q[] {
   const pool = mixable(rounds, progress, when);
   for (let i = pool.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

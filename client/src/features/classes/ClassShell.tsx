@@ -53,7 +53,7 @@ export function ClassShell({ set, mode, progressText, progress, track, bar, chil
             <Link to="/authenticate" className="font-semibold underline">
               Sign in
             </Link>{" "}
-            to keep your progress and cards.
+            to keep your progress and player cards.
           </p>
         </div>
       )}

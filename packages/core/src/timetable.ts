@@ -25,7 +25,7 @@ const W = { missed: 3, fading: 2, coldPerDay: 2, coldFrom: 3, coldMax: 40, unsta
 export const CLASS_MODES = ["review", "quiz", "reviewMissed", "retryMissed"] as const;
 export type ClassMode = (typeof CLASS_MODES)[number];
 export type Why =
-  | { kind: "missed" | "fading" | "cold"; n: number } // n: items due back, cards fading, or days away
+  | { kind: "missed" | "fading" | "cold"; n: number } // n: items due back, player cards fading, or days away
   | { kind: "continue"; n: number; of: number } // n of the set's flashcards reviewed
   | { kind: "new" };
 // A period, as activity.timetable keeps it.

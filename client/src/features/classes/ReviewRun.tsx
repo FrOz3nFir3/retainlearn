@@ -1,5 +1,5 @@
-// A review under way (the prototype's ReviewRun): its flashcards one at a time, point by point (PointsCard) or whole
-// (WholeCard), with every recall point in the header's track. Each flashcard is saved as you finish it
+// A review under way (the prototype's ReviewRun): its flashcards one at a time, point by point (PointsFlashcard) or whole
+// (WholeFlashcard), with every recall point in the header's track. Each flashcard is saved as you finish it
 // (useClassSaver), with the points you marked, so leaving loses at most the one you're on. The end: the share of
 // recall points you knew on a ring, what comes back sooner, the next class to take, and the XP, streak and timetable.
 import { useEffect, useRef, useState } from "react";
@@ -10,8 +10,8 @@ import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { ClassShell, Resumed, useReturnTo } from "./ClassShell.tsx";
 import { classPath } from "./modes.ts";
-import { PointsCard } from "./PointsCard.tsx";
-import type { CardResult } from "./PointsCard.tsx";
+import { PointsFlashcard } from "./PointsFlashcard.tsx";
+import type { FlashcardResult } from "./PointsFlashcard.tsx";
 import { PointTrack } from "./PointTrack.tsx";
 import type { PointState } from "./PointTrack.tsx";
 import type { ReviewPlan } from "./reviewPlan.ts";
@@ -20,7 +20,7 @@ import { Ring } from "./Ring.tsx";
 import { Summary } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
 import { useClassSaver } from "./useClassSaver.ts";
-import { WholeCard } from "./WholeCard.tsx";
+import { WholeFlashcard } from "./WholeFlashcard.tsx";
 
 const MAX_MS = 3_600_000;
 
@@ -36,11 +36,11 @@ type Props = {
 };
 
 export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
-  const cards = plan.cards;
+  const flashcards = plan.flashcards;
   const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
   const [index, setIndex] = useState(start);
   const [marks, setMarks] = useState<Record<string, boolean>>({});
-  const [results, setResults] = useState<CardResult[]>([]);
+  const [results, setResults] = useState<FlashcardResult[]>([]);
   const [mine, setMine] = useState<Record<string, FlashcardProgress>>(() => ({ ...(progress?.flashcards ?? {}) }));
   const [result, setResult] = useState<ClassResult | null>(null);
   const [finishing, setFinishing] = useState(false);
@@ -54,16 +54,16 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
     };
   }, [saver]);
 
-  const finishCard = (done: CardResult) => {
-    const card = cards[index];
-    if (!card) return;
-    setMine((m) => ({ ...m, [card._id]: reviewFlashcard(m[card._id], done.knew, { at: new Date(), timeZone: when.timeZone, points: done.points }) }));
+  const finishFlashcard = (done: FlashcardResult) => {
+    const flashcard = flashcards[index];
+    if (!flashcard) return;
+    setMine((m) => ({ ...m, [flashcard._id]: reviewFlashcard(m[flashcard._id], done.knew, { at: new Date(), timeZone: when.timeZone, points: done.points }) }));
     const ms = Math.min(MAX_MS, Math.round(performance.now() - shownAt.current));
-    saver.record({ kind: "flashcard", itemId: card._id, knew: done.knew, points: done.points, ms }, { ids: cards.map((c) => c._id), index: index + 1 });
+    saver.record({ kind: "flashcard", itemId: flashcard._id, knew: done.knew, points: done.points, ms }, { ids: flashcards.map((c) => c._id), index: index + 1 });
     setResults((r) => [...r, done]);
     setMarks({});
     shownAt.current = performance.now();
-    if (index + 1 < cards.length) {
+    if (index + 1 < flashcards.length) {
       setIndex(index + 1);
       return;
     }
@@ -72,7 +72,7 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
       .finish()
       .catch(() => null)
       .then((last) => {
-        const after = { ...progress, flashcards: { ...(progress?.flashcards ?? {}), ...mine, [card._id]: reviewFlashcard(mine[card._id], done.knew, { at: new Date(), timeZone: when.timeZone, points: done.points }) } };
+        const after = { ...progress, flashcards: { ...(progress?.flashcards ?? {}), ...mine, [flashcard._id]: reviewFlashcard(mine[flashcard._id], done.knew, { at: new Date(), timeZone: when.timeZone, points: done.points }) } };
         setResult({
           xp: xp.current,
           streak: last?.finished?.streak,
@@ -92,7 +92,7 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
     const share = total ? known / total : 0;
     const comeBack = all.filter((r) => !r.knew);
     const missedNow = Object.values(mine).filter((f) => f.missedOn != null).length;
-    const quizIds = set.questions.filter((q) => q.flashcardId && plan.cards.some((c) => c._id === q.flashcardId)).map((q) => q._id);
+    const quizIds = set.questions.filter((q) => q.flashcardId && plan.flashcards.some((c) => c._id === q.flashcardId)).map((q) => q._id);
     const next =
       mode === "reviewMissed"
         ? Object.values(progress?.questions ?? {}).some((q) => q.missedOn != null) && { to: classPath(set._id, "retryMissed"), title: "Next: retry the questions you missed", body: "The quiz questions you got wrong, now that you've gone over them." }
@@ -146,7 +146,7 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
                     <ul className="space-y-1.5 text-ink/70">
                       {comeBack.map((r) => (
                         <li key={r.id} className="line-clamp-2">
-                          {r.missed.length ? `${r.missed.slice(0, 4).join(", ")}${r.missed.length > 4 ? "…" : ""}` : "The whole card"}
+                          {r.missed.length ? `${r.missed.slice(0, 4).join(", ")}${r.missed.length > 4 ? "…" : ""}` : "The whole flashcard"}
                         </li>
                       ))}
                     </ul>
@@ -171,25 +171,25 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
     );
   }
 
-  const card = cards[index];
-  if (!card) return null;
-  // Every point in this class, card by card, for the header's track. A card reviewed whole counts as one point.
-  const groups: PointState[][] = cards.map((c, i) => {
+  const flashcard = flashcards[index];
+  if (!flashcard) return null;
+  // Every point in this class, flashcard by flashcard, for the header's track. A flashcard reviewed whole counts as one point.
+  const groups: PointState[][] = flashcards.map((c, i) => {
     const keys = byPoints(c) ? c.points.map((p) => p.key) : [c._id];
     const done = i < index ? results[i - start] : undefined;
     const marked: Record<string, boolean | undefined> = i < index ? (done ? (byPoints(c) ? Object.fromEntries(done.points.map((p) => [p.key, p.knew])) : { [c._id]: done.knew }) : {}) : i === index && byPoints(c) ? marks : {};
     const at = i === index ? keys.findIndex((k) => marked[k] === undefined) : -1;
     return keys.map((k, j) => (marked[k] === true ? "knew" : marked[k] === false ? "missed" : j === at ? "now" : "later"));
   });
-  const totalPoints = cards.reduce((n, c) => n + (byPoints(c) ? c.points.length : 1), 0);
+  const totalPoints = flashcards.reduce((n, c) => n + (byPoints(c) ? c.points.length : 1), 0);
   const donePoints = results.reduce((n, r) => n + r.weight, 0) + Object.keys(marks).length;
   const where = plan.round ? `Round ${plan.round}${plan.again ? " again" : ""} · ` : plan.picked ? "Your pick · " : "";
-  const shell = { ...shellBase, progressText: `${where}Card ${index + 1} of ${cards.length}, ${donePoints} of ${totalPoints} points`, track: <PointTrack groups={groups} /> };
-  const notice = onRestart && index === start && start > 0 && !Object.keys(marks).length ? <Resumed text={`Picking up where you left off: card ${index + 1} of ${cards.length}.`} onRestart={onRestart} /> : undefined;
+  const shell = { ...shellBase, progressText: `${where}Flashcard ${index + 1} of ${flashcards.length}, ${donePoints} of ${totalPoints} points`, track: <PointTrack groups={groups} /> };
+  const notice = onRestart && index === start && start > 0 && !Object.keys(marks).length ? <Resumed text={`Picking up where you left off: flashcard ${index + 1} of ${flashcards.length}.`} onRestart={onRestart} /> : undefined;
 
-  return byPoints(card) ? (
-    <PointsCard key={card._id} shell={shell} card={card} last={index + 1 >= cards.length} marks={marks} onMark={(key, knew) => setMarks((m) => ({ ...m, [key]: knew }))} onDone={finishCard} notice={notice} />
+  return byPoints(flashcard) ? (
+    <PointsFlashcard key={flashcard._id} shell={shell} flashcard={flashcard} last={index + 1 >= flashcards.length} marks={marks} onMark={(key, knew) => setMarks((m) => ({ ...m, [key]: knew }))} onDone={finishFlashcard} notice={notice} />
   ) : (
-    <WholeCard key={card._id} shell={shell} card={card} onDone={finishCard} notice={notice} />
+    <WholeFlashcard key={flashcard._id} shell={shell} flashcard={flashcard} onDone={finishFlashcard} notice={notice} />
   );
 }

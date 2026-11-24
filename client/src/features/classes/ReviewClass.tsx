@@ -55,12 +55,12 @@ function ReviewStart({ set, progress, mode, params }: { set: StudySetContent; pr
     const index = left?.index ?? 0;
     if (left && left.mode === mode && left.day === when.today && left.ids?.length && index < left.ids.length) {
       const plan = planReview({ ...set, flashcards: left.ids.flatMap((fid) => set.flashcards.find((f) => f._id === fid) ?? []) }, progress, mode === "reviewMissed", when, { picked: new Set(left.ids) }, recallPoints);
-      if (plan.cards.length === left.ids.length) return { plan: { ...plan, title: null }, start: index, resume: { key: left.key, seq: left.seq }, id: 0 };
+      if (plan.flashcards.length === left.ids.length) return { plan: { ...plan, title: null }, start: index, resume: { key: left.key, seq: left.seq }, id: 0 };
     }
     return fresh();
   });
 
-  if (!run.plan.cards.length) {
+  if (!run.plan.flashcards.length) {
     return (
       <ClassShell set={set} mode={mode}>
         <Empty

@@ -135,7 +135,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
             to={`${classPath(set._id, next.mode)}?round=${next.round.n}`}
             icon={next.mode}
             title={`Up next: ${next.mode} round ${next.round.n}`}
-            body={next.mode === "review" ? `${plural(next.round.cards.length, "flashcard")}, about ${next.round.load} recall points.` : `${plural(next.round.questions.length, "question")} on what you've reviewed. Each one you get right becomes a player card.`}
+            body={next.mode === "review" ? `${plural(next.round.flashcards.length, "flashcard")}, about ${next.round.load} recall points.` : `${plural(next.round.questions.length, "question")} on what you've reviewed. Each one you get right becomes a player card.`}
           />
         )}
         {stats.missedFlashcards > 0 && <Action returnTo={home} to={classPath(set._id, "reviewMissed")} icon="focus" title="Go over what you missed" body={`Just the points you missed, on ${plural(Math.min(4, stats.missedFlashcards), "flashcard")}.`} />}

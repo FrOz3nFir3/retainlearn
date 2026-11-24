@@ -19,16 +19,16 @@ const set: StudySetContent = {
   description: "",
   listed: true,
   version: 1,
-  flashcards: Array.from({ length: 10 }, (_, i) => ({ _id: `f${i + 1}`, question: `<p>Card ${i + 1}</p>`, answer: "<ul><li>a</li></ul>" })),
+  flashcards: Array.from({ length: 10 }, (_, i) => ({ _id: `f${i + 1}`, question: `<p>Flashcard ${i + 1}</p>`, answer: "<ul><li>a</li></ul>" })),
   questions: [],
 };
 const progress = (flashcards: ProgressView["flashcards"]): ProgressView => ({ setId: "s", flashcards, questions: {}, order: null, quiz: { started: 0, finished: 0 }, classInProgress: null, lastAt: null });
-const ids = (plan: { cards: { _id: string }[] }) => plan.cards.map((c) => c._id);
+const ids = (plan: { flashcards: { _id: string }[] }) => plan.flashcards.map((c) => c._id);
 
 test("a review is the next round's flashcards you haven't seen, and the whole round again once you've seen them all", () => {
   const first = planReview(set, null, false, when, {}, pointsOf);
   assert.deepEqual([first.title, first.round, ids(first)], ["Round 1 of 2", 1, ["f1", "f2", "f3", "f4", "f5", "f6"]]);
-  assert.ok(first.cards.every(byPoints), "three points each: reviewed point by point");
+  assert.ok(first.flashcards.every(byPoints), "three points each: reviewed point by point");
 
   const someSeen = progress({ f1: { seenAt: "2026-11-23T06:00:00Z", missedOn: null }, f2: { seenAt: "2026-11-23T06:00:00Z", missedOn: null } });
   assert.deepEqual(ids(planReview(set, someSeen, false, when, { round: 1 }, pointsOf)), ["f3", "f4", "f5", "f6"]);
@@ -45,9 +45,9 @@ test("going over what you missed asks only the points you missed last time, on u
   });
   const plan = planReview(set, missed, true, when, {}, pointsOf);
   assert.deepEqual(ids(plan), ["f2", "f5"]);
-  assert.deepEqual(plan.cards[0]?.points.map((p) => p.key), ["b"], "only the point missed");
-  assert.equal(plan.cards[0]?.focused, true);
-  assert.deepEqual(plan.cards[1]?.points.map((p) => p.key), ["a", "b", "c"], "no record of its points: all of them");
+  assert.deepEqual(plan.flashcards[0]?.points.map((p) => p.key), ["b"], "only the point missed");
+  assert.equal(plan.flashcards[0]?.focused, true);
+  assert.deepEqual(plan.flashcards[1]?.points.map((p) => p.key), ["a", "b", "c"], "no record of its points: all of them");
 });
 
 test("your pick reviews exactly the flashcards you chose, in your order", () => {
@@ -57,5 +57,5 @@ test("your pick reviews exactly the flashcards you chose, in your order", () => 
 
 test("a flashcard with fewer than two recall points is reviewed whole", () => {
   const plan = planReview(set, null, false, when, {}, () => [point("only")]);
-  assert.equal(byPoints(plan.cards[0]!), false);
+  assert.equal(byPoints(plan.flashcards[0]!), false);
 });

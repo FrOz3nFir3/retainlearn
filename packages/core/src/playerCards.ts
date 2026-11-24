@@ -10,18 +10,18 @@ export const MAX_LEVEL = INTERVALS.length;
 
 type PlayerCard = QuestionProgress & { level: number };
 
-// Level 0 means answered but never got right, so not a card yet.
+// Level 0 means answered but never got right, so not a player card yet.
 export const isPlayerCard = (q: QuestionProgress | null | undefined): q is PlayerCard => (q?.level ?? 0) >= 1;
 
 const freshFor = (level: number): number => INTERVALS[Math.min(Math.floor(level), MAX_LEVEL) - 1] ?? INTERVALS[0];
 
-// A card with no date to go by counts as fading, since nothing says it's fresh.
+// A player card with no date to go by counts as fading, since nothing says it's fresh.
 export function isFading(q: QuestionProgress | null | undefined, when: When): boolean {
   if (!isPlayerCard(q)) return false;
   if (q.refreshedAt == null) return true;
   return daysSince(q.refreshedAt, when) > freshFor(q.level);
 }
 
-// The level a card plays at: one lower while it's fading, but never below 1. 0 for a question that isn't a card.
+// The level a player card plays at: one lower while it's fading, but never below 1. 0 for a question that isn't a player card.
 export const effectiveLevel = (q: QuestionProgress | null | undefined, when: When): number =>
   isPlayerCard(q) ? Math.max(1, Math.min(q.level, MAX_LEVEL) - (isFading(q, when) ? 1 : 0)) : 0;

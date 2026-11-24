@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ROUND_POINTS, mixedQuestions, nextRound, orderedCards, reviewLoad, roundState, setRounds, shortTopic, topicName, upNext } from "@retainlearn/core";
+import { ROUND_POINTS, mixedQuestions, nextRound, orderedFlashcards, reviewLoad, roundState, setRounds, shortTopic, topicName, upNext } from "@retainlearn/core";
 import { IST, cardsFirst, makeSet, noon, reviewedFirst } from "./helpers.ts";
 
 const today = { today: "2026-11-24", timeZone: IST };
@@ -11,16 +11,16 @@ test("a flashcard with fewer than two recall points is reviewed whole, which cou
 });
 
 test("your own flashcard order comes first, then any the author added since, in the set's order", () => {
-  const cards = [{ _id: "a" }, { _id: "b" }, { _id: "c" }, { _id: "d" }];
-  assert.deepEqual(orderedCards(cards, ["c", "a", "gone"]).map((c) => c._id), ["c", "a", "b", "d"]);
-  assert.deepEqual(orderedCards(cards, null).map((c) => c._id), ["a", "b", "c", "d"]);
+  const flashcards = [{ _id: "a" }, { _id: "b" }, { _id: "c" }, { _id: "d" }];
+  assert.deepEqual(orderedFlashcards(flashcards, ["c", "a", "gone"]).map((c) => c._id), ["c", "a", "b", "d"]);
+  assert.deepEqual(orderedFlashcards(flashcards, null).map((c) => c._id), ["a", "b", "c", "d"]);
 });
 
 test("a round closes at about five questions or sixteen recall points, and a short last round joins the one before", () => {
   // One question per flashcard, each reviewed whole (4 points): a round closes at 4 flashcards (16 points). One left
   // over is short (under 3 questions and 8 points), so it joins; two left over (8 points) make a round of their own.
   const shape = (flashcards: number) =>
-    setRounds(makeSet("s", "Programming", flashcards, flashcards), null, whole).map((r) => [r.n, r.cardIds.length, r.questions.length, r.load]);
+    setRounds(makeSet("s", "Programming", flashcards, flashcards), null, whole).map((r) => [r.n, r.flashcardIds.length, r.questions.length, r.load]);
   assert.deepEqual(shape(5), [[1, 5, 5, 20]]);
   assert.deepEqual(shape(6), [
     [1, 4, 4, 16],
@@ -38,7 +38,7 @@ test("a round closes at about five questions or sixteen recall points, and a sho
 test("each question goes in its flashcard's round; ones linked to no flashcard of the set make rounds at the end", () => {
   const set = { flashcards: [{ _id: "f1" }, { _id: "f2" }], questions: [{ _id: "q1", flashcardId: "f2" }, { _id: "q2", flashcardId: null }, { _id: "q3", flashcardId: "elsewhere" }] };
   const rounds = setRounds(set, null, whole);
-  assert.deepEqual(rounds.map((r) => [r.cardIds, r.questions.map((q) => q._id)]), [[["f1", "f2"], ["q1"]], [[], ["q2", "q3"]]]);
+  assert.deepEqual(rounds.map((r) => [r.flashcardIds, r.questions.map((q) => q._id)]), [[["f1", "f2"], ["q1"]], [[], ["q2", "q3"]]]);
 });
 
 test("where a round stands: reviewed, right, missed to retry, untried, stars and fading", () => {
@@ -87,7 +87,7 @@ test("a mixed quiz: player cards from across the set, fading first, at most two 
     "s-q9": { level: 2, refreshedAt: noon("2026-11-10"), missedOn: "2026-11-23" }, // missed: for Retry
   };
   const mix = mixedQuestions(rounds, { questions }, today, 5, () => 0);
-  assert.equal(mix[0]?._id, "s-q1", "the fading card comes first");
+  assert.equal(mix[0]?._id, "s-q1", "the fading flashcard comes first");
   assert.equal(mix.length, 5);
   assert.ok(!mix.some((q) => q._id === "s-q5" || q._id === "s-q9"));
   const perRound = rounds.map((r) => mix.filter((q) => r.questions.includes(q)).length);
