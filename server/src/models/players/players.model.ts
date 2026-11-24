@@ -4,7 +4,7 @@ import { Types } from "mongoose";
 import Player, { SETTINGS_DEFAULTS } from "#models/players/players.mongo.ts";
 import type { PlayerDoc } from "#models/players/players.mongo.ts";
 import { currentStreak, levelOf, streakAfterClass } from "@retainlearn/core";
-import type { Campus, Day, Streak } from "@retainlearn/core";
+import type { Campus, Day, ReportCard, Streak } from "@retainlearn/core";
 
 // A subject's summary, as the rules work it out from your progress in it (services/campus.ts). Stored on the player
 // with its plot: the place of its building on the campus.
@@ -17,6 +17,14 @@ const streakOf = (player: Pick<PlayerDoc, "streak"> | null): Streak => ({
   lastDay: player?.streak?.lastDay ?? null,
   freezes: player?.streak?.freezes ?? 0,
 });
+
+// Your player's totals for the report card, read only: no player is made here (one not made yet, before your first
+// campus visit or class, has none).
+export async function playerTotals(userId: string, today: Day): Promise<Pick<ReportCard, "xp" | "level" | "streak" | "subjects">> {
+  const player = await Player.findById(userId, { xp: 1, streak: 1, subjects: 1 }).lean<Pick<PlayerDoc, "xp" | "streak" | "subjects">>();
+  const xp = player?.xp ?? 0;
+  return { xp, level: levelOf(xp), streak: { count: currentStreak(streakOf(player), today), freezes: player?.streak?.freezes ?? 0 }, subjects: player?.subjects?.length ?? 0 };
+}
 
 // The player as the campus shows it, every field there: one missing from the document (written before the field
 // existed) reads as its default. The streak is the one to show today, and the level comes from XP.

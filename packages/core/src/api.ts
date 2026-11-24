@@ -80,6 +80,23 @@ export type SavedAnswers = {
   finished?: { streak: number; firstToday: boolean; timetableDone: boolean };
 };
 
+// GET /api/report-card?tz=…: your progress in every set you've started (its copied titles and counts, so no set is
+// read), and your player's totals, for the report card. The browser's time zone decides the streak's "today".
+export const ReportCardQuery = CampusQuery;
+export type ReportCardSet = {
+  setId: string;
+  category: string;
+  topic: string;
+  subtopic: string;
+  flashcardCount: number;
+  questionCount: number;
+  flashcards: Record<string, FlashcardProgress>;
+  questions: Record<string, QuestionProgress>;
+  quiz: { started: number; finished: number };
+  lastAt: string | null;
+};
+export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[] };
+
 // GET /api/campus: everything the campus shows, in one call.
 export type CampusSubject = {
   category: string;

@@ -4,7 +4,7 @@ import { Types } from "mongoose";
 import Progress from "#models/progress/progress.mongo.ts";
 import type { ProgressDoc } from "#models/progress/progress.mongo.ts";
 import { applyAnswers, dayKey } from "@retainlearn/core";
-import type { ClassInProgress, FlashcardProgress, ProgressView, QuestionProgress, SaveAnswers } from "@retainlearn/core";
+import type { ClassInProgress, FlashcardProgress, ProgressView, QuestionProgress, ReportCardSet, SaveAnswers } from "@retainlearn/core";
 import type { StudySetOutline } from "#models/studySets/studySets.model.ts";
 
 const oid = (id: string) => new Types.ObjectId(id);
@@ -33,6 +33,24 @@ export type ProgressForRules = {
   questions: Record<string, QuestionProgress>;
   lastAt: Date | null;
 };
+
+// Your progress in every set you've started, as the report card shows it: its copied titles and counts (so no set is
+// read), what you've seen and answered, and the quizzes you've taken. One query on the userId + setId index.
+export async function reportCardSets(userId: string): Promise<ReportCardSet[]> {
+  const docs = await Progress.find({ userId: oid(userId) }, { setId: 1, setInfo: 1, flashcards: 1, questions: 1, quiz: 1, lastAt: 1 }).lean<ProgressDoc[]>();
+  return docs.map((p) => ({
+    setId: String(p.setId),
+    category: p.setInfo?.category ?? "",
+    topic: p.setInfo?.topic ?? "",
+    subtopic: p.setInfo?.subtopic ?? "",
+    flashcardCount: p.setInfo?.flashcards ?? 0,
+    questionCount: p.setInfo?.questions ?? 0,
+    flashcards: p.flashcards ?? {},
+    questions: p.questions ?? {},
+    quiz: { started: p.quiz?.started ?? 0, finished: p.quiz?.finished ?? 0 },
+    lastAt: p.lastAt ? new Date(p.lastAt).toISOString() : null,
+  }));
+}
 
 export async function allProgressOf(userId: string, category?: string): Promise<ProgressForRules[]> {
   const filter = { userId: oid(userId), ...(category ? { "setInfo.category": category } : {}) };
