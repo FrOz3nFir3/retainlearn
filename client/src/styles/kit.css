@@ -275,6 +275,37 @@ progress.kit-bar::-moz-progress-bar {
     border: 1px solid GrayText;
   }
 }
+/* A quiz's ball landing (classes/Pips.tsx), and a ring filling to a share (classes/Ring.tsx). Used under
+   motion-safe, so reduced motion shows them still. */
+@keyframes kit-land {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-25deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.22) rotate(6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kit-ring-fill {
+  from {
+    stroke-dashoffset: 100;
+  }
+}
 @keyframes kit-shimmer {
   to {
     translate: 100% 0;
