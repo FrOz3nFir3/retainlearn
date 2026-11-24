@@ -119,7 +119,7 @@ export type Campus = {
     coach: { heard: string | null; quiet: string | null; toured: boolean };
     xp: number;
     level: number;
-    streak: { count: number; freezes: number };
+    streak: { count: number; freezes: number; keptToday: boolean }; // keptToday: a class finished today already
     unlocks: string[];
     classLeft: { setId: string; key: string; day: Day } | null;
   };

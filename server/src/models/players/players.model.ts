@@ -46,7 +46,7 @@ export function campusPlayer(player: PlayerDoc, today: Day): Campus["player"] {
     coach: { heard: coach?.heard ?? null, quiet: coach?.quiet ?? null, toured: coach?.toured ?? false },
     xp,
     level: levelOf(xp),
-    streak: { count: currentStreak(streakOf(player), today), freezes: player.streak?.freezes ?? 0 },
+    streak: { count: currentStreak(streakOf(player), today), freezes: player.streak?.freezes ?? 0, keptToday: player.streak?.lastDay === today },
     unlocks: player.unlocks ?? [],
     classLeft: left?.setId && left.key && left.day ? { setId: String(left.setId), key: left.key, day: left.day } : null,
   };
