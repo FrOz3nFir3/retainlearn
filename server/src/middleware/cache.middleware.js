@@ -208,9 +208,6 @@ function inferCacheTypeFromUrl(path) {
     if (path.includes('/card')) {
         return CACHE_TYPES.CARD;
     }
-    if (path.includes('/category') || path.includes('/categories')) {
-        return CACHE_TYPES.CATEGORY;
-    }
     if (path.includes('/review') || path.includes('/queue')) {
         return CACHE_TYPES.REVIEW_QUEUE;
     }
@@ -346,10 +343,6 @@ function extractTagsFromRequest(req, responseData, customTagExtractor) {
             }
         }
 
-        // Extract category from URL params (for /cards/:category endpoint)
-        if (params.category) {
-            tags.push(`CardCategory:${params.category}`);
-        }
     }
 
     if (fullPath.includes('/user')) {

@@ -4,7 +4,9 @@
 import { Types } from "mongoose";
 import Card from "#models/cards/cards.mongo.js";
 import { isListed, listedFilter } from "#models/cards/cards.model.js";
-import type { StudySetContent } from "@retainlearn/core";
+import { escapeRegex } from "#utils/textNormalization.js";
+import { SUBJECTS_PER_PAGE } from "@retainlearn/core";
+import type { StudySetContent, SubjectListing, SubjectSet } from "@retainlearn/core";
 
 // A study set as the old model stores it. Written by hand: that model is today's JavaScript, which is replaced rather
 // than converted (PLAN 14.15), so there's no schema type to infer this from.
@@ -109,4 +111,36 @@ export async function countedSets(categories: readonly string[], setIds: readonl
     flashcards: row.flashcards,
     questions: row.questions,
   }));
+}
+
+// A subject's listed study sets with their counts, in the order they were added (its building's floors).
+export async function subjectSets(name: string): Promise<SubjectSet[]> {
+  return (await countedSets([name], [])).map(({ _id, topic, subtopic, flashcards, questions }) => ({ _id, topic, subtopic, flashcards, questions }));
+}
+
+const sizeOf = (field: string) => ({ $size: { $ifNull: [field, []] } });
+
+// The subjects with a listed study set, a page at a time, the most recently updated first (then by name, so a page
+// holds still), each with its sets', flashcards' and questions' counts: the page and the total in one aggregation.
+// search: the subjects with a word in their name that starts with it, in any case.
+// lean-ctx: it reads every listed set (8 in production, 2026-11-25); index the category, or use a search index, when
+// there are thousands (P1-12 checks the hot queries).
+export async function subjectsPage(search: string, page: number, perPage = SUBJECTS_PER_PAGE): Promise<{ subjects: SubjectListing[]; total: number }> {
+  const named = search ? { category: new RegExp(`(?:^|\\s)${escapeRegex(search)}`, "i") } : {};
+  type Row = { _id: string; sets: number; flashcards: number; questions: number; updatedAt?: Date | null };
+  const [result] = await Card.aggregate<{ page: Row[]; total: { n: number }[] }>([
+    { $match: { ...named, ...listedFilter() } },
+    { $group: { _id: "$category", sets: { $sum: 1 }, flashcards: { $sum: sizeOf("$review") }, questions: { $sum: sizeOf("$quizzes") }, updatedAt: { $max: "$updatedAt" } } },
+    { $facet: { page: [{ $sort: { updatedAt: -1, _id: 1 } }, { $skip: (page - 1) * perPage }, { $limit: perPage }], total: [{ $count: "n" }] } },
+  ]);
+  return {
+    subjects: (result?.page ?? []).map((row) => ({
+      name: row._id,
+      sets: row.sets,
+      flashcards: row.flashcards,
+      questions: row.questions,
+      updatedAt: row.updatedAt ? new Date(row.updatedAt).toISOString() : null,
+    })),
+    total: result?.total[0]?.n ?? 0,
+  };
 }

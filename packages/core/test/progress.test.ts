@@ -162,3 +162,12 @@ test("fading player cards are counted per set, and per subject as today's activi
   assert.equal(fadingCount(js, withDeleted, when), 1);
   assert.equal(fadingCount(counted(js), withDeleted, when), 2);
 });
+
+test("progress with nothing in it, as the progress endpoint answers for a set you haven't started, isn't started", () => {
+  const blank = studySetStats(js, { flashcards: {}, questions: {}, lastAt: null }, when);
+  assert.equal(blank.started, false);
+  assert.equal(blank.unreviewed, 10);
+  assert.equal(studySetStatus(blank).key, "new");
+  assert.equal(studySetStats(js, { flashcards: new Map(), questions: new Map() }, when).started, false);
+  assert.equal(studySetStats(js, { flashcards: { "js-f1": seen("2026-11-20") }, questions: {}, lastAt: null }, when).started, true, "a flashcard seen is a start");
+});

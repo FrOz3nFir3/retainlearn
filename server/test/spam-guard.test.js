@@ -1,4 +1,4 @@
-// The spam guard for study sets (P0-14). A new account's sets start unlisted (not in the categories, the category
+// The spam guard for study sets (P0-14). A new account's sets start unlisted (not in the subjects, the subject
 // pages or the sitemap, and marked for search engines not to index) until the account is trusted. New accounts create
 // fewer sets a day. Links in content are marked nofollow. "Report this set" unlists a set once enough people report
 // it. Ada and Lee (fixtures) count as established accounts: their fixed ids date from 1970.
@@ -32,8 +32,8 @@ after(async () => {
 
 const createSet = (who, mainTopic, category) =>
   t.api("/api/cards", { method: "POST", headers: who, body: JSON.stringify({ mainTopic, subTopic: "Basics", category }) });
-const categories = async () => (await (await t.api("/api/cards/categories?page=1")).json()).categories.map((c) => c.category);
-const setsIn = async (category) => (await (await t.api(`/api/cards/${category}?page=1`)).json()).total;
+const categories = async () => (await (await t.api("/api/subjects?page=1")).json()).subjects.map((s) => s.name);
+const setsIn = async (category) => (await (await t.api(`/api/subjects/${category}`)).json()).sets.length;
 const sitemap = async () => (await t.api("/api/sitemap.xml")).text();
 const overview = async (id) => (await t.api(`/api/card/${id}`)).json();
 

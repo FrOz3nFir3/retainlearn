@@ -56,6 +56,10 @@ function inSet<T>(items: readonly { _id: Id }[] | number, map: ItemMap<T> | unde
   return entries.filter(([id]) => ids.has(id));
 }
 
+// Progress with nothing in it: what the progress endpoint answers for a set you haven't started. It counts as none.
+const sizeOfMap = (map: ItemMap<unknown> | undefined): number => (map instanceof Map ? map.size : Object.keys(map ?? {}).length);
+const isBlank = (p: Progress): boolean => p.lastAt == null && !sizeOfMap(p.flashcards) && !sizeOfMap(p.questions);
+
 // The numbers behind your progress in a study set. Mastery is 70% reviewing (the share of flashcards you've seen,
 // held back by the ones you missed) and 30% quizzing (the share of answers right, times the share of questions
 // answered).
@@ -63,7 +67,7 @@ export function studySetStats(set: StudySet, p: Progress | null | undefined, whe
   const flashcards = sizeOf(set.flashcards);
   const questions = sizeOf(set.questions);
   const base = { setId: idOf(set), category: set.category, flashcards, questions, empty: !flashcards && !questions };
-  if (!p) {
+  if (!p || isBlank(p)) {
     return {
       ...base,
       started: false,

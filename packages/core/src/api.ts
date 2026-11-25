@@ -1,7 +1,7 @@
 // What the new study endpoints accept and return, shared with the client so both sides agree on every field
 // (PLAN 14.15). What they accept is a Zod schema, which the server checks every request against; its type is inferred
 // from it. What they return is a plain type: it comes from our own server, so nothing checks it while the app runs.
-import { ObjectIdHex, TimeZone, z } from "./schemas.ts";
+import { ObjectIdHex, SubjectName, TimeZone, z } from "./schemas.ts";
 import { MAX_RECALL_POINTS } from "./answers.ts";
 import { CLASS_MODES } from "./timetable.ts";
 import type { ClassMode, Period } from "./timetable.ts";
@@ -101,6 +101,41 @@ export type ReportCardSet = {
   lastAt: string | null;
 };
 export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[] };
+
+// GET /api/subjects?search=…&page=…: every subject with a listed study set, 12 a page, the most recently updated
+// first. search finds the subjects with a word in their name that starts with it, in any case ("dev" finds "Web
+// Development"). A page past the last has no subjects. Public, like the subjects' pages.
+export const SUBJECTS_PER_PAGE = 12;
+export const SubjectsQuery = z.object({
+  search: z.string().trim().max(100).default(""),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+});
+export type SubjectListing = { name: string; sets: number; flashcards: number; questions: number; updatedAt: string | null };
+export type SubjectsPage = { subjects: SubjectListing[]; total: number; page: number; pages: number };
+
+// GET /api/subjects/:name: a subject's listed study sets with their counts, in the order they were added (its
+// building's floors). name comes back as it's kept (SubjectName). A subject with no sets yet (made a moment ago, or
+// never) has none: its page invites the first.
+export const SubjectParams = z.object({ name: SubjectName });
+export type SubjectSet = { _id: string; topic: string; subtopic: string; flashcards: number; questions: number };
+export type Subject = { name: string; sets: SubjectSet[] };
+
+// POST /api/cards: a new study set in a subject, from the subject's page. The old endpoint, with its old field names,
+// until the editor's own endpoints replace it (P1-11); it answers with the new set, its _id among the rest.
+export const STUDY_SET_TOPIC_MAX = 60;
+export const STUDY_SET_SUBTOPIC_MAX = 120;
+export const NewStudySet = z.object({
+  mainTopic: z.string().trim().min(1, "Give the set a topic.").max(STUDY_SET_TOPIC_MAX, `Keep the topic to ${STUDY_SET_TOPIC_MAX} characters.`),
+  subTopic: z.string().trim().min(1, "Say which part of the topic it covers.").max(STUDY_SET_SUBTOPIC_MAX, `Keep it to ${STUDY_SET_SUBTOPIC_MAX} characters.`),
+  category: SubjectName,
+});
+export type NewStudySetBody = z.input<typeof NewStudySet>;
+
+// POST /api/campus/subjects?tz=…: a subject's building on your campus, on the first free plot, before you study it
+// (a class in a subject puts it there too). It gives back the name as it's kept. DELETE /api/campus/subjects/:name
+// takes one away again, while you haven't started it; your progress in it would stay either way.
+export const AddSubject = z.object({ name: SubjectName });
+export type AddedSubject = { name: string };
 
 // GET /api/campus: everything the campus shows, in one call.
 export type CampusSubject = {

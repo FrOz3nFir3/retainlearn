@@ -18,10 +18,10 @@ test("the health check answers", async () => {
   assert.equal((await res.json()).status, "ok");
 });
 
-test("the categories list the made-up sets' subjects", async () => {
-  const res = await t.api("/api/cards/categories?page=1");
+test("the subjects list the made-up sets' subjects", async () => {
+  const res = await t.api("/api/subjects?page=1");
   assert.equal(res.status, 200);
-  const listed = JSON.stringify((await res.json()).categories);
+  const listed = JSON.stringify((await res.json()).subjects);
   assert.match(listed, /Programming/);
   assert.match(listed, /Biology/);
 });
