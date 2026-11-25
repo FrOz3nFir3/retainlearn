@@ -1,10 +1,12 @@
-// The footer on the pages a visitor reads (the home page, the Privacy Policy and the Terms; the prototype's): the
-// name, that it's free and open source, and the links a visitor looks for at the bottom of a page.
+// The footer, at the bottom of every page but a class and signing in (the prototype's): the name, that it's free and
+// open source, and the links people look for at the bottom of a page. Signed in, your profile instead of signing in.
 import { Link } from "react-router-dom";
+import { useSession } from "#app/session.ts";
 
 const LINK = "rounded hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
 
 export function SiteFooter() {
+  const signedIn = useSession() === "in";
   return (
     <footer className="bg-night pb-[env(safe-area-inset-bottom)] text-white/60">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 px-4 py-6 text-sm sm:px-6">
@@ -20,8 +22,8 @@ export function SiteFooter() {
               </Link>
             </li>
             <li>
-              <Link to="/sign-in" className={LINK}>
-                Sign in
+              <Link to={signedIn ? "/profile" : "/sign-in"} className={LINK}>
+                {signedIn ? "Your profile" : "Sign in"}
               </Link>
             </li>
             <li>

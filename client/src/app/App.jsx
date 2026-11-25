@@ -50,27 +50,26 @@ const HomeRoute = () =>
     </Suspense>
   );
 
-// The root layout: the top bar, the page, and on phones the tab bar, except in a class, which takes the whole screen.
-// The old footer stays on the public pages only, until the landing page is rebuilt. The session is checked once, here,
-// as the app opens (app/session.ts).
+// The root layout: the top bar, the page, the footer, and on phones the tab bar; a class, and signing in or up, take
+// the whole screen instead. The page area is at least the screen's height under the top bar, so the footer always
+// starts below the fold: a page that grows as it loads never moves it into view and out again. The session is checked
+// once, here, as the app opens (app/session.ts).
 const RootLayout = () => {
   useSessionCheck();
-  const session = useSession();
   const { pathname } = useLocation();
   // A class, and signing in or up, take the whole screen: no bars.
   const inClass = isClassPath(pathname) || pathname === "/sign-in" || pathname === "/sign-up";
-  const publicPage = pathname === "/privacy" || pathname === "/terms" || (pathname === "/" && session === "out");
   return (
   <ErrorBoundary>
-    <div className={`bg-gray-100 dark:bg-gray-900 min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+    <div className={`bg-gray-100 dark:bg-gray-900 min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.75rem+max(0.25rem,env(safe-area-inset-bottom,0px)))]"}`}>
       {!inClass && <TopBar />}
-      <main className="flex grow flex-col">
+      <main className={`flex grow flex-col ${inClass ? "" : "min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)]"}`}>
         {/* A page whose code is still coming shows its own skeleton (its route's); this keeps the bars up meanwhile. */}
         <Suspense fallback={null}>
           <Outlet />
         </Suspense>
       </main>
-      {publicPage && <SiteFooter />}
+      {!inClass && <SiteFooter />}
       {!inClass && <TabBar />}
       <Toaster />
       <ScrollRestoration
