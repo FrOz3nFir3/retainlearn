@@ -35,7 +35,7 @@ export default function QuizClass({ mode }: { mode: Mode }) {
       </div>
     );
   }
-  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the quiz" />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the quiz" mode={mode} signedIn={session !== "out"} />;
   return <QuizStart key={`${mode}:${id}?${params}`} set={set.data} progress={progress.data ?? null} mode={mode} params={params} />;
 }
 

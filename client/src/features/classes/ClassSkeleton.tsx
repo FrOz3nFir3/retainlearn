@@ -1,31 +1,76 @@
-// A class while its set and your progress load: the header, the question's panel and its options as placeholders, in the
-// shape they'll have, so nothing jumps when they arrive. Screen readers hear what's loading (Loading).
-import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
+// A class while its set and your progress load, in the class's own frame (ClassFrame): Leave, the titles and how far
+// through as placeholders, then the shape of what's coming: for a review, a flashcard and its button; for a quiz, the
+// question, its four answers and the hint under them. Screen readers hear label (Loading).
+import type { ClassMode } from "@retainlearn/core";
+import { Icon } from "#components/ui/Icon.tsx";
+import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { ClassFrame, GUEST, TRACK } from "./ClassShell.tsx";
 
-export function ClassSkeleton({ label }: { label: string }) {
+export function ClassSkeleton({ label, mode, signedIn }: { label: string; mode: ClassMode; signedIn: boolean }) {
+  const review = mode === "review" || mode === "reviewMissed";
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto bg-mist">
+    <ClassFrame
+      leave={
+        <span className="grid size-10 shrink-0 place-items-center text-ink/25">
+          <Icon name="x" className="size-5" />
+        </span>
+      }
+      eyebrow={<SkeletonText className="w-32" />}
+      title={<SkeletonText className="w-44" />}
+      progressText={<SkeletonText className="w-36" />}
+      below={
+        review ? (
+          <div className={TRACK}>
+            <SkeletonBlock className="h-1.5 rounded-full" />
+          </div>
+        ) : (
+          <SkeletonBlock className="h-1 rounded-none" />
+        )
+      }
+      notice={
+        !signedIn && (
+          <p className={GUEST}>
+            <SkeletonText className="w-full" />
+          </p>
+        )
+      }
+      bar={
+        review ? (
+          <SkeletonBlock className="h-9 w-44 rounded-xl" />
+        ) : (
+          <span className="mr-auto text-sm">
+            <SkeletonText className="w-48" />
+          </span>
+        )
+      }
+    >
       <Loading label={label}>
-        <div className="border-b border-ink/[0.06] bg-surface/90">
-          <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-3.5">
-            <SkeletonBlock className="size-10 rounded-xl" />
-            <div className="flex-1 space-y-2">
-              <SkeletonLine className="h-2.5 w-28" />
-              <SkeletonLine className="w-48" />
+        {review ? (
+          <SkeletonBlock className="h-72 rounded-3xl" />
+        ) : (
+          <>
+            <div className="panel bg-surface p-5">
+              <p className="text-xs font-semibold">
+                <SkeletonText className="w-20" />
+              </p>
+              <div className="mt-1 text-[17px] font-medium">
+                <SkeletonText className="w-11/12" />
+                <SkeletonText className="w-2/3" />
+              </div>
             </div>
-          </div>
-        </div>
-        <div className="mx-auto max-w-3xl space-y-3 px-4 pt-4">
-          <div className="panel space-y-3 bg-surface p-5">
-            <SkeletonLine className="h-2.5 w-20" />
-            <SkeletonLine className="h-4 w-11/12" />
-            <SkeletonLine className="h-4 w-2/3" />
-          </div>
-          {[0, 1, 2, 3].map((i) => (
-            <SkeletonBlock key={i} className="h-14 rounded-2xl" />
-          ))}
-        </div>
+            <div className="mt-3 grid gap-2">
+              {[0, 1, 2, 3].map((i) => (
+                <div key={i} className="flex items-center gap-3 rounded-2xl border border-ink/10 bg-surface px-4 py-3">
+                  <SkeletonBlock className="size-7 shrink-0 rounded-lg" />
+                  <div className="min-w-0 flex-1 text-[15px]">
+                    <SkeletonText className="w-48" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </Loading>
-    </div>
+    </ClassFrame>
   );
 }

@@ -35,7 +35,7 @@ export default function ReviewClass({ mode }: { mode: Mode }) {
       </div>
     );
   }
-  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the review" />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassSkeleton label="Loading the review" mode={mode} signedIn={session !== "out"} />;
   return <ReviewStart key={`${mode}:${id}?${params}`} set={set.data} progress={progress.data ?? null} mode={mode} params={params} />;
 }
 
