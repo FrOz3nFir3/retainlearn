@@ -6,7 +6,7 @@ import type { QuestionProgress, ReportCardSet } from "@retainlearn/core";
 import { Button } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Dialog } from "#components/ui/Dialog.tsx";
-import { Loading, SkeletonLine } from "#components/ui/Skeleton.tsx";
+import { Loading, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { useGetStudySetQuery } from "#features/classroom/classroomApi.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { hasQuizRecord } from "./reportCardStats.ts";
@@ -38,11 +38,23 @@ export function QuizReport({ set, onClose, onReset }: { set: ReportCardSet; onCl
       {content.isError ? (
         <p className="text-sm text-ink/60">The questions didn't load. Check your connection, then open the report again.</p>
       ) : !content.data ? (
-        <Loading label="Loading the questions" className="space-y-3">
-          <SkeletonLine className="w-2/3" />
-          {[0, 1, 2, 3].map((i) => (
-            <SkeletonLine key={i} className="h-10" />
-          ))}
+        <Loading label="Loading the questions">
+          <p className="mb-3 text-sm">
+            <SkeletonText className="w-2/3" />
+          </p>
+          <div className="divide-y divide-ink/6 rounded-xl border border-ink/7">
+            {[1, 2, 3, 4].map((n) => (
+              <div key={n} className="flex items-start gap-3 px-3 py-2.5">
+                <span className="w-6 shrink-0 pt-0.5 text-right text-xs text-ink/40 tabular-nums">{n}</span>
+                <p className="min-w-0 flex-1 text-sm">
+                  <SkeletonText className="w-full" />
+                </p>
+                <Chip>
+                  <SkeletonText className="w-20" />
+                </Chip>
+              </div>
+            ))}
+          </div>
         </Loading>
       ) : rows.length === 0 ? (
         <p className="text-sm text-ink/60">This set has no questions yet.</p>

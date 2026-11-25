@@ -13,7 +13,7 @@ import { Bar } from "#components/ui/Bar.tsx";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Menu, MenuButton, MenuGroup, MenuLink, MenuRadio, MenuSeparator } from "#components/ui/Menu.tsx";
-import { SkeletonLine } from "#components/ui/Skeleton.tsx";
+import { SkeletonCircle, SkeletonLine } from "#components/ui/Skeleton.tsx";
 import { useCampus } from "#features/campus/campusApi.ts";
 import useLogout from "#hooks/useLogout.js";
 import { cx } from "#utils/cx.ts";
@@ -55,7 +55,14 @@ export function TopBar() {
               Sign in
             </Link>
           ) : (
-            <SkeletonLine className="h-8 w-28" />
+            // While the session is checked: the signed-in cluster's shapes (status, then the avatar's button), so the
+            // bar doesn't move when it answers.
+            <>
+              <SkeletonLine className="h-8 w-16 lg:w-44" />
+              <span className="p-0.5">
+                <SkeletonCircle className="size-8" />
+              </span>
+            </>
           )}
         </div>
       </div>

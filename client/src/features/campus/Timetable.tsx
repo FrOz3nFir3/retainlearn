@@ -9,6 +9,7 @@ import { XP } from "@retainlearn/core";
 import type { Campus, ClassMode, Why } from "@retainlearn/core";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
+import { SkeletonBlock, SkeletonCircle, SkeletonText } from "#components/ui/Skeleton.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
@@ -57,7 +58,7 @@ export function Timetable({ campus }: { campus: Campus }) {
   // No periods: no subject yet, or nothing due in them today (everything reviewed, nothing missed or fading yet).
   if (!periods.length) {
     return (
-      <Section done={0} total={0}>
+      <Section>
         <p className="rounded-2xl bg-brand/6 p-3 text-sm text-pretty text-ink/65">
           {campus.subjects.length
             ? `Nothing's due today: you're up to date in your subjects. Any class you take ${keptToday ? "today is extra" : "today keeps your streak"}.`
@@ -94,7 +95,7 @@ export function Timetable({ campus }: { campus: Campus }) {
   const p = periods[shown];
   const state = p ? (p.done ? "Done" : shown === next ? "Up next" : "Later today") : null;
   return (
-    <Section done={done} total={periods.length}>
+    <Section count={`${done} of ${periods.length} done`}>
       <div
         role="toolbar"
         aria-label="Today's periods, and the last bell"
@@ -158,7 +159,38 @@ export function Timetable({ campus }: { campus: Campus }) {
   );
 }
 
-function Section({ done, total, children }: { done: number; total: number; children: ReactNode }) {
+// The timetable while the campus loads: its frame and heading as they'll be, the periods' buttons and the box under
+// them as placeholders, the shape of a day with periods (most days).
+export function TimetableSkeleton() {
+  return (
+    <Section count={<SkeletonText className="w-16" />}>
+      <div className="mb-3 flex items-center gap-1.5 pointer-coarse:gap-2.5">
+        {[0, 1, 2].map((i) => (
+          <SkeletonCircle key={i} className="size-7 pointer-coarse:size-10" />
+        ))}
+      </div>
+      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand/6 p-3">
+        <div className="min-w-0 flex-1 basis-48">
+          <p className="text-[11px] font-semibold">
+            <SkeletonText className="w-28" />
+          </p>
+          <p className="text-sm leading-snug font-semibold">
+            <SkeletonText className="w-48" />
+          </p>
+          <p className="text-xs">
+            <SkeletonText className="w-32" />
+          </p>
+          <p className="mt-0.5 text-[11px] font-semibold">
+            <SkeletonText className="w-40" />
+          </p>
+        </div>
+        <SkeletonBlock className="h-9 w-24 rounded-xl" />
+      </div>
+    </Section>
+  );
+}
+
+function Section({ count, children }: { count?: ReactNode; children: ReactNode }) {
   return (
     <section aria-labelledby="timetable-title" className="rounded-2xl border border-ink/7 bg-surface p-3.5">
       <div className="mb-3 flex items-center gap-2">
@@ -168,11 +200,7 @@ function Section({ done, total, children }: { done: number; total: number; child
         <h2 id="timetable-title" className="text-sm font-semibold">
           Today's timetable
         </h2>
-        {total > 0 && (
-          <span className="ml-auto text-xs text-ink/50 tabular-nums">
-            {done} of {total} done
-          </span>
-        )}
+        {count && <span className="ml-auto text-xs text-ink/50 tabular-nums">{count}</span>}
       </div>
       {children}
     </section>
