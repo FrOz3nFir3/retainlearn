@@ -89,10 +89,3 @@ export const getConnectionStatus = () => {
     isConnected: mongoose.connection.readyState === 1,
   };
 };
-
-// Force reconnection (useful for testing or recovery)
-export const forceReconnect = async () => {
-  console.log("Forcing MongoDB reconnection...");
-  await mongoDisconnect();
-  return await initMongoDB();
-};

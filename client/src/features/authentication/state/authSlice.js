@@ -31,6 +31,5 @@ export const { initialUser, modifyUser, updateUserProfile, setCsrfToken } =
   authSlicer.actions;
 
 export const selectCurrentUser = (state) => state.auth.user;
-export const selectCsrfToken = (state) => state.auth.csrfToken;
 
 export default authSlicer;
