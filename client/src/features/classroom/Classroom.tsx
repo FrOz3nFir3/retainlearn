@@ -13,14 +13,14 @@ import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
-import { Page, PageSkeleton } from "#components/ui/Page.tsx";
-import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { Page } from "#components/ui/Page.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
 import { classPath, setPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
-import { RoundRow, RoundRowSkeleton } from "./RoundRow.tsx";
+import { ClassroomSkeleton } from "./ClassroomSkeleton.tsx";
+import { RoundRow } from "./RoundRow.tsx";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -39,73 +39,8 @@ export default function Classroom() {
       </Page>
     );
   }
-  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassroomSkeleton signedIn={session !== "out"} />;
+  if (!set.data || session === "checking" || (signedIn && progress.isLoading)) return <ClassroomSkeleton />;
   return <ClassroomView set={set.data} progress={progress.data ?? null} when={when} signedIn={signedIn} />;
-}
-
-// The classroom while the set loads, in its own frame: the heading's placeholders (and Edit's, signed in), how you
-// stand (signed in) or the guest's note, Up next, and the rounds' heading over rows in a round's shape.
-function ClassroomSkeleton({ signedIn }: { signedIn: boolean }) {
-  return (
-    <PageSkeleton
-      label="Loading the classroom"
-      width="max-w-3xl"
-      actions={
-        signedIn && (
-          <span className={buttonClass("quiet", "sm")}>
-            <SkeletonText className="w-6" />
-          </span>
-        )
-      }
-    >
-      <div className="space-y-5">
-        {signedIn ? (
-          <div className="panel bg-surface p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="font-display text-3xl font-semibold">
-                <SkeletonText className="w-16" />
-              </span>
-            </div>
-            <SkeletonBlock className="mt-1.5 h-2 rounded-full" />
-            <div className="mt-3 flex flex-wrap gap-1.5">
-              {["w-28", "w-24"].map((w) => (
-                <Chip key={w}>
-                  <SkeletonText className={w} />
-                </Chip>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm">
-            <SkeletonText className="w-full" />
-            <SkeletonText className="w-1/2" />
-          </p>
-        )}
-        <div className="panel flex items-center gap-3 bg-surface p-4">
-          <SkeletonBlock className="size-10 shrink-0 rounded-xl" />
-          <div className="min-w-0 flex-1">
-            <p className="font-semibold">
-              <SkeletonText className="w-44" />
-            </p>
-            <p className="text-sm">
-              <SkeletonText className="w-64" />
-            </p>
-          </div>
-          <span className={buttonClass("quiet")}>
-            <SkeletonText className="w-9" />
-          </span>
-        </div>
-        <section>
-          <p className="mb-2 font-display text-xl font-semibold">Rounds</p>
-          <div className="space-y-2">
-            {[0, 1, 2].map((i) => (
-              <RoundRowSkeleton key={i} />
-            ))}
-          </div>
-        </section>
-      </div>
-    </PageSkeleton>
-  );
 }
 
 // A way into a class, as a row: what it is, why, and Start. returnTo: where the class goes back to (the classroom).

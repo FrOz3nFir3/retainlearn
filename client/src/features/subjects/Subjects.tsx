@@ -16,18 +16,15 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Pager, usePageHeading } from "#components/ui/Pager.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
-import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
 import { pennantOf, subjectPath } from "#features/campus/subjects.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
 import { problemOf, useAddSubjectMutation, useGetSubjectsQuery } from "./subjectsApi.ts";
+import { DIRECTORY_DESCRIPTION, DIRECTORY_TITLE, DirectorySkeleton, LIST_HEADING, SEARCH_BOX, SUBJECTS_GRID, TOOLBAR } from "./SubjectsSkeleton.tsx";
 
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
-const DESCRIPTION = "Every subject on RetainLearn, with its study sets of flashcards and quizzes. Find one to study, or start your own.";
 const NEW_SUBJECT = "new-subject";
-const LIST_HEADING = "mb-3 flex items-baseline gap-2 font-display text-xl font-semibold outline-none";
-const GRID = "grid grid-cols-[repeat(auto-fill,minmax(16rem,1fr))] gap-3";
 
 // The directory's address for a search and a page: no search and page 1 are left out.
 function directoryParams(search: string, page: number): URLSearchParams {
@@ -90,9 +87,9 @@ export default function Subjects() {
 
   const data = list.data;
   return (
-    <Page title="Subjects" eyebrow="Every subject on RetainLearn" back={false} description={DESCRIPTION}>
-      <div className="flex flex-wrap items-center gap-3">
-        <search className="min-w-0 flex-1 basis-64">
+    <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={false} description={DIRECTORY_DESCRIPTION}>
+      <div className={TOOLBAR}>
+        <search className={SEARCH_BOX}>
           <form
             action="/subjects"
             method="get"
@@ -119,7 +116,7 @@ export default function Subjects() {
           <Empty icon="layers" title="The subjects didn't load" body="Check your connection, then try again." action={<Button tone="primary" onClick={() => void list.refetch()}>Try again</Button>} />
         </div>
       ) : !data ? (
-        <DirectorySkeleton search={search} signedIn={session !== "out"} />
+        <DirectorySkeleton />
       ) : (
         <section aria-labelledby="subjects-list" className="mt-6">
           <h2 id="subjects-list" ref={heading} tabIndex={-1} className={LIST_HEADING}>
@@ -130,7 +127,7 @@ export default function Subjects() {
             {search && !list.isFetching ? `${plural(data.total, "subject")} found` : ""}
           </p>
           {data.subjects.length > 0 ? (
-            <ul aria-busy={list.isFetching} className={cx(GRID, "transition-opacity", list.isFetching && "opacity-60")}>
+            <ul aria-busy={list.isFetching} className={cx(SUBJECTS_GRID, "transition-opacity", list.isFetching && "opacity-60")}>
               {data.subjects.map((subject) => (
                 <li key={subject.name}>
                   <SubjectCard
@@ -163,46 +160,6 @@ export default function Subjects() {
         </section>
       )}
     </Page>
-  );
-}
-
-// The list while it loads: its heading as it'll be (the count to come), and cards in a subject card's shape, with the
-// row of "Add to campus" for a signed-in player (or one being checked, so the shape holds when the check answers).
-function DirectorySkeleton({ search, signedIn }: { search: string; signedIn: boolean }) {
-  return (
-    <Loading label="Loading the subjects" className="mt-6">
-      <p className={LIST_HEADING}>
-        {search ? `Subjects matching “${search}”` : "All subjects"}
-        <span className="text-sm font-normal">
-          <SkeletonText className="w-5" />
-        </span>
-      </p>
-      <div className={GRID}>
-        {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} className={cardClass}>
-            <div className="flex items-center gap-2">
-              <SkeletonBlock className="h-7 w-1.5 shrink-0 rounded-full" />
-              <p className="min-w-0 flex-1 font-display text-lg font-semibold">
-                <SkeletonText className="w-32" />
-              </p>
-            </div>
-            <p className="mt-1 text-xs">
-              <SkeletonText className="w-48" />
-            </p>
-            <p className="text-xs">
-              <SkeletonText className="w-24" />
-            </p>
-            {signedIn && (
-              <div className="mt-auto flex flex-wrap items-center gap-2 pt-3">
-                <span className={buttonClass("quiet", "sm")}>
-                  <SkeletonText className="w-24" />
-                </span>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </Loading>
   );
 }
 

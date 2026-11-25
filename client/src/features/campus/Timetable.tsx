@@ -3,16 +3,16 @@
 // guide: toolbar), each saying what it is; the box under them shows the one pressed, up next to start with. A period's
 // Start opens its class, which comes back here after. The last bell: your streak, and the bonus for finishing them all.
 import { useId, useState } from "react";
-import type { KeyboardEvent, ReactNode } from "react";
+import type { KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
 import { XP } from "@retainlearn/core";
 import type { Campus, ClassMode, Why } from "@retainlearn/core";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
-import { SkeletonBlock, SkeletonCircle, SkeletonText } from "#components/ui/Skeleton.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
+import { TimetableSection } from "./CampusSkeleton.tsx";
 
 const nativeFocusgroup = typeof HTMLElement !== "undefined" && "focusGroup" in HTMLElement.prototype;
 const ORDINAL = ["1st period", "2nd period", "3rd period"];
@@ -58,13 +58,13 @@ export function Timetable({ campus }: { campus: Campus }) {
   // No periods: no subject yet, or nothing due in them today (everything reviewed, nothing missed or fading yet).
   if (!periods.length) {
     return (
-      <Section>
+      <TimetableSection>
         <p className="rounded-2xl bg-brand/6 p-3 text-sm text-pretty text-ink/65">
           {campus.subjects.length
             ? `Nothing's due today: you're up to date in your subjects. Any class you take ${keptToday ? "today is extra" : "today keeps your streak"}.`
             : "Your timetable starts with your first subject: each day it picks two classes for you, across your subjects."}
         </p>
-      </Section>
+      </TimetableSection>
     );
   }
 
@@ -95,7 +95,7 @@ export function Timetable({ campus }: { campus: Campus }) {
   const p = periods[shown];
   const state = p ? (p.done ? "Done" : shown === next ? "Up next" : "Later today") : null;
   return (
-    <Section count={`${done} of ${periods.length} done`}>
+    <TimetableSection count={`${done} of ${periods.length} done`}>
       <div
         role="toolbar"
         aria-label="Today's periods, and the last bell"
@@ -155,54 +155,6 @@ export function Timetable({ campus }: { campus: Campus }) {
           </div>
         )}
       </div>
-    </Section>
-  );
-}
-
-// The timetable while the campus loads: its frame and heading as they'll be, the periods' buttons and the box under
-// them as placeholders, the shape of a day with periods (most days).
-export function TimetableSkeleton() {
-  return (
-    <Section count={<SkeletonText className="w-16" />}>
-      <div className="mb-3 flex items-center gap-1.5 pointer-coarse:gap-2.5">
-        {[0, 1, 2].map((i) => (
-          <SkeletonCircle key={i} className="size-7 pointer-coarse:size-10" />
-        ))}
-      </div>
-      <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand/6 p-3">
-        <div className="min-w-0 flex-1 basis-48">
-          <p className="text-[11px] font-semibold">
-            <SkeletonText className="w-28" />
-          </p>
-          <p className="text-sm leading-snug font-semibold">
-            <SkeletonText className="w-48" />
-          </p>
-          <p className="text-xs">
-            <SkeletonText className="w-32" />
-          </p>
-          <p className="mt-0.5 text-[11px] font-semibold">
-            <SkeletonText className="w-40" />
-          </p>
-        </div>
-        <SkeletonBlock className="h-9 w-24 rounded-xl" />
-      </div>
-    </Section>
-  );
-}
-
-function Section({ count, children }: { count?: ReactNode; children: ReactNode }) {
-  return (
-    <section aria-labelledby="timetable-title" className="rounded-2xl border border-ink/7 bg-surface p-3.5">
-      <div className="mb-3 flex items-center gap-2">
-        <span className="grid size-7 place-items-center rounded-lg bg-bell-wash text-bell-ink">
-          <Icon name="bell" className="size-4" />
-        </span>
-        <h2 id="timetable-title" className="text-sm font-semibold">
-          Today's timetable
-        </h2>
-        {count && <span className="ml-auto text-xs text-ink/50 tabular-nums">{count}</span>}
-      </div>
-      {children}
-    </section>
+    </TimetableSection>
   );
 }
