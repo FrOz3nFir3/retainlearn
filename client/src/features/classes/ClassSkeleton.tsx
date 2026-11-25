@@ -1,12 +1,15 @@
 // A class while its set and your progress load, in the class's own frame (ClassFrame): Leave, the titles and how far
 // through as placeholders, then the shape of what's coming: for a review, a flashcard and its button; for a quiz, the
-// question, its four answers and the hint under them. Screen readers hear label (Loading).
+// question, its four answers and the hint under them. Screen readers hear label (Loading). Its own small file, loaded
+// with the app (PLAN 14.15), so the route shows it before the class's code arrives too.
 import type { ClassMode } from "@retainlearn/core";
+import { useSession } from "#app/session.ts";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { ClassFrame, GUEST, TRACK } from "./ClassShell.tsx";
 
-export function ClassSkeleton({ label, mode, signedIn }: { label: string; mode: ClassMode; signedIn: boolean }) {
+export function ClassSkeleton({ label, mode }: { label: string; mode: ClassMode }) {
+  const signedIn = useSession() !== "out";
   const review = mode === "review" || mode === "reviewMissed";
   return (
     <ClassFrame

@@ -4,7 +4,6 @@
 // already, so the page itself asks only for the subject's sets. The search, the order and the page are in the address.
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { subjectName } from "@retainlearn/core";
 import type { CampusSubject, ReportCard, Subject as SubjectData } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
@@ -17,7 +16,6 @@ import { Page } from "#components/ui/Page.tsx";
 import { Pager, usePageHeading } from "#components/ui/Pager.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
-import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
 import { SET_STATUS_TONE, subjectPath } from "#features/campus/subjects.ts";
 import { setPath } from "#features/classes/modes.ts";
@@ -27,10 +25,9 @@ import { NewStudySet } from "./NewStudySet.tsx";
 import { matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
 import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf, useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
+import { SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
 
 const SETS_PER_PAGE = 12;
-const SETS_HEADING = "flex items-baseline gap-2 font-display text-xl font-semibold outline-none";
-const GRID = "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3";
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
 const ORDERS = [
@@ -51,65 +48,9 @@ export default function Subject() {
   }
   // Signed in, the page waits for your progress too (or for it to fail), so the sets' statuses don't pop in late.
   const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError)));
-  if (!subject.data || waiting) return <SubjectSkeleton name={subjectName(name)} signedIn={session !== "out"} />;
+  if (!subject.data || waiting) return <SubjectSkeleton />;
   const onCampus = signedIn && campus.data ? (campus.data.subjects.find((s) => s.category === subject.data?.name) ?? false) : null;
   return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} />;
-}
-
-// The subject while it loads, in its own frame: its name (from the address, as it's kept), its counts to come, Up next
-// (signed in), and the study sets' heading over cards in a set's shape.
-function SubjectSkeleton({ name, signedIn }: { name: string; signedIn: boolean }) {
-  return (
-    <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects">
-      <Loading label={`Loading ${name}`} className="space-y-5">
-        {signedIn && (
-          <div className="panel flex flex-wrap items-center gap-3 bg-surface p-4">
-            <SkeletonBlock className="size-10 shrink-0 rounded-xl" />
-            <div className="min-w-0 flex-1 basis-48">
-              <p className="text-xs">
-                <SkeletonText className="w-20" />
-              </p>
-              <p className="font-semibold">
-                <SkeletonText className="w-40" />
-              </p>
-              <p className="text-sm">
-                <SkeletonText className="w-28" />
-              </p>
-            </div>
-            <SkeletonBlock className="h-9 w-40 rounded-xl" />
-          </div>
-        )}
-        <div>
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <p className={SETS_HEADING}>
-              Study sets
-              <span className="text-sm font-normal">
-                <SkeletonText className="w-4" />
-              </span>
-            </p>
-            <span className={buttonClass("quiet")}>{signedIn ? "New study set" : "Sign in to add a study set"}</span>
-          </div>
-          <div className={GRID}>
-            {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} className={cardClass}>
-                <p className="text-xs">
-                  <SkeletonText className="w-20" />
-                </p>
-                <p className="font-semibold">
-                  <SkeletonText className="w-36" />
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
-                  <Chip>
-                    <SkeletonText className="w-16" />
-                  </Chip>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </Loading>
-    </Page>
-  );
 }
 
 function NotASubject() {
@@ -300,7 +241,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
           ) : shown.length === 0 ? (
             <Empty icon="search" title={`Nothing matches “${search}”`} body="Try a different word, or clear the search." />
           ) : (
-            <ul className={GRID}>
+            <ul className={SETS_GRID}>
               {shown.map((room) => (
                 <li key={room.set._id}>
                   <RoomCard room={room} signedIn={signedIn} />

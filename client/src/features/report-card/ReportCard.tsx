@@ -3,7 +3,7 @@
 // which the report card doesn't read), and its quiz report lists each question as you stand on it, with a reset.
 // Someone signed out is asked to sign in, and comes back here after; while the session is being checked, the skeleton.
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { ReactNode, Ref } from "react";
+import type { Ref } from "react";
 import { Link } from "react-router-dom";
 import type { ReportCard as ReportCardData } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
@@ -14,16 +14,15 @@ import { cardClass, cardLinkClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Confirm } from "#components/ui/Confirm.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
-import { Icon } from "#components/ui/Icon.tsx";
-import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
-import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { browserTimeZone, useToday } from "#features/campus/campusApi.ts";
 import { SET_STATUS_TONE } from "#features/campus/subjects.ts";
 import { cx } from "#utils/cx.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { QuizReport } from "./QuizReport.tsx";
+import { Overview, ReportCardSkeleton, StudySetsHeading } from "./ReportCardSkeleton.tsx";
+import type { TileKey, TileValue } from "./ReportCardSkeleton.tsx";
 import { useReportCard, useResetQuizMutation } from "./reportCardApi.ts";
 import { daysAgoInWords, matchesSearch, overview, studiedSets } from "./reportCardStats.ts";
 import type { StudiedSet } from "./reportCardStats.ts";
@@ -39,54 +38,6 @@ export default function ReportCard() {
   if (card.isError) return <Failed retry={() => void card.refetch()} />;
   if (!card.data) return <ReportCardSkeleton />;
   return <ReportCardView card={card.data} />;
-}
-
-// The report card while it loads, in its own frame: the overview's tiles with their labels (each value, and the notes
-// most report cards have, still to come), the study sets' heading, and rows in the shape of a set's.
-const NOTED = new Set(["Quiz accuracy", "Player cards", "Level"]);
-function ReportCardSkeleton() {
-  const tiles = tilesOf(EMPTY_CARD, overview(EMPTY_CARD, [])).map((tile) => ({
-    ...tile,
-    value: <SkeletonText className="w-12" />,
-    note: NOTED.has(tile.label) ? <SkeletonText className="w-16" /> : undefined,
-    warn: false,
-  }));
-  return (
-    <Page title="Report card" eyebrow="Your progress" back={false}>
-      <Loading label="Loading your report card">
-        <Overview tiles={tiles} />
-        <div className="mt-8">
-          <StudySetsHeading search={<SkeletonBlock className="h-10 w-full rounded-xl sm:w-72" />} />
-          <div className="space-y-3">
-            {[0, 1].map((i) => (
-              <SetRowSkeleton key={i} />
-            ))}
-          </div>
-        </div>
-      </Loading>
-    </Page>
-  );
-}
-
-const EMPTY_CARD: ReportCardData = { xp: 0, level: 1, streak: { count: 0, freezes: 0 }, subjects: 0, sets: [] };
-
-// The overview's tiles: what each shows, from the report card and the totals worked out from it.
-function tilesOf(card: ReportCardData, totals: ReturnType<typeof overview>): Tile[] {
-  return [
-    { icon: "building", label: "Subjects on your campus", value: totals.subjects.toLocaleString("en") },
-    { icon: "layers", label: "Study sets started", value: totals.setsStarted.toLocaleString("en") },
-    { icon: "review", label: "Flashcards reviewed", value: totals.flashcardsReviewed.toLocaleString("en") },
-    { icon: "quiz", label: "Quiz accuracy", value: totals.accuracy == null ? "None yet" : pct(totals.accuracy), note: totals.answers ? plural(totals.answers, "answer") : undefined },
-    {
-      icon: "cards",
-      label: "Player cards",
-      value: totals.playerCards.toLocaleString("en"),
-      note: totals.playerCards ? (totals.fading ? `${totals.fading.toLocaleString("en")} fading` : "All fresh") : undefined,
-      warn: totals.fading > 0,
-    },
-    { icon: "flame", label: "Streak", value: plural(card.streak.count, "day") },
-    { icon: "bolt", label: "Level", value: card.level.toLocaleString("en"), note: `${card.xp.toLocaleString("en")} XP` },
-  ];
 }
 
 function SignedOut() {
@@ -116,6 +67,23 @@ function Failed({ retry }: { retry: () => void }) {
 
 type Notice = { tone: "done" | "failed"; text: string };
 
+// What each of the overview's tiles shows, from the report card and the totals worked out from it.
+function tileValues(card: ReportCardData, totals: ReturnType<typeof overview>): Record<TileKey, TileValue> {
+  return {
+    subjects: { value: totals.subjects.toLocaleString("en") },
+    sets: { value: totals.setsStarted.toLocaleString("en") },
+    flashcards: { value: totals.flashcardsReviewed.toLocaleString("en") },
+    accuracy: { value: totals.accuracy == null ? "None yet" : pct(totals.accuracy), note: totals.answers ? plural(totals.answers, "answer") : undefined },
+    cards: {
+      value: totals.playerCards.toLocaleString("en"),
+      note: totals.playerCards ? (totals.fading ? `${totals.fading.toLocaleString("en")} fading` : "All fresh") : undefined,
+      warn: totals.fading > 0,
+    },
+    streak: { value: plural(card.streak.count, "day") },
+    level: { value: card.level.toLocaleString("en"), note: `${card.xp.toLocaleString("en")} XP` },
+  };
+}
+
 function ReportCardView({ card }: { card: ReportCardData }) {
   const when = useToday();
   const sets = useMemo(() => studiedSets(card, when), [card, when]);
@@ -138,11 +106,9 @@ function ReportCardView({ card }: { card: ReportCardData }) {
     }
   };
 
-  const tiles = tilesOf(card, totals);
-
   return (
     <Page title="Report card" eyebrow="Your progress" back={false}>
-      <Overview tiles={tiles} />
+      <Overview values={tileValues(card, totals)} />
       <StudySets sets={sets} notice={notice} onQuizReport={setReportFor} />
       {reporting && (
         <QuizReport
@@ -170,29 +136,6 @@ function ReportCardView({ card }: { card: ReportCardData }) {
         />
       )}
     </Page>
-  );
-}
-
-type Tile = { icon: IconName; label: string; value: ReactNode; note?: ReactNode; warn?: boolean };
-
-// The overview: a label and its value, so a description list. Columns as many as fit, with no breakpoints. Each tile
-// shares its row's three tracks (label, value, note: a subgrid), so the values line up even where a label wraps.
-function Overview({ tiles }: { tiles: Tile[] }) {
-  return (
-    <section aria-label="Overview">
-      <dl className="grid grid-cols-[repeat(auto-fill,minmax(10rem,1fr))] gap-3">
-        {tiles.map((t) => (
-          <div key={t.label} className="row-span-3 grid grid-rows-subgrid gap-y-1 rounded-2xl border border-ink/7 bg-surface p-3.5">
-            <dt className="flex items-start gap-2 text-xs text-ink/55">
-              <Icon name={t.icon} className="size-4 shrink-0 text-brand" />
-              {t.label}
-            </dt>
-            <dd className="font-display text-2xl font-semibold tabular-nums">{t.value}</dd>
-            {t.note && <dd className={t.warn ? "text-xs font-semibold text-orange-ink" : "text-xs text-ink/45"}>{t.note}</dd>}
-          </div>
-        ))}
-      </dl>
-    </section>
   );
 }
 
@@ -268,62 +211,6 @@ function StudySets({ sets, notice, onQuizReport }: { sets: StudiedSet[]; notice:
         </Button>
       )}
     </section>
-  );
-}
-
-// The study sets' heading, with the search beside it (or its placeholder).
-function StudySetsHeading({ search }: { search: ReactNode }) {
-  return (
-    <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h2 id="sets-title" className="font-display text-xl font-semibold">
-          Your study sets
-        </h2>
-        <p className="text-sm text-pretty text-ink/55">Flashcard review and quiz results for every set you've started.</p>
-      </div>
-      {search}
-    </div>
-  );
-}
-
-// A set's row while the report card loads: its titles, chips, two measures and the quiz report's button, in their places.
-function SetRowSkeleton() {
-  return (
-    <div className={cx("@container", cardClass)}>
-      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-        <div className="min-w-0 flex-1 basis-56">
-          <p className="font-semibold">
-            <SkeletonText className="w-48" />
-          </p>
-          <p className="text-xs">
-            <SkeletonText className="w-36" />
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-1.5">
-          <Chip>
-            <SkeletonText className="w-14" />
-          </Chip>
-          <Chip>
-            <SkeletonText className="w-20" />
-          </Chip>
-        </div>
-      </div>
-      <div className="mt-3 grid gap-3 @lg:grid-cols-2">
-        {[0, 1].map((i) => (
-          <div key={i}>
-            <p className="mb-1 text-xs">
-              <SkeletonText className="w-full" />
-            </p>
-            <SkeletonBlock className="h-1.5 rounded-full" />
-          </div>
-        ))}
-      </div>
-      <div className="mt-3 flex justify-end">
-        <span className={buttonClass("quiet", "sm")}>
-          <SkeletonText className="w-20" />
-        </span>
-      </div>
-    </div>
   );
 }
 

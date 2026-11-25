@@ -7,39 +7,10 @@ import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
-import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { classPath, setPath } from "#features/classes/modes.ts";
 import { Stars } from "./Stars.tsx";
 
 type Props = { setId: string; round: Round<{ _id: string; question: string }>; state: RoundState; next: boolean };
-
-// A round while the classroom loads: its number, topic, a chip and its two buttons as placeholders, in their places.
-export function RoundRowSkeleton() {
-  return (
-    <div className="rounded-2xl border border-ink/[0.07] bg-surface p-4">
-      <div className="flex flex-wrap items-start gap-x-3 gap-y-2">
-        <SkeletonBlock className="size-9 shrink-0 rounded-xl" />
-        <div className="min-w-0 flex-1">
-          <p className="font-semibold">
-            <SkeletonText className="w-56" />
-          </p>
-          <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-            <Chip>
-              <SkeletonText className="w-28" />
-            </Chip>
-          </div>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          {[0, 1].map((i) => (
-            <span key={i} className={buttonClass("quiet", "sm")}>
-              <SkeletonText className="w-10" />
-            </span>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export function RoundRow({ setId, round, state, next }: Props) {
   const first = round.flashcards[0];
