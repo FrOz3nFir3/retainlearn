@@ -1,0 +1,10 @@
+{
+  // The client's unit tests (src/**/*.test.ts), which Node runs: the same rules as the site's code, plus Node's types
+  // (node:test, node:assert), kept out of the site's own check so browser code can't use Node by mistake.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["vite/client", "node"]
+  },
+  "include": ["src/**/*.test.ts"],
+  "exclude": []
+}

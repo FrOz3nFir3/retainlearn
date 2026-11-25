@@ -211,9 +211,6 @@ function inferCacheTypeFromUrl(path) {
     if (path.includes('/category') || path.includes('/categories')) {
         return CACHE_TYPES.CATEGORY;
     }
-    if (path.includes('/progress') || path.includes('/stats') || path.includes('/report')) {
-        return CACHE_TYPES.PROGRESS;
-    }
     if (path.includes('/review') || path.includes('/queue')) {
         return CACHE_TYPES.REVIEW_QUEUE;
     }
@@ -360,74 +357,6 @@ function extractTagsFromRequest(req, responseData, customTagExtractor) {
         const userId = req.token?.id || params.id || params.userId || query.userId;
         if (userId) {
             tags.push(`User:${userId}`);
-
-            // Add report tags for progress/stats endpoints (check without leading slash for progress)
-            if (fullPath.includes('progress') || fullPath.includes('/stats') || fullPath.includes('/report')) {
-                tags.push(`Report:${userId}`);
-            }
-        }
-    }
-
-    // Focus review endpoints - ONLY use user-specific tags for authenticated users
-    if (fullPath.includes('/review') || fullPath.includes('/focus-review')) {
-        let reviewId = params.id || params.reviewId || params.card_id || query.reviewId;
-
-        // If not in params, try to extract from URL path
-        if (!reviewId && fullPath.includes('/focus-review/') || fullPath.includes('/review/')) {
-            const match = fullPath.match(/\/focus-review\/([a-f0-9]+)/);
-            if (match) {
-                reviewId = match[1];
-            }
-        }
-
-        if (reviewId) {
-            // Only add user-specific tag if authenticated to prevent cross-user invalidation
-            const userId = req.token?.id;
-            if (userId) {
-                tags.push(`User:${userId}:FocusReviewData:${reviewId}`);
-            }
-        }
-    }
-
-    // Regular review progress endpoints - ONLY use user-specific tags for authenticated users
-    if (fullPath.includes('/review-progress')) {
-        let reviewId = params.id || params.reviewId || params.card_id || query.reviewId;
-
-        // If not in params, try to extract from URL path
-        if (!reviewId && fullPath.includes('/review-progress/')) {
-            const match = fullPath.match(/\/review-progress\/([a-f0-9]+)/);
-            if (match) {
-                reviewId = match[1];
-            }
-        }
-
-        if (reviewId) {
-            // Only add user-specific tag if authenticated to prevent cross-user invalidation
-            const userId = req.token?.id;
-            if (userId) {
-                tags.push(`User:${userId}:RegularReviewData:${reviewId}`);
-            }
-        }
-    }
-
-    // Focus quiz endpoints - ONLY use user-specific tags for authenticated users
-    if (fullPath.includes('/quiz') || fullPath.includes('/focus-quiz')) {
-        let quizId = params.id || params.quizId || query.quizId;
-
-        // If not in params, try to extract from URL path
-        if (!quizId && fullPath.includes('/focus-quiz/') || fullPath.includes('/quiz/')) {
-            const match = fullPath.match(/\/focus-quiz\/([a-f0-9]+)/);
-            if (match) {
-                quizId = match[1];
-            }
-        }
-
-        if (quizId) {
-            // Only add user-specific tag if authenticated to prevent cross-user invalidation
-            const userId = req.token?.id;
-            if (userId) {
-                tags.push(`User:${userId}:FocusQuizData:${quizId}`);
-            }
         }
     }
 
@@ -459,14 +388,6 @@ export const createCacheMiddleware = {
      */
     users: (options = {}) => cacheMiddleware({
         cacheType: CACHE_TYPES.USER,
-        ...options
-    }),
-
-    /**
-     * Cache middleware for progress/report routes
-     */
-    progress: (options = {}) => cacheMiddleware({
-        cacheType: CACHE_TYPES.PROGRESS,
         ...options
     }),
 

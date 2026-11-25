@@ -75,7 +75,7 @@ const ReportSetButton = ({ cardId }) => {
               <button type="button" className={buttonClass} onClick={close}>
                 Cancel
               </button>
-              <Link to="/authenticate" className={primaryClass}>
+              <Link to="/sign-in" className={primaryClass}>
                 Log in
               </Link>
             </div>

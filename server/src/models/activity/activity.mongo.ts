@@ -4,7 +4,7 @@ import type { Lean } from "#models/lean.ts";
 
 // One per account and day (the player's local day). Today's is read on every campus load (PLAN 14.3b). The work that
 // depends on the date rather than on a write happens once, at the day's first load, and is kept here: the timetable
-// (so it doesn't reshuffle) and how many cards are fading in each subject. Then what was done.
+// (so it doesn't reshuffle) and how many player cards are fading in each subject. Then what was done.
 
 const periodSchema = new Schema(
   {

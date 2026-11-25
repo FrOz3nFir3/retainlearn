@@ -4,12 +4,16 @@ import {
   RouterProvider,
   Outlet,
   ScrollRestoration,
+  useLocation,
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import Header from "../components/layout/Header/Header";
 import Footer from "../components/layout/Footer/Footer";
 import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
+import { useSession, useSessionCheck } from "#app/session.ts";
+import { TabBar } from "#components/layout/TabBar.tsx";
+import { TopBar } from "#components/layout/TopBar.tsx";
+import { isClassPath } from "#features/classes/modes.ts";
 
 // Lazy-loaded route wrappers
 const LandingPageRoute = lazy(() =>
@@ -24,9 +28,7 @@ const CardsPageRoute = lazy(() =>
 const IndividualCardPageRoute = lazy(() =>
   import("../features/cards/routes/IndividualCardPageRoute")
 );
-const ProgressPageRoute = lazy(() =>
-  import("../features/progress/routes/ProgressPageRoute")
-);
+const ReportCard = lazy(() => import("#features/report-card/ReportCard.tsx"));
 const ProfilePageRoute = lazy(() =>
   import("../features/profile/routes/ProfilePageRoute")
 );
@@ -45,16 +47,29 @@ const TermsOfServiceRoute = lazy(() =>
 const NotFoundRoute = lazy(() =>
   import("../features/not-found/routes/NotFoundRoute")
 );
+const Campus = lazy(() => import("#features/campus/Campus.tsx"));
 
-// Root layout component
-const RootLayout = () => (
+// "/": the campus for a signed-in player (its skeleton while the session is checked), the landing page for a visitor.
+const HomeRoute = () => (useSession() === "out" ? <LandingPageRoute /> : <Campus />);
+
+// The root layout: the top bar, the page, and on phones the tab bar, except in a class, which takes the whole screen.
+// The old footer stays on the public pages only, until the landing page is rebuilt. The session is checked once, here,
+// as the app opens (app/session.ts).
+const RootLayout = () => {
+  useSessionCheck();
+  const session = useSession();
+  const { pathname } = useLocation();
+  const inClass = isClassPath(pathname);
+  const publicPage = pathname === "/privacy" || pathname === "/terms" || (pathname === "/" && session === "out");
+  return (
   <ErrorBoundary>
-    <div className="bg-gray-100 dark:bg-gray-900 min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-grow">
+    <div className={`bg-gray-100 dark:bg-gray-900 min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.5rem+env(safe-area-inset-bottom,0px))]"}`}>
+      {!inClass && <TopBar />}
+      <main className="flex grow flex-col">
         <Outlet />
       </main>
-      <Footer />
+      {publicPage && <Footer />}
+      {!inClass && <TabBar />}
       <Toaster />
       <ScrollRestoration
         getKey={(location, matches) => {
@@ -64,8 +79,7 @@ const RootLayout = () => (
             location.search.includes("quizNo") ||
             location.search.includes("flashcardFilter") ||
             location.search.includes("search") ||
-            location.pathname === "/categories" ||
-            location.pathname.startsWith("/category")
+            location.pathname.startsWith("/subjects")
           ) {
             return location.pathname;
           }
@@ -74,7 +88,8 @@ const RootLayout = () => (
       />
     </div>
   </ErrorBoundary>
-);
+  );
+};
 
 // Create the router
 const router = createBrowserRouter([
@@ -84,23 +99,23 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <LandingPageRoute />,
+        element: <HomeRoute />,
       },
       {
-        path: "categories",
+        path: "subjects",
         element: <CategoryPageRoute />,
       },
       {
-        path: "category/:name",
+        path: "subjects/:name",
         element: <CardsPageRoute />,
       },
       {
-        path: "card/:id/*",
+        path: "study-sets/:id/*",
         element: <IndividualCardPageRoute />,
       },
       {
-        path: "progress",
-        element: <ProgressPageRoute />,
+        path: "report-card",
+        element: <ReportCard />,
       },
       {
         path: "profile",
@@ -111,8 +126,12 @@ const router = createBrowserRouter([
         element: <PublicPageRoute />,
       },
       {
-        path: "authenticate",
-        element: <AuthenticationRoute />,
+        path: "sign-in",
+        element: <AuthenticationRoute mode="sign-in" />,
+      },
+      {
+        path: "sign-up",
+        element: <AuthenticationRoute mode="sign-up" />,
       },
       {
         path: "privacy",

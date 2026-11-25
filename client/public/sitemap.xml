@@ -6,13 +6,8 @@
     <changefreq>weekly</changefreq>
   </url>
   <url>
-    <loc>https://retainlearn.com/categories</loc>
+    <loc>https://retainlearn.com/subjects</loc>
     <priority>0.8</priority>
     <changefreq>weekly</changefreq>
-  </url>
-  <url>
-    <loc>https://retainlearn.com/authenticate</loc>
-    <priority>0.5</priority>
-    <changefreq>monthly</changefreq>
   </url>
 </urlset>

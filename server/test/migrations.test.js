@@ -470,6 +470,84 @@ test("0004 says so when there's no study history to copy", async () => {
   assert.ok(lines.includes("  progress: no study history to copy"), lines.join("\n"));
 });
 
+// After the first copy, Lee carries on in the old app: reviews the set's third flashcard, and starts another set.
+async function studiedSince(t) {
+  const t2 = { set: new mongoose.Types.ObjectId(), f: new mongoose.Types.ObjectId() };
+  await db.collection("study_sets").insertOne({
+    _id: t2.set,
+    category: "Biology",
+    "main-topic": "Cells",
+    "sub-topic": "Organelles",
+    review: [{ _id: t2.f, question: "<p>Q</p>", answer: "<p>A</p>" }],
+    quizzes: [],
+    updatedAt: new Date("2026-11-01T00:00:00Z"),
+  });
+  const users = db.collection("users");
+  await users.updateOne({ _id: t.lee }, { $set: { "studying.0.review.lastReviewedCardNo": 3, "studying.0.review.updatedAt": new Date("2026-11-20T10:00:00Z") } });
+  await users.updateOne({ _id: t.lee }, { $push: { studying: { cardId: t2.set, review: { lastReviewedCardNo: 1, updatedAt: new Date("2026-11-21T10:00:00Z") }, quiz: {} } } });
+  return t2;
+}
+const firstCopy = migrations.slice(0, 4); // up to 0004
+
+test("0005 brings over what's been studied in the old app since the first copy: sets started since, and copies refreshed", async () => {
+  const t = await studied();
+  await runMigrations(db, { list: firstCopy, log: quiet });
+  const first = await db.collection("progress").findOne({ userId: t.lee, setId: t.set });
+  const t2 = await studiedSince(t);
+
+  const lines = [];
+  await runMigrations(db, { dryRun: true, log: (text) => lines.push(text), problem: assert.fail });
+  const plan = "  progress: 1 document(s) will be made and 1 copied again (studied in the old app since), from 1 account(s) with a study history";
+  assert.ok(lines.includes(plan), lines.join("\n"));
+  assert.deepEqual(await db.collection("progress").findOne({ userId: t.lee, setId: t.set }), first, "the dry run wrote nothing");
+
+  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0005-copy-progress-again"]);
+  const again = await db.collection("progress").findOne({ userId: t.lee, setId: t.set });
+  const [f1, f2, f3] = t.f.map(String);
+  const reviewed = new Date("2026-11-20T10:00:00Z");
+  assert.deepEqual(again.flashcards, {
+    [f1]: { seenAt: reviewed, missedOn: null },
+    [f2]: { seenAt: reviewed, missedOn: "2026-11-09" },
+    [f3]: { seenAt: reviewed, missedOn: "2026-11-10" },
+  });
+  assert.deepEqual(again.questions, first.questions, "the quiz didn't change");
+  assert.deepEqual(again.lastAt, reviewed);
+  assert.ok(again.copiedAt > first.copiedAt);
+  assert.deepEqual([again.createdAt, again.updatedAt], [first.createdAt, again.copiedAt]);
+  const made = await db.collection("progress").findOne({ userId: t.lee, setId: t2.set });
+  assert.deepEqual(made.flashcards, { [String(t2.f)]: { seenAt: new Date("2026-11-21T10:00:00Z"), missedOn: null } });
+  assert.equal(made.setInfo.category, "Biology");
+  assert.equal((await db.collection("users").findOne({ _id: t.lee })).studying.length, 3, "the old study history stays");
+
+  // Running it again changes nothing.
+  const before = await db.collection("progress").find().sort({ _id: 1 }).toArray();
+  const rerun = [];
+  await migrations[4].up(db, { dryRun: false, log: (text) => rerun.push(text), fail: (text) => assert.fail(text) });
+  assert.deepEqual(await db.collection("progress").find().sort({ _id: 1 }).toArray(), before);
+  assert.ok(rerun.includes("progress: 2 unchanged since they were copied"), rerun.join("\n"));
+});
+
+test("0005 keeps what the new app has written, and says how many players are made already", async () => {
+  const t = await studied();
+  await runMigrations(db, { list: firstCopy, log: quiet });
+  // The new app saves to the copied document, and makes a player.
+  await db.collection("progress").updateOne({ userId: t.lee, setId: t.set }, { $set: { [`questions.${t.q[2]}.right`]: 1, updatedAt: new Date() } });
+  await db.collection("players").insertOne({ _id: t.lee, subjects: [] });
+  const saved = await db.collection("progress").findOne({ userId: t.lee, setId: t.set });
+  await studiedSince(t);
+
+  const lines = [];
+  await runMigrations(db, { log: (text) => lines.push(text) });
+  assert.deepEqual(await db.collection("progress").findOne({ userId: t.lee, setId: t.set }), saved, "the new app's progress wins");
+  for (const line of [
+    "  players: 1 made already; their subjects' summaries refresh with each one's next class",
+    "  progress: 1 document(s) made and 0 copied again, from 1 account(s) with a study history",
+    "  progress: 1 written by the new app since, kept as they are",
+  ]) {
+    assert.ok(lines.includes(line), `${line}\nnot in:\n${lines.join("\n")}`);
+  }
+});
+
 test("every numbered file in src/migrations is in the list, in order", async () => {
   const files = (await readdir(new URL("../src/migrations/", import.meta.url))).filter((file) => /^\d{4}-.+\.js$/.test(file)).sort();
   assert.deepEqual(migrations.map((migration) => `${migration.id}.js`), files);

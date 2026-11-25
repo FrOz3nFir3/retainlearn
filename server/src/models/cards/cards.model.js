@@ -118,21 +118,6 @@ export async function getCardsByCategoryPaginated(
   return { cards, total };
 }
 
-export async function countCardsByCategory(category, search) {
-  let filter = { category: { $eq: category }, ...listedFilter() };
-
-  // Add search filter if provided
-  if (search && search.trim()) {
-    filter.$text = { $search: search.trim() };
-  }
-
-  return Card.countDocuments(filter);
-}
-
-export async function getAllCards() {
-  return Card.distinct("category", listedFilter());
-}
-
 export async function getAllCategoriesWithPagination({ skip, limit, search }) {
   const pipeline = [];
 
@@ -195,39 +180,6 @@ export async function getAllCategoriesWithPagination({ skip, limit, search }) {
   const total = aggregationResult[0]?.totalCount[0]?.total || 0;
 
   return { categories, total };
-}
-
-export async function countAllCategories(search) {
-  const pipeline = [];
-
-  if (search && search.trim()) {
-    // this performance an index scan with prefix search
-    const searchRegex = new RegExp("^" + escapeRegex(search), "i");
-    pipeline.push({
-      $match: {
-        category: searchRegex,
-        ...listedFilter(),
-      },
-    });
-  } else {
-    pipeline.push({ $match: listedFilter() });
-  }
-
-  // projection
-  pipeline.push({
-    $project: {
-      category: 1,
-    },
-  });
-
-  pipeline.push({
-    $group: {
-      _id: "$category",
-    },
-  });
-
-  const result = await Card.aggregate(pipeline);
-  return result.length;
 }
 
 export async function findExistingCard(mainTopic, subTopic, category) {
@@ -1160,12 +1112,6 @@ export async function getCardsByAuthorPaginated(authorId, { skip, limit }) {
   return { cards, total };
 }
 
-export async function countCardsByAuthor(authorId) {
-  if (!Types.ObjectId.isValid(authorId)) {
-    return 0;
-  }
-  return Card.countDocuments({ author: { $eq: authorId } });
-}
 /**
  * Create a review queue item for non-author edits
  */

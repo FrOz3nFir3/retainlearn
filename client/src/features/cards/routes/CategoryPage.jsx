@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import CategorySkeleton from "../../../components/ui/skeletons/CategoryPageSkeleton";
-import PreviouslyStudied from "../../progress/components/PreviouslyStudied";
 import CreateCategoryCard from "../components/CreateCategoryCard";
 import CategoryHeader from "../components/CategoryHeader";
 import Modal from "../../../components/ui/Modal";
@@ -32,11 +31,11 @@ function CategoryPage() {
   const filteredItemsCount = currentCategories.length;
 
   const handleCategoryClick = (category) => {
-    navigate(`/category/${category}`);
+    navigate(`/subjects/${category}`);
   };
 
   const handleCreateCategory = (newCategoryName) => {
-    navigate(`/category/${newCategoryName}`);
+    navigate(`/subjects/${newCategoryName}`);
     setShowCreateForm(false);
   };
 
@@ -54,7 +53,6 @@ function CategoryPage() {
       </Helmet>
 
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12">
-        <PreviouslyStudied />
         <CategoryHeader />
 
         <div className="mb-16">

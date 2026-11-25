@@ -1,4 +1,4 @@
-// Your activity, one document per day (PLAN 14.3b): the day's timetable and fading cards, worked out at its first load
+// Your activity, one document per day (PLAN 14.3b): the day's timetable and fading player cards, worked out at its first load
 // so they don't reshuffle, then what you did.
 import { Types } from "mongoose";
 import Activity from "#models/activity/activity.mongo.ts";
@@ -30,7 +30,7 @@ const fromDoc = (doc: ActivityDoc | null): StoredDay => ({
   doneAt: doc?.doneAt ?? null,
 });
 
-// Today's activity. At the day's first load the timetable and fading cards are drawn up by plan() and kept. A plan
+// Today's activity. At the day's first load the timetable and fading player cards are drawn up by plan() and kept. A plan
 // with no classes isn't kept: a new player's first class can put something on today's timetable at the next load.
 // Planning again is cheap then, since there's next to nothing to read.
 export async function activityOf(userId: string, day: Day, plan: () => Promise<{ timetable: PlannedPeriod[]; fading: Fading }>): Promise<StoredDay> {
@@ -66,7 +66,23 @@ export async function finishPeriod(userId: string, day: Day, setId: string, mode
     { $set: { "timetable.$.done": true } },
     { new: true },
   ).lean<ActivityDoc>();
-  if (!ticked?.timetable?.length || !ticked.timetable.every((p) => p.done)) return 0;
+  return ringBell(filter, ticked, at);
+}
+
+// After a set's quizzes are reset, there's nothing left to retry in it, so today's periods to retry what was missed
+// there could never be done: they come off the timetable. If the rest is all done, the bell rings, as when the last
+// period is done. (Left empty, the timetable is drawn up again at the campus's next load.) Returns the bonus given.
+export async function dropRetryPeriods(userId: string, day: Day, setId: string, at: Date): Promise<number> {
+  const filter = { userId: oid(userId), day };
+  const retry = { kind: "class", setId: oid(setId), mode: "retryMissed", done: false };
+  const pulled = await Activity.findOneAndUpdate({ ...filter, timetable: { $elemMatch: retry } }, { $pull: { timetable: retry } }, { new: true }).lean<ActivityDoc>();
+  return ringBell(filter, pulled, at);
+}
+
+// The last bell: once every period on the day's timetable is done, its bonus XP, given once. Returns the bonus given
+// (0 or 50).
+async function ringBell(filter: { userId: Types.ObjectId; day: Day }, day: ActivityDoc | null, at: Date): Promise<number> {
+  if (!day?.timetable?.length || !day.timetable.every((p) => p.done)) return 0;
   const bonus = await Activity.updateOne({ ...filter, doneAt: { $exists: false } }, { $set: { doneAt: at }, $inc: { xp: XP.timetableDone } });
   return bonus.modifiedCount ? XP.timetableDone : 0;
 }

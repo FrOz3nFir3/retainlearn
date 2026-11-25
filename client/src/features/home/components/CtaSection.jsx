@@ -78,14 +78,14 @@ const CtaSection = () => {
                 {user ? (
                   <>
                     <Link
-                      to="/progress"
+                      to="/report-card"
                       className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold text-white bg-brand-primary dark:bg-brand-accent dark:text-brand-dark hover:bg-indigo-700 dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 shadow-md shadow-brand-primary/20 dark:shadow-brand-accent/20"
                     >
                       View your progress
                       <ArrowRightIcon className="w-4 h-4" />
                     </Link>
                     <Link
-                      to="/categories"
+                      to="/subjects"
                       className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-semibold text-gray-700 dark:text-white/70 border border-gray-200 dark:border-white/12 hover:border-gray-300 dark:hover:border-white/25 hover:text-gray-900 dark:hover:text-white rounded-xl transition-colors duration-150"
                     >
                       Continue learning
@@ -94,14 +94,14 @@ const CtaSection = () => {
                 ) : (
                   <>
                     <Link
-                      to="/authenticate"
+                      to="/sign-up"
                       className="inline-flex items-center justify-center gap-2 w-full px-6 py-3.5 text-sm font-semibold text-white bg-brand-primary dark:bg-brand-accent dark:text-brand-dark hover:bg-indigo-700 dark:hover:bg-amber-400 rounded-xl transition-colors duration-150 shadow-md shadow-brand-primary/20 dark:shadow-brand-accent/20"
                     >
                       Create free account
                       <ArrowRightIcon className="w-4 h-4" />
                     </Link>
                     <Link
-                      to="/categories"
+                      to="/subjects"
                       className="inline-flex items-center justify-center w-full px-6 py-3.5 text-sm font-semibold text-gray-700 dark:text-white/70 border border-gray-200 dark:border-white/12 hover:border-gray-300 dark:hover:border-white/25 hover:text-gray-900 dark:hover:text-white rounded-xl transition-colors duration-150"
                     >
                       Browse without signing up

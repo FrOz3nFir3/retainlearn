@@ -4,15 +4,21 @@ import { Types } from "mongoose";
 import Progress from "#models/progress/progress.mongo.ts";
 import type { ProgressDoc } from "#models/progress/progress.mongo.ts";
 import { applyAnswers, dayKey } from "@retainlearn/core";
-import type { ClassInProgress, FlashcardProgress, ProgressView, QuestionProgress, SaveAnswers } from "@retainlearn/core";
+import type { ClassInProgress, ClassMode, FlashcardProgress, ProgressView, QuestionProgress, ReportCardSet, SaveAnswers } from "@retainlearn/core";
 import type { StudySetOutline } from "#models/studySets/studySets.model.ts";
 
 const oid = (id: string) => new Types.ObjectId(id);
 const isDuplicateKey = (error: unknown) => (error as { code?: number } | null)?.code === 11000;
 
+// The classes that are quizzes: the ones counted in progress.quiz, and cleared by resetQuiz.
+const QUIZ_MODES: readonly ClassMode[] = ["quiz", "retryMissed"];
+
 // Your progress in one set, or an empty one for a set you haven't started.
 export async function progressView(userId: string, setId: string): Promise<ProgressView> {
-  const p = await Progress.findOne({ userId: oid(userId), setId: oid(setId) }).lean<ProgressDoc>();
+  return viewOf(setId, await Progress.findOne({ userId: oid(userId), setId: oid(setId) }).lean<ProgressDoc>());
+}
+
+function viewOf(setId: string, p: ProgressDoc | null): ProgressView {
   return {
     setId,
     flashcards: p?.flashcards ?? {},
@@ -24,6 +30,29 @@ export async function progressView(userId: string, setId: string): Promise<Progr
   };
 }
 
+// A set's quizzes afresh (the report card's quiz report): what you missed, your record of answers (right and wrong) and
+// the quizzes counted are cleared, while your player cards (each one's level and when you last remembered it) and your
+// flashcards stay. A quiz left halfway is dropped, since its answers so far are gone. One update the database works
+// out, with no read first, so it can't undo a class saving at the same moment: that save sees updatedAt changed, and
+// reads again. null when you haven't started the set.
+export async function resetQuiz(userId: string, setId: string): Promise<{ view: ProgressView; category: string | null } | null> {
+  const playerCards = { $filter: { input: { $objectToArray: { $ifNull: ["$questions", {}] } }, cond: { $gte: ["$$this.v.level", 1] } } };
+  const p = await Progress.findOneAndUpdate(
+    { userId: oid(userId), setId: oid(setId) },
+    [
+      {
+        $set: {
+          questions: { $arrayToObject: { $map: { input: playerCards, in: { k: "$$this.k", v: { level: "$$this.v.level", refreshedAt: "$$this.v.refreshedAt" } } } } },
+          quiz: { started: 0, finished: 0 },
+          classInProgress: { $cond: [{ $in: ["$classInProgress.mode", QUIZ_MODES] }, null, "$classInProgress"] },
+        },
+      },
+    ],
+    { new: true },
+  ).lean<ProgressDoc>();
+  return p ? { view: viewOf(setId, p), category: p.setInfo?.category ?? null } : null;
+}
+
 // Your progress across sets, as the campus's rules read it (in one subject, or all of it): one indexed query.
 export type SetInfo = { category?: string | null; topic?: string | null; subtopic?: string | null; flashcards?: number | null; questions?: number | null; version?: number | null };
 export type ProgressForRules = {
@@ -33,6 +62,43 @@ export type ProgressForRules = {
   questions: Record<string, QuestionProgress>;
   lastAt: Date | null;
 };
+
+// Your progress in every set you've started, as the report card shows it: its copied titles and counts (so no set is
+// read), what you've seen and answered, and the quizzes you've taken. Matched on the userId + setId index, then
+// reshaped by the database: each flashcard comes as when you saw it and when you missed it, without its recall-point
+// marks (up to 30 each), which the report card doesn't read and which would be most of the bytes.
+type ReportCardRow = Pick<ProgressDoc, "setId" | "setInfo" | "questions" | "quiz" | "lastAt"> & { flashcards: ReportCardSet["flashcards"] };
+export async function reportCardSets(userId: string): Promise<ReportCardSet[]> {
+  const docs = await Progress.aggregate<ReportCardRow>([
+    { $match: { userId: oid(userId) } },
+    {
+      $project: {
+        setId: 1,
+        setInfo: 1,
+        questions: 1,
+        quiz: 1,
+        lastAt: 1,
+        flashcards: {
+          $arrayToObject: {
+            $map: { input: { $objectToArray: { $ifNull: ["$flashcards", {}] } }, in: { k: "$$this.k", v: { seenAt: "$$this.v.seenAt", missedOn: "$$this.v.missedOn" } } },
+          },
+        },
+      },
+    },
+  ]);
+  return docs.map((p) => ({
+    setId: String(p.setId),
+    category: p.setInfo?.category ?? "",
+    topic: p.setInfo?.topic ?? "",
+    subtopic: p.setInfo?.subtopic ?? "",
+    flashcardCount: p.setInfo?.flashcards ?? 0,
+    questionCount: p.setInfo?.questions ?? 0,
+    flashcards: p.flashcards ?? {},
+    questions: p.questions ?? {},
+    quiz: { started: p.quiz?.started ?? 0, finished: p.quiz?.finished ?? 0 },
+    lastAt: p.lastAt ? new Date(p.lastAt).toISOString() : null,
+  }));
+}
 
 export async function allProgressOf(userId: string, category?: string): Promise<ProgressForRules[]> {
   const filter = { userId: oid(userId), ...(category ? { "setInfo.category": category } : {}) };
@@ -96,7 +162,7 @@ export async function saveAnswers(userId: string, set: StudySetOutline, batch: S
     for (const [id, item] of Object.entries(change.flashcards)) $set[`flashcards.${id}`] = item;
     for (const [id, item] of Object.entries(change.questions)) $set[`questions.${id}`] = item;
     // How many quizzes you've started and finished, as today's app counts them.
-    const quiz = batch.mode === "quiz" || batch.mode === "retryMissed";
+    const quiz = QUIZ_MODES.includes(batch.mode);
     const $inc: Record<string, number> = {};
     if (quiz && batch.seq === 1) $inc["quiz.started"] = 1;
     if (quiz && batch.finished) $inc["quiz.finished"] = 1;

@@ -18,13 +18,13 @@ function remembered(q: QuestionProgress & { level: number }, { at, timeZone = "U
 }
 
 // A question answered. Right: a new player card at level 1, or a card remembered again, and off what you missed.
-// Wrong: a card drops a level but never below 1 (you've learned it once), and the question goes on what you missed,
+// Wrong: a player card drops a level but never below 1 (you've learned it once), and the question goes on what you missed,
 // from today.
 export function answerQuestion(q: QuestionProgress | null | undefined, correct: boolean, time: AnswerTime): QuestionProgress {
   const was = q ?? {};
   if (correct) {
-    const card = isPlayerCard(was) ? remembered(was, time) : { level: 1, refreshedAt: new Date(time.at) };
-    return { ...was, ...card, right: (was.right ?? 0) + 1, missedOn: null };
+    const playerCard = isPlayerCard(was) ? remembered(was, time) : { level: 1, refreshedAt: new Date(time.at) };
+    return { ...was, ...playerCard, right: (was.right ?? 0) + 1, missedOn: null };
   }
   const level = isPlayerCard(was) ? Math.max(1, was.level - 1) : 0;
   return { ...was, level, wrong: (was.wrong ?? 0) + 1, missedOn: dayKey(time.at, time.timeZone) };
@@ -52,7 +52,7 @@ export function reviewFlashcard(
 }
 
 // Recalling a flashcard whole also refreshes the player cards of the questions linked to it, as remembering them
-// would. A question that isn't a card stays as it is: only answering it makes one.
+// would. A question that isn't a player card stays as it is: only answering it makes one.
 export const refreshPlayerCard = (q: QuestionProgress | null | undefined, time: AnswerTime): QuestionProgress | null | undefined =>
   isPlayerCard(q) ? { ...q, ...remembered(q, time) } : q;
 
@@ -70,7 +70,7 @@ const itemOf = <T>(map: ItemMap<T> | undefined, id: string): T | undefined => (m
 
 // A batch of a class's answers applied to a set's progress, in order. Returns only the items it changed (so the server
 // can $set just those), how many player cards it earned, and the XP it earned. A flashcard counts as known from 80%
-// of its recall points (knewFlashcard), and then also refreshes the cards of its linked questions.
+// of its recall points (knewFlashcard), and then also refreshes the player cards of its linked questions.
 export function applyAnswers(
   p: Progress | null | undefined,
   set: { questions: readonly QuestionItem[] },

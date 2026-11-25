@@ -69,8 +69,7 @@ export const generateSitemap = async (req, res) => {
     // 1. Static Routes
     const staticRoutes = [
       { url: "/", priority: 1.0, changefreq: "weekly" },
-      { url: "/categories", priority: 0.8, changefreq: "weekly" },
-      { url: "/authenticate", priority: 0.5, changefreq: "monthly" },
+      { url: "/subjects", priority: 0.8, changefreq: "weekly" },
     ];
 
     staticRoutes.forEach((route) => {
@@ -87,7 +86,7 @@ export const generateSitemap = async (req, res) => {
       if (!cat._id) return;
       const normalizedCat = normalizeCategory(cat._id);
       // encodeURI handles spaces and standard special characters for URLs
-      const catUrl = `${baseUrl}/category/${encodeURIComponent(normalizedCat)}`;
+      const catUrl = `${baseUrl}/subjects/${encodeURIComponent(normalizedCat)}`;
 
       xml += `  <url>\n`;
       xml += `    <loc>${escapeXml(catUrl)}</loc>\n`;
@@ -101,7 +100,7 @@ export const generateSitemap = async (req, res) => {
 
     // 3. Dynamic Individual Card Routes
     allCards.forEach((card) => {
-      const cardUrl = `${baseUrl}/card/${card._id}`;
+      const cardUrl = `${baseUrl}/study-sets/${card._id}`;
       xml += `  <url>\n`;
       xml += `    <loc>${escapeXml(cardUrl)}</loc>\n`;
       if (card.updatedAt) {

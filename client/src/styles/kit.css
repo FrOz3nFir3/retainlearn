@@ -1,0 +1,488 @@
+/* The new screens' design system (PLAN 14.13): colour roles, and the CSS the building blocks in components/ui need
+   that utility classes can't say. Ported from the prototype's styles.css, built to the modern web guidance.
+
+   Colour by role, each a light and a dark value in one place (light-dark()): color-scheme picks which, and every role
+   follows, with the browser's own scrollbars and form controls. ink: text and lines (faint fills at low opacity).
+   surface: panels, cards, inputs. mist: a panel within a panel. chalk: the page. night: dark fills in both themes,
+   with white text. The tones (mint, bell, rose, cold, orange) each have a wash (a tinted background) and an ink (text
+   on it), so a badge reads in both themes. */
+
+/* The colour scheme is the device's, unless you pick light or dark in the account menu (app/colorScheme.ts). The pick
+   is the <meta name="color-scheme">'s content, set before the page paints by the script beside it in index.html, and
+   mapped here to the property the colours follow; CSS alone would ignore the meta (guide: dark-mode-toggle). Without
+   any script, the device's scheme. */
+:root {
+  color-scheme: light dark;
+  &:has(> head > meta[name="color-scheme"][content="dark"]) {
+    color-scheme: dark;
+  }
+  &:has(> head > meta[name="color-scheme"][content="light"]) {
+    color-scheme: light;
+  }
+}
+
+/* static: every role is output, even one no class uses yet, since components also read them as var(--color-…)
+   (Bar's fill). Tailwind otherwise drops the unused ones. */
+@theme static {
+  --color-ink: light-dark(#1e1b4b, #e7e8f6);
+  --color-surface: light-dark(#ffffff, #1f2242);
+  --color-mist: light-dark(#f4f5fb, #282b4f);
+  --color-chalk: light-dark(#e6e9f6, #12142d);
+  --color-night: #1e1b4b;
+  --color-brand: light-dark(#4f46e5, #6d66f7);
+  --color-brand-deep: light-dark(#3b33c4, #5b53ef);
+  --color-bell: #f59e0b;
+  --color-mint: #34b27d;
+  --color-cold: #8e92b6;
+
+  --color-mint-wash: light-dark(#ecfdf5, rgb(16 185 129 / 0.14));
+  --color-mint-ink: light-dark(#047857, #6ee7b7);
+  --color-bell-wash: light-dark(rgb(245 158 11 / 0.15), rgb(245 158 11 / 0.14));
+  --color-bell-ink: light-dark(#92400e, #fde68a);
+  --color-rose-wash: light-dark(#fff1f2, rgb(244 63 94 / 0.14));
+  --color-rose-ink: light-dark(#be123c, #fda4af);
+  --color-cold-wash: light-dark(#f1f5f9, rgb(148 163 184 / 0.16));
+  --color-cold-ink: light-dark(#475569, #cbd5e1);
+  --color-orange-wash: light-dark(#fff7ed, rgb(249 115 22 / 0.14));
+  --color-orange-ink: light-dark(#c2410c, #fdba74);
+  --color-danger: light-dark(#e11d48, #f43f5e);
+  --color-danger-deep: light-dark(#be123c, #e11d48);
+
+  --font-display: "Fraunces Variable", ui-serif, Georgia, serif;
+}
+
+/* User-written content (components/ui/RichText.tsx): flashcards' and questions' HTML, with code coloured in the
+   prototype's palette. */
+.rich {
+  font-size: 15px;
+  line-height: 1.65;
+  color: color-mix(in oklab, var(--color-ink) 85%, transparent);
+  overflow-wrap: anywhere;
+
+  & :where(p, ul, ol, pre, blockquote) + :where(p, ul, ol, pre, blockquote) {
+    margin-top: 0.7em;
+  }
+  & ul {
+    list-style: disc;
+    padding-left: 1.25rem;
+  }
+  & ol {
+    list-style: decimal;
+    padding-left: 1.25rem;
+  }
+  & li + li {
+    margin-top: 0.375rem;
+  }
+  & li > p {
+    display: inline;
+  }
+  & :where(strong, b) {
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+  & a {
+    color: var(--color-brand);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  & code:not(pre code) {
+    border-radius: 0.375rem;
+    padding: 0.1em 0.4em;
+    font-size: 0.86em;
+    background: var(--color-rose-wash);
+    color: var(--color-rose-ink);
+  }
+  & pre {
+    margin-block: 0.75rem;
+    overflow-x: auto;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #282c34;
+    color: #abb2bf;
+    color-scheme: dark;
+  }
+  & pre code {
+    background: none;
+    padding: 0;
+  }
+  & blockquote {
+    border-left: 3px solid color-mix(in oklab, var(--color-ink) 15%, transparent);
+    padding-left: 0.875rem;
+    color: color-mix(in oklab, var(--color-ink) 70%, transparent);
+  }
+  & .hljs-keyword,
+  & .hljs-built_in {
+    color: #c678dd;
+  }
+  & .hljs-string {
+    color: #98c379;
+  }
+  & .hljs-comment {
+    color: #7f848e;
+    font-style: italic;
+  }
+  & .hljs-number,
+  & .hljs-literal {
+    color: #d19a66;
+  }
+  & .hljs-title {
+    color: #61afef;
+  }
+  & .hljs-attr,
+  & .hljs-property,
+  & .hljs-variable {
+    color: #e06c75;
+  }
+}
+
+/* A frosted card: dialogs, sheets and panels. */
+@utility panel {
+  border-radius: 20px;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 7%, transparent);
+  background: color-mix(in oklab, var(--color-surface) 92%, transparent);
+  backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow:
+    0 1px 2px rgb(30 27 75 / 0.05),
+    0 18px 40px -20px rgb(30 27 75 / 0.3);
+}
+
+/* Dialog (components/ui/Dialog.tsx): the native <dialog>, opened with showModal(). Scrolling over the backdrop or
+   inside the dialog mustn't scroll the page behind it (both rules are needed). It fades and grows in as it opens
+   (@starting-style); closing is instant, which is all some browsers can do (guide: animate-to-from-top-layer). */
+dialog.kit-dialog {
+  max-height: min(92dvh, 52rem);
+  margin: auto; /* the browser centres a modal with margin: auto, which Tailwind's reset sets to 0 */
+  padding: 0;
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+dialog.kit-dialog:modal {
+  overscroll-behavior: contain;
+}
+dialog.kit-dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+  background-color: rgb(30 27 75 / 0.4);
+  backdrop-filter: blur(2px);
+}
+dialog.kit-dialog[open] {
+  opacity: 1;
+  transition: opacity 0.2s ease-out, transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+
+  @starting-style {
+    opacity: 0;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    transform: none;
+
+    @starting-style {
+      transform: scale(0.96);
+    }
+  }
+
+  &::backdrop {
+    transition: background-color 0.2s ease-out;
+
+    @starting-style {
+      background-color: transparent;
+    }
+  }
+}
+
+/* Sheet (components/ui/Sheet.tsx): a panel you keep working beside, in the top layer (popover="manual"). A bottom
+   sheet on phones, a side panel from the md breakpoint. Display only while open, so a closed one stays hidden. */
+.kit-sheet[popover] {
+  inset: auto 0 0 0;
+  width: auto;
+  max-height: 78dvh;
+  margin: 0;
+  padding: 0;
+  border-radius: 20px 20px 0 0;
+  color: var(--color-ink);
+}
+.kit-sheet[popover]:popover-open {
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 48rem) {
+  .kit-sheet[popover] {
+    inset: 5rem 1.5rem 1rem auto;
+    width: var(--kit-sheet-width, 380px);
+    height: auto; /* the popover default (fit-content) would stop it short of the bottom */
+    max-height: none;
+    border-radius: 20px;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-sheet[popover]:popover-open {
+    transition: translate 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    @starting-style {
+      translate: 0 1.5rem;
+    }
+  }
+}
+
+/* Bar (components/ui/Bar.tsx): a native <progress>, styled (guide: progress). The track is the element; the fill is
+   each engine's own pseudo-element, in separate rules (one rule naming both would be dropped). --kit-bar-fill sets
+   the tone. */
+progress.kit-bar {
+  appearance: none;
+  display: block;
+  width: 100%;
+  height: 0.375rem;
+  border: 0 solid;
+  border-radius: 999px;
+  overflow: clip;
+  background: color-mix(in oklab, var(--color-ink) 7%, transparent);
+}
+progress.kit-bar::-webkit-progress-bar {
+  background: transparent;
+}
+progress.kit-bar::-webkit-progress-value {
+  background: var(--kit-bar-fill, var(--color-brand));
+  border-radius: 999px;
+  transition: inline-size 0.7s;
+}
+progress.kit-bar::-moz-progress-bar {
+  background: var(--kit-bar-fill, var(--color-brand));
+  border-radius: 999px;
+}
+
+/* Skeleton (components/ui/Skeleton.tsx): the shape of what's loading, so the page doesn't jump when it arrives. A
+   light passes over it (moved with translate, so it stays off the main thread); with reduced motion it only fades
+   gently. Hidden from screen readers, which hear the loading status instead. In forced colours, an outline. */
+.kit-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in oklab, var(--color-ink) 8%, transparent);
+}
+.kit-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  translate: -100% 0;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, var(--color-surface) 60%, transparent), transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-skeleton::after {
+    animation: kit-shimmer 1.6s ease-in-out infinite;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-skeleton {
+    animation: kit-pulse 3s ease-in-out infinite;
+  }
+}
+@media (forced-colors: active) {
+  .kit-skeleton {
+    border: 1px solid GrayText;
+  }
+}
+/* A flashcard reviewed whole (classes/WholeCard.tsx) turns over to its answer; with reduced motion, it's swapped
+   without turning. */
+.kit-flip {
+  perspective: 1400px;
+}
+.kit-flip-inner {
+  position: relative;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.kit-flip-inner.is-flipped {
+  transform: rotateY(180deg);
+}
+.kit-flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+}
+.kit-flip-back {
+  transform: rotateY(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .kit-flip-inner {
+    transition: none;
+  }
+}
+
+/* A quiz's ball landing (classes/Pips.tsx), and a ring filling to a share (classes/Ring.tsx). Used under
+   motion-safe, so reduced motion shows them still. */
+@keyframes kit-land {
+  0% {
+    opacity: 0;
+    transform: scale(0.2) rotate(-25deg);
+  }
+  70% {
+    opacity: 1;
+    transform: scale(1.22) rotate(6deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
+}
+/* Classes, at the moment an answer lands (classes/AnswerOption.tsx): a right answer glows and throws sparks (each its
+   own way out, --dx and --dy set inline), a miss shakes, the XP floats up. Only then: the screen stays still while you
+   think. All under motion-safe. */
+@keyframes kit-glow {
+  from {
+    box-shadow: 0 0 0 0 rgb(16 185 129 / 0.5);
+  }
+  to {
+    box-shadow: 0 0 0 14px rgb(16 185 129 / 0);
+  }
+}
+@keyframes kit-shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  80% {
+    transform: translateX(2px);
+  }
+}
+@keyframes kit-spark {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.3);
+  }
+}
+@keyframes kit-float-up {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translateY(-6px) scale(1.15);
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(-26px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+}
+@keyframes kit-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes kit-ring-fill {
+  from {
+    stroke-dashoffset: 100;
+  }
+}
+@keyframes kit-shimmer {
+  to {
+    translate: 100% 0;
+  }
+}
+@keyframes kit-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* The app's bars (components/layout): the top bar at the top, and the tab bar at the bottom on phones. Both slide out
+   of the way while you scroll down, and back as soon as you scroll up or one of them holds keyboard focus: a
+   scroll-state query on the page's scroller, with no script (Chrome 144 on; elsewhere the bars just stay, compact).
+   The page scrolls a focused element clear of them (guides: content-first-noise-reduction, form-factor-adaptation). */
+html {
+  container-type: scroll-state;
+  scroll-padding-top: 4.5rem;
+}
+@media (width < 48rem) {
+  html {
+    scroll-padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-top-bar,
+  .kit-tab-bar {
+    transition: translate 0.25s ease-out;
+  }
+}
+@container scroll-state((scrolled: bottom) and (scrollable: top)) {
+  .kit-top-bar:not(:focus-within) {
+    translate: 0 -100%;
+  }
+  .kit-tab-bar:not(:focus-within) {
+    translate: 0 100%;
+  }
+}
+
+/* Menu (components/ui/Menu.tsx): a popover under its button, placed by CSS anchor positioning (the button's command
+   makes it the anchor), its right edge on the button's, flipping above or the other way where it would overflow. It
+   drops in quickly, motion permitting, and a radio item's check mark is drawn here, with no alternative text: its
+   aria-checked says it (guide: menu). */
+.kit-menu {
+  position-area: block-end span-inline-start;
+  position-try-fallbacks: flip-block, flip-inline, flip-block flip-inline;
+  inset: auto;
+  margin: 0.5rem 0;
+  min-inline-size: 15rem;
+  max-block-size: calc(100dvh - 5rem);
+  overflow: auto;
+  padding: 0.375rem;
+  border: 1px solid color-mix(in oklab, var(--color-ink) 9%, transparent);
+  border-radius: 1rem;
+  background: var(--color-surface);
+  color: var(--color-ink);
+  box-shadow:
+    0 1px 2px rgb(30 27 75 / 0.06),
+    0 18px 40px -18px rgb(30 27 75 / 0.35);
+}
+.kit-menu [role="menuitemradio"]::before {
+  content: "";
+  flex: none;
+  inline-size: 1rem;
+  text-align: center;
+  color: var(--color-brand);
+}
+.kit-menu [role="menuitemradio"][aria-checked="true"]::before {
+  content: "✓" / "";
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kit-menu {
+    opacity: 0;
+    translate: 0 -0.25rem;
+    transition: opacity, translate, display, overlay;
+    transition-duration: 0.15s;
+    transition-behavior: allow-discrete;
+  }
+  .kit-menu:popover-open {
+    opacity: 1;
+    translate: 0 0;
+    transition-duration: 0.1s;
+    @starting-style {
+      opacity: 0;
+      translate: 0 -0.25rem;
+    }
+  }
+}

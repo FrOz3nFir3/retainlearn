@@ -2,29 +2,15 @@ import {
   createNewUser,
   findUserByEmail,
   findUserByGoogleId,
-  updateUserQuizProgress,
   updateUser,
-  getDetailedReport,
-  getUserReviewProgress,
-  getUserStats,
-  getUserQuizProgress,
   getUserById,
-  updateUserReviewProgress,
   findUserByUsername,
   findUserByEmailOrUsername,
   generateUniqueUsername,
   getPublicUserByUsername,
-  getUserStudyingCount,
-  getUserLastReviewedByCardProgress,
-  updateUserWeakCards,
-  getFocusReviewData,
-  getFocusQuizData,
-  updateUserStrugglingQuiz,
-  resetUserQuizProgress,
   searchUsers,
   endAllSessions,
 } from "../../models/users/users.model.js";
-import { getPagination } from "../../services/query.js";
 import {
   setTokens,
   clearSessionCookies,
@@ -329,42 +315,6 @@ export async function httpUpdateUser(req, res) {
   }
 }
 
-export async function httpUpdateUserQuizProgress(req, res) {
-  const { id } = req.token;
-  const { resetProgress, card_id } = req.body;
-
-  try {
-    if (resetProgress) {
-      await resetUserQuizProgress(id, card_id);
-    } else {
-      await updateUserQuizProgress(id, req.body);
-    }
-    res.status(200).json({ ok: true });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpUpdateUserReviewProgress(req, res) {
-  const { id } = req.token;
-  const { card_id, lastReviewedCardNo } = req.body;
-
-  if (!card_id || lastReviewedCardNo === undefined) {
-    return res
-      .status(400)
-      .json({ error: "card_id and lastReviewedCardNo are required." });
-  }
-
-  try {
-    await updateUserReviewProgress(id, card_id, lastReviewedCardNo);
-    res.status(200).json({ ok: true });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
 export async function httpLoginUser(req, res) {
   const { loginIdentifier, password } = req.body ?? {};
   // Only text is looked up. Anything else (an object, say) would be read by the database as a query (P0-10).
@@ -480,205 +430,6 @@ export async function httpLogoutUser(req, res) {
   return res.status(200).json({ ok: true });
 }
 
-export async function httpGetUserProgressPaginated(req, res) {
-  const { id: userId } = req.token;
-  const { skip, limit } = getPagination(req.query);
-  const { search } = req.query;
-
-  try {
-    const { cards, total } = await getUserReviewProgress(userId, {
-      skip,
-      limit,
-      search,
-    });
-
-    const hasMore = skip + limit < total;
-    const page = Math.floor(skip / limit) + 1;
-
-    return res.json({
-      cards,
-      total,
-      hasMore,
-      page,
-      limit,
-    });
-  } catch (error) {
-    console.log(error, "error in paginated progress");
-    res.status(500).json({ error });
-  }
-}
-
-export async function httpGetCardReviewProgress(req, res) {
-  const { card_id } = req.params;
-  const { id: userId } = req.token;
-
-  if (!card_id) {
-    return res.status(400).json({ error: "card_id is required" });
-  }
-
-  try {
-    const cardProgress = await getUserLastReviewedByCardProgress({
-      userId,
-      cardId: card_id,
-    });
-    if (!cardProgress) {
-      return res.status(200).json({ lastReviewedCardNo: 0 });
-    }
-
-    return res.status(200).json({
-      lastReviewedCardNo: cardProgress.lastReviewedCardNo || 0,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpGetUserStats(req, res) {
-  const { id: userId } = req.token;
-
-  try {
-    const stats = await getUserStats(userId);
-    return res.json(stats);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpGetQuizProgress(req, res) {
-  const { id: userId } = req.token;
-  const { skip, limit } = getPagination(req.query);
-  const { search } = req.query;
-
-  try {
-    const { cards, total } = await getUserQuizProgress(userId, {
-      skip,
-      limit,
-      search,
-    });
-    const hasMore = skip + limit < total;
-    const page = Math.floor(skip / limit) + 1;
-
-    return res.json({
-      cards,
-      total,
-      hasMore,
-      page,
-      limit,
-    });
-  } catch (error) {
-    res.status(500).json({ error });
-  }
-}
-
-export async function httpGetDetailedReport(req, res) {
-  const { card_id } = req.params;
-  const { id: userId } = req.token;
-
-  try {
-    const attempts = await getDetailedReport(userId, card_id);
-    res.status(200).json(attempts);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpUpdateWeakCards(req, res) {
-  const { id: userId } = req.token;
-  const { cardId, flashcardId, rating, action } = req.body;
-
-  if (!cardId || !flashcardId || !rating || !action) {
-    return res.status(400).json({
-      error: "cardId, flashcardId, rating, and action are required",
-    });
-  }
-
-  if (!["add", "remove"].includes(action)) {
-    return res.status(400).json({
-      error: "action must be either 'add' or 'remove'",
-    });
-  }
-
-  try {
-    await updateUserWeakCards(userId, cardId, flashcardId, action);
-    res.status(200).json({ ok: true });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpGetFocusReviewData(req, res) {
-  const { card_id } = req.params;
-  const { id: userId } = req.token;
-
-  if (!card_id) {
-    return res.status(400).json({ error: "card_id is required" });
-  }
-
-  try {
-    const focusReviewData = await getFocusReviewData(userId, card_id);
-
-    if (!focusReviewData) {
-      return res
-        .status(404)
-        .json({ error: "Card not found or no review data" });
-    }
-
-    return res.status(200).json(focusReviewData);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpGetFocusQuizData(req, res) {
-  const { card_id } = req.params;
-  const { id: userId } = req.token;
-
-  if (!card_id) {
-    return res.status(400).json({ error: "card_id is required" });
-  }
-
-  try {
-    const focusQuizData = await getFocusQuizData(userId, card_id);
-
-    if (!focusQuizData) {
-      return res.status(404).json({ error: "Card not found or no quiz data" });
-    }
-
-    return res.status(200).json(focusQuizData);
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
-
-export async function httpUpdateUserStrugglingQuiz(req, res) {
-  const { id: userId } = req.token;
-  const { cardId, quizId, action } = req.body;
-
-  if (!cardId || !quizId || !action) {
-    return res.status(400).json({
-      error: "cardId, quizId, and action are required",
-    });
-  }
-
-  if (action !== "add" && action !== "remove") {
-    return res.status(400).json({
-      error: "action must be 'add' or 'remove'",
-    });
-  }
-
-  try {
-    await updateUserStrugglingQuiz(userId, cardId, quizId, action);
-    res.status(200).json({ ok: true });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: error.message });
-  }
-}
 export async function httpSearchUsers(req, res) {
   const token = req.token;
   const { search: searchTerm } = req.query;

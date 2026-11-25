@@ -3,7 +3,7 @@ import { BookOpenIcon, AcademicCapIcon, ArrowRightIcon } from "@heroicons/react/
 
 const CardGridItem = ({ card, showCategory = false }) => {
   return (
-    <Link to={`/card/${card._id}`} className="block group">
+    <Link to={`/study-sets/${card._id}`} className="block group">
       <div className="relative bg-white dark:bg-[#14112a] border border-gray-200 dark:border-white/8 rounded-2xl overflow-hidden h-full flex flex-col transition-all duration-200 hover:border-gray-300 dark:hover:border-white/15 hover:shadow-sm cursor-pointer">
         {/* Amber bottom accent bar */}
         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-brand-accent scale-x-0 group-hover:scale-x-100 transition-transform duration-300 origin-left z-10" />
