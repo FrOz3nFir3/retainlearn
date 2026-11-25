@@ -5,16 +5,9 @@ export function normalizeWhitespace(text) {
   return text.trim().replace(/\s+/g, " ");
 }
 
-export function normalizeCategory(category) {
-  // Convert to title case: "programming" -> "Programming", "react hooks" -> "React Hooks"
-  return category
-    .trim()
-    .replace(/\s+/g, " ") // Normalize whitespace first
-    .toLowerCase()
-    .split(" ")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
-}
+// A set's category as it's kept: "react  hooks" -> "React Hooks". The shared rule (core's subjectName), so a subject
+// put on a campus and the sets made in it always have the same name.
+export { subjectName as normalizeCategory } from "@retainlearn/core";
 
 export function escapeRegex(string) {
   // Escape special regex characters

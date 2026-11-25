@@ -1,16 +1,13 @@
 import { Types } from "mongoose";
 import {
-  getCardsByCategoryPaginated,
   createNewCard,
   countCardsCreatedSince,
   findExistingCard,
-  getAllCategoriesWithPagination,
   getCardsByAuthorPaginated,
 } from "../../models/cards/cards.model.js";
 import { DAY_MS, TRUST, trustedFrom } from "../../config/trust.config.js";
 import { getPublicUserByUsername } from "../../models/users/users.model.js";
 import { getPagination } from "../../services/query.js";
-import { getCategoriesPagination } from "../../services/categoryQuery.js";
 import {
   normalizeWhitespace,
   normalizeCategory,
@@ -34,35 +31,6 @@ export async function httpGetCardsByAuthor(req, res) {
   }
 }
 
-export async function httpGetCardsByCategory(req, res) {
-  const { category } = req.params;
-  const { skip, limit } = getPagination(req.query);
-  const { search } = req.query;
-
-  try {
-    const { cards, total } = await getCardsByCategoryPaginated(
-      category.trim(),
-      {
-        skip,
-        limit,
-        search,
-      }
-    );
-    const hasMore = skip + limit < total;
-    const page = Math.floor(skip / limit) + 1;
-
-    res.json({
-      cards,
-      total,
-      hasMore,
-      page,
-      limit,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error });
-  }
-}
 export async function httpPostCreateNewCard(req, res) {
   const token = req.token;
 
@@ -124,30 +92,5 @@ export async function httpPostCreateNewCard(req, res) {
       });
     }
     return res.status(400).json({ error: error.message });
-  }
-}
-
-export async function httpGetAllCategoriesPaginated(req, res) {
-  const { skip, limit } = getCategoriesPagination(req.query);
-  const { search } = req.query;
-
-  try {
-    const { categories, total } = await getAllCategoriesWithPagination({
-      skip,
-      limit,
-      search,
-    });
-    const hasMore = skip + limit < total;
-    const page = Math.floor(skip / limit) + 1;
-    res.json({
-      categories,
-      total,
-      hasMore,
-      page,
-      limit,
-    });
-  } catch (error) {
-    console.log(error);
-    res.status(500).json({ error });
   }
 }

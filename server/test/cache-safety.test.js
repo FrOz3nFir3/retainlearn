@@ -55,8 +55,8 @@ test("the review queue needs a login, even when it's cached", async () => {
 });
 
 test("query parameters the server doesn't read don't make new cache entries", async () => {
-  await getAndCache("/api/cards/categories?page=1&utm_source=a");
-  const other = await get("/api/cards/categories?page=1&utm_source=b");
+  await getAndCache("/api/users/ada_author/cards?page=1&utm_source=a");
+  const other = await get("/api/users/ada_author/cards?page=1&utm_source=b");
   assert.equal(other.headers.get("x-cache"), "HIT");
 });
 

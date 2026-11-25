@@ -7,23 +7,20 @@ import type { Campus as CampusData, CampusSubject } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
+import { cardClass, cardLinkClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock } from "#components/ui/Skeleton.tsx";
 import { useCampus } from "./campusApi.ts";
-import { SUBJECT_STATUS, pennantOf } from "./subjects.ts";
+import { SUBJECT_STATUS, pennantOf, subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 // The player's day ("2026-11-24") in words, as it is where they are: the date alone, so no time zone can shift it.
 const dayName = (day: string) => new Intl.DateTimeFormat("en", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(new Date(`${day}T12:00:00Z`));
-// A card whose heading link covers it all, with the focus ring and hover drawn on the card (guide: card).
-const CARD =
-  "relative flex h-full flex-col rounded-2xl border border-ink/7 bg-surface p-4 transition has-[[data-card-link]:focus-visible]:outline-2 has-[[data-card-link]:focus-visible]:outline-offset-2 has-[[data-card-link]:focus-visible]:outline-brand has-[[data-card-link]:hover]:border-brand/35 motion-safe:has-[[data-card-link]:hover]:-translate-y-0.5";
-const CARD_LINK = "outline-none after:absolute after:inset-0 after:rounded-2xl";
 
 export default function Campus() {
   const session = useSession();
@@ -85,10 +82,10 @@ function CampusView({ campus }: { campus: CampusData }) {
               </li>
             ))}
             <li>
-              <article className={CARD}>
+              <article className={cardClass}>
                 <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
                   <Icon name="report" className="size-5 shrink-0 text-brand" />
-                  <Link to="/report-card" data-card-link className={CARD_LINK}>
+                  <Link to="/report-card" data-card-link className={cardLinkClass}>
                     Report card
                   </Link>
                 </h3>
@@ -114,11 +111,11 @@ function CampusView({ campus }: { campus: CampusData }) {
 function SubjectCard({ subject, fading }: { subject: CampusSubject; fading: number }) {
   const status = SUBJECT_STATUS[subject.status];
   return (
-    <article className={CARD}>
+    <article className={cardClass}>
       <header className="flex items-center gap-2">
         <span aria-hidden="true" className="h-7 w-1.5 shrink-0 rounded-full" style={{ background: pennantOf(subject.category) }} />
         <h3 className="min-w-0 flex-1 font-display text-lg font-semibold text-balance">
-          <Link to={`/subjects/${encodeURIComponent(subject.category)}`} data-card-link className={CARD_LINK}>
+          <Link to={subjectPath(subject.category)} data-card-link className={cardLinkClass}>
             {subject.category}
           </Link>
         </h3>

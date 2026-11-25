@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ObjectIdHex, SaveAnswers, TimeZone, z } from "@retainlearn/core";
+import { NewStudySet, ObjectIdHex, SaveAnswers, SubjectName, TimeZone, subjectName, z } from "@retainlearn/core";
 
 test("an id is 24 hexadecimal digits, as MongoDB's ids travel in URLs and JSON", () => {
   assert.equal(ObjectIdHex.safeParse("6740f1a2b3c4d5e6f7a8b9c0").success, true);
@@ -42,4 +42,19 @@ test("saving answers: what a batch must hold, with defaults filled in", () => {
     "a recall point's key over 160 characters": { ...batch, answers: [{ kind: "flashcard", itemId: id, knew: true, ms: 1, points: [{ key: "x".repeat(161), knew: true }] }] },
   };
   for (const [what, body] of Object.entries(bad)) assert.equal(SaveAnswers.safeParse(body).success, false, what);
+});
+
+test("a subject's name is kept tidied and capitalised, up to 40 characters, without what breaks its link", () => {
+  assert.equal(subjectName("  web   DEVELOPMENT "), "Web Development");
+  assert.equal(SubjectName.parse(" c++  basics"), "C++ Basics");
+  for (const bad of ["", "   ", "Maths/Physics", "C#", "100%", "What?", "a\\b", "x".repeat(41)]) {
+    assert.equal(SubjectName.safeParse(bad).success, false, JSON.stringify(bad));
+  }
+  assert.equal(SubjectName.safeParse("C#").error?.issues[0]?.message, "Leave out / ? # % and \\ (they break the subject's link).");
+});
+
+test("a new study set needs a topic and a subtopic that fit, in a subject that can be one", () => {
+  assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "Present tense", category: "spanish" }).data?.category, "Spanish");
+  assert.equal(NewStudySet.safeParse({ mainTopic: " ", subTopic: "Present tense", category: "Spanish" }).error?.issues[0]?.message, "Give the set a topic.");
+  assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "x".repeat(121), category: "Spanish" }).success, false);
 });

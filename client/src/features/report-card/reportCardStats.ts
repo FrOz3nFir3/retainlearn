@@ -60,10 +60,10 @@ export function matchesSearch(s: StudiedSet, query: string): boolean {
 export const hasQuizRecord = (set: ReportCardSet): boolean =>
   set.quiz.started > 0 || Object.values(set.questions).some((q) => (q.right ?? 0) + (q.wrong ?? 0) > 0 || q.missedOn != null);
 
-// When you last studied, in words: "today", "yesterday", "3 days ago", then weeks, months and years. In English, like
-// the rest of the app.
+// Days ago in words (when you last studied a set, when a subject was updated): "today", "yesterday", "3 days ago",
+// then weeks, months and years. In English, like the rest of the app.
 const relative = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-export function lastStudied(daysAgo: number): string {
+export function daysAgoInWords(daysAgo: number): string {
   if (daysAgo < 7) return relative.format(-daysAgo, "day");
   if (daysAgo < 30) return relative.format(-Math.floor(daysAgo / 7), "week");
   if (daysAgo < 365) return relative.format(-Math.floor(daysAgo / 30), "month");

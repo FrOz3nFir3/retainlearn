@@ -2,7 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ReportCard, ReportCardSet } from "@retainlearn/core";
-import { hasQuizRecord, lastStudied, matchesSearch, overview, studiedSets } from "./reportCardStats.ts";
+import { hasQuizRecord, daysAgoInWords, matchesSearch, overview, studiedSets } from "./reportCardStats.ts";
 
 const when = { today: "2026-11-24", timeZone: "UTC" };
 const set = (over: Partial<ReportCardSet>): ReportCardSet => ({
@@ -77,5 +77,5 @@ test("a set's quizzes have something to reset once an answer, a miss or a quiz i
 });
 
 test("when you last studied, in words", () => {
-  assert.deepEqual([0, 1, 3, 7, 20, 45, 400].map(lastStudied), ["today", "yesterday", "3 days ago", "last week", "2 weeks ago", "last month", "last year"]);
+  assert.deepEqual([0, 1, 3, 7, 20, 45, 400].map(daysAgoInWords), ["today", "yesterday", "3 days ago", "last week", "2 weeks ago", "last month", "last year"]);
 });

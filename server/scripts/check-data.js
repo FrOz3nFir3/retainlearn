@@ -4,7 +4,7 @@
 //   MONGO_URI="<production>" npm run check:data      production, over NetBird or as a one-off command in Dokploy
 //
 // It only reads: nothing is written, and no collection or index is created (autoIndex and autoCreate are off). It
-// runs the server's own queries for sign-in, the categories and each set's page against the real documents, and
+// runs the server's own queries for sign-in, the subjects and each set's page against the real documents, and
 // lists what the migrations this version brings will do when it starts (a dry run: src/migrations). It prints
 // counts, never anyone's details. Exit code 1 if something would break.
 import mongoose from "mongoose";
@@ -12,7 +12,8 @@ import env from "../src/config/env.js";
 import { runMigrations } from "../src/migrations/runner.js";
 import Users from "../src/models/users/users.mongo.js";
 import Cards from "../src/models/cards/cards.mongo.js";
-import { getAllCategoriesWithPagination, getCardById, listedFilter } from "../src/models/cards/cards.model.js";
+import { getCardById, listedFilter } from "../src/models/cards/cards.model.js";
+import { subjectsPage } from "../src/models/studySets/studySets.model.ts";
 import { userDetailsProjection } from "../src/utils/constants.js";
 
 const where = (uri) => (uri || "(no MONGO_URI set)").replace(/\/\/[^@/]*@/, "//").split("?")[0];
@@ -76,9 +77,9 @@ try {
   check(noCategory === 0, `every set has a category: ${noCategory} don't`);
   const listed = await Cards.countDocuments(listedFilter());
   note(`${listed} listed, ${sets - listed} unlisted (a missing "listed" counts as listed)`);
-  const { categories } = await getAllCategoriesWithPagination({ skip: 0, limit: 10000 });
-  const inCategories = categories.reduce((n, c) => n + c.cardCount, 0);
-  check(inCategories === listed, `the categories list shows every listed set (${inCategories} of ${listed})`);
+  const { subjects } = await subjectsPage("", 1, 100_000);
+  const inSubjects = subjects.reduce((n, s) => n + s.sets, 0);
+  check(inSubjects === listed, `the subjects list shows every listed set (${inSubjects} of ${listed})`);
 
   let pagesBroken = 0;
   let pagesUnlisted = 0;

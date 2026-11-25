@@ -18,7 +18,7 @@ after(async () => {
 test("browsing while logged out doesn't use up the sign-in limit", async () => {
   // More pages than sign-ins allowed (10 per 15 minutes). The two limits used to share one count per visitor.
   for (let i = 0; i < 15; i++) {
-    assert.equal((await t.api("/api/cards/categories?page=1")).status, 200);
+    assert.equal((await t.api("/api/subjects?page=1")).status, 200);
   }
   await t.signIn("ada_author");
 });

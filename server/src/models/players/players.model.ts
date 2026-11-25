@@ -87,6 +87,37 @@ export async function refreshSubject(userId: string, subject: SubjectSummary): P
   );
 }
 
+// The most subjects a campus can have put on it by hand (POST /api/campus/subjects): a cap on what one account can
+// add to its player. Subjects you study are added however many there are.
+export const SUBJECTS_ADDED_MAX = 100;
+
+// A subject's building, put up before you study it: on the first free plot, with its summary. Nothing changes if
+// it's there already. As in finishClass, the write only goes through if the player is still as it was read, so two at
+// the same moment can't take the same plot. "full": the campus has SUBJECTS_ADDED_MAX subjects already.
+export async function addSubject(userId: string, subject: SubjectSummary): Promise<"added" | "there" | "full"> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const player = await Player.findById(userId, { subjects: 1, updatedAt: 1 }).lean<Pick<PlayerDoc, "subjects" | "updatedAt">>();
+    if (!player) throw new Error("No player to add a subject to");
+    const subjects = player.subjects ?? [];
+    if (subjects.some((s) => s.category === subject.category)) return "there";
+    if (subjects.length >= SUBJECTS_ADDED_MAX) return "full";
+    const unchanged = player.updatedAt ? { updatedAt: player.updatedAt } : { updatedAt: { $exists: false } };
+    const result = await Player.updateOne({ _id: userId, ...unchanged }, { $push: { subjects: { ...subject, plot: nextPlot(subjects) } } });
+    if (result.matchedCount) return "added";
+  }
+  throw new Error("This player is being changed from elsewhere at the same moment");
+}
+
+// A subject's building taken down, if you haven't started a set in it (a class there would put it back). Its plot is
+// free for the next subject. "kept": you've started it, so it stays. The filter says whether it can go (matchedCount):
+// modifiedCount can't, since every update also sets updatedAt.
+export async function removeSubject(userId: string, category: string): Promise<"removed" | "kept" | "absent"> {
+  const notStarted = { category, started: 0 };
+  const result = await Player.updateOne({ _id: userId, subjects: { $elemMatch: notStarted } }, { $pull: { subjects: notStarted } });
+  if (result.matchedCount) return "removed";
+  return (await Player.exists({ _id: userId, "subjects.category": category })) ? "kept" : "absent";
+}
+
 export async function addXp(userId: string, xp: number): Promise<void> {
   if (xp) await Player.updateOne({ _id: userId }, { $inc: { xp } });
 }
