@@ -13,7 +13,7 @@
  */
 
 import { cacheService } from '../services/cache.js';
-import { cacheInvalidationService, invalidationUtils } from '../services/cacheInvalidation.js';
+import { invalidationUtils } from '../services/cacheInvalidation.js';
 import { CACHE_CONFIG } from '../config/cache.config.js';
 
 /**
@@ -171,7 +171,7 @@ async function extractInvalidationTags(req, responseData, options) {
 
 /**
  * Extract standard invalidation tags based on RTK Query patterns
- * Uses the cacheInvalidationService for complex invalidation logic
+ * With the card-update and review-queue tags from services/cacheInvalidation.js
  * 
  * @param {Object} req - Express request object
  * @param {any} responseData - Response data
@@ -185,7 +185,6 @@ async function extractStandardInvalidationTags(req, responseData) {
     const cardId = invalidationUtils.extractCardId(req);
     // ALWAYS use req.token.id for security - this is signed by us and cannot be spoofed
     const userId = invalidationUtils.extractUserId(req);
-    const skipFlags = invalidationUtils.extractSkipFlags(req);
 
     if (CACHE_CONFIG.DEBUG?.ENABLED) {
         console.log('[INVALIDATION EXTRACT] %s %s - userId: %s, cardId: %s', method, fullPath, userId, cardId);
@@ -239,56 +238,10 @@ async function extractStandardInvalidationTags(req, responseData) {
     // User operations invalidation
     if (fullPath.includes('/user')) {
         if (method === 'PATCH') {
-            if (fullPath.includes('/quiz-progress')) {
-                // Quiz progress update - ONLY invalidate user-specific cache
-                const quizCardId = req.body.card_id || req.body.cardId || req.body._id || cardId;
-
-                if (quizCardId && userId) {
-                    // Only use user-specific tags to avoid invalidating other users' caches
-                    tags.push(`User:${userId}:FocusQuizData:${quizCardId}`);
-                    tags.push(`Report:${userId}`);
-                }
-            } else if (fullPath.includes('/review-progress')) {
-                // Review progress update - ONLY invalidate user-specific cache
-                const reviewId = req.params.id || req.params.card_id || req.params.reviewId ||
-                    req.body.cardId || req.body.card_id || req.body._id || req.body.id;
-
-                if (CACHE_CONFIG.DEBUG?.ENABLED && CACHE_CONFIG.DEBUG?.LOG_INVALIDATIONS) {
-                    console.log('[INVALIDATION] Review progress - reviewId: %s, userId: %s', reviewId, userId);
-                }
-
-                if (reviewId && userId) {
-                    // Only use user-specific tags to avoid invalidating other users' caches
-                    tags.push(`User:${userId}:RegularReviewData:${reviewId}`);
-                    tags.push(`User:${userId}:FocusReviewData:${reviewId}`);
-                    tags.push(`Report:${userId}`);
-                } else if (userId) {
-                    // If no specific review ID, invalidate all user's review data
-                    tags.push(`Report:${userId}`);
-                }
-            } else if (fullPath.includes('/weak-cards')) {
-                // Weak cards update - ONLY invalidate user-specific cache
-                const weakCardId = req.body.card_id || req.body.cardId || req.body._id || cardId;
-
-                if (weakCardId && userId) {
-                    // Only use user-specific tags to avoid invalidating other users' caches
-                    tags.push(`Report:${userId}`);
-                    tags.push(`User:${userId}:FocusReviewData:${weakCardId}`);
-                }
-            } else if (fullPath.includes('/struggling-quiz')) {
-                // Struggling quiz update - ONLY invalidate user-specific cache
-                const strugglingCardId = req.body.card_id || req.body.cardId || req.body._id || cardId;
-
-                if (strugglingCardId && userId) {
-                    // Only use user-specific tags to avoid invalidating other users' caches
-                    tags.push(`User:${userId}:FocusQuizData:${strugglingCardId}`);
-                    tags.push(`Report:${userId}`);
-                }
-            } else {
-                // General user update - only invalidate this user's data
-                if (userId) {
-                    tags.push(`User:${userId}`);
-                }
+            // A profile update - only invalidate this user's data. (Progress isn't cached here: the old progress
+            // endpoints went with the old study screens.)
+            if (userId) {
+                tags.push(`User:${userId}`);
             }
         }
 
@@ -322,14 +275,6 @@ export const createInvalidationMiddleware = {
      */
     users: (options = {}) => invalidationMiddleware({
         staticTags: ['User'],
-        ...options
-    }),
-
-    /**
-     * Invalidation middleware for progress/report mutation routes
-     */
-    progress: (options = {}) => invalidationMiddleware({
-        staticTags: ['Report'],
         ...options
     }),
 

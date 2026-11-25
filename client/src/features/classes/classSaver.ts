@@ -8,7 +8,7 @@
 //   needs at least one answer in a batch).
 // - When the page is hidden (another tab, the phone locked, the tab closed), what's waiting is sent at once, without
 //   waiting for an earlier batch still on its way (the server takes batches in any order), with keepalive so the
-//   browser finishes the request even if the page goes.
+//   browser finishes the request even if the page goes. Leaving the class for another page sends all of it.
 import type { SaveAnswersBody, SavedAnswers } from "@retainlearn/core";
 
 export type GivenAnswer = SaveAnswersBody["answers"][number];
@@ -63,7 +63,24 @@ export class ClassSaver {
 
   // The page is being hidden: send what's waiting now, all but the held-back answer, without waiting in line.
   flushNow(): void {
-    if (this.pending.length > 1) void this.deliver(this.take(this.pending.length - 1), false, true).catch(() => {});
+    if (this.pending.length > 1) this.sendLoose(this.take(this.pending.length - 1));
+  }
+
+  // You've left the class halfway, for another page in the app: everything waiting goes now, the held-back answer too
+  // (no finished batch will follow), with keepalive in case the page goes next. Resolves once every batch sent so far
+  // has been answered (or given up on), so the page you're on can read your progress with them in it.
+  leave(): Promise<void> {
+    if (this.pending.length) this.sendLoose(this.take(this.pending.length));
+    return Promise.all([this.chain, ...this.loose]).then(() => undefined);
+  }
+
+  // Batches sent at once, out of line (the server takes batches in any order), and kept track of until answered.
+  private loose = new Set<Promise<unknown>>();
+  private sendLoose(answers: GivenAnswer[]): void {
+    const sent: Promise<unknown> = this.deliver(answers, false, true)
+      .catch(() => {})
+      .finally(() => this.loose.delete(sent));
+    this.loose.add(sent);
   }
 
   private take(n: number): GivenAnswer[] {

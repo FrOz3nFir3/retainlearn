@@ -99,12 +99,7 @@ export const apiSlice = createApi({
     "CardFlashcards", // For view=review and view=review_text (flashcard data)
     "CardQuiz", // For view=quiz (quiz data)
     "CardReviewQueue", // For view=review-queue (review queue data)
-    "Report",
     "User",
-    "CardReviewProgress",
-    "FocusReviewData",
-    "FocusQuizData", // Separate tag for focus quiz sessions
-    "RegularReviewData", // Separate tag for regular review sessions to avoid unnecessary focus review refetches
     "Reviewers", // For reviewer management
   ],
   // The "endpoints" represent operations and requests for this server
@@ -132,11 +127,6 @@ export const apiSlice = createApi({
           search: queryArgs.search || "",
         };
       },
-    }),
-
-    getCardsByCategory: builder.query({
-      query: (category) => `/cards/${category}`,
-      providesTags: ["Card"],
     }),
 
     getCardsByCategoryPaginated: builder.query({
@@ -287,79 +277,6 @@ export const apiSlice = createApi({
       providesTags: ["User"],
     }),
 
-    getUserProgressPaginated: builder.query({
-      query: ({ page = 1, search = "", category = "All" }) => {
-        const params = new URLSearchParams({
-          page: page.toString(),
-        });
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-        if (category && category !== "All") {
-          params.append("category", category);
-        }
-        return `/user/progress?${params.toString()}`;
-      },
-      providesTags: (result) => [
-        { type: "Report", id: "LIST" },
-        ...(result?.cards?.map(({ _id }) => ({ type: "Report", id: _id })) ??
-          []),
-      ],
-      // Keep separate cache entries for each page, search, and category combination
-      serializeQueryArgs: ({ queryArgs }) => {
-        return {
-          page: queryArgs.page || 1,
-          search: queryArgs.search || "",
-        };
-      },
-    }),
-
-    getUserStats: builder.query({
-      query: () => `/user/stats`,
-      providesTags: ["Report"],
-    }),
-
-    getQuizProgress: builder.query({
-      query: ({ page = 1, search = "", category = "All" }) => {
-        const params = new URLSearchParams({
-          page: page.toString(),
-        });
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-        if (category && category !== "All") {
-          params.append("category", category);
-        }
-        return `/user/quiz-progress?${params.toString()}`;
-      },
-      providesTags: (result) => [
-        { type: "Report", id: "LIST" },
-        ...(result?.cards?.map(({ _id }) => ({ type: "Report", id: _id })) ??
-          []),
-      ],
-      serializeQueryArgs: ({ queryArgs }) => {
-        return {
-          page: queryArgs.page || 1,
-          search: queryArgs.search || "",
-        };
-      },
-    }),
-
-    getCardReviewProgress: builder.query({
-      query: (card_id) => `/user/review-progress/${card_id}`,
-      providesTags: (result, error, card_id) => [
-        { type: "RegularReviewData", id: card_id }, // Use RegularReviewData for regular review sessions
-      ],
-      serializeQueryArgs: ({ queryArgs }) => {
-        return queryArgs; // Each card_id gets its own cache entry
-      },
-    }),
-
-    getDetailedReport: builder.query({
-      query: (card_id) => `/user/report/${card_id}`,
-      providesTags: ["Report"],
-    }),
-
     getCardLogs: builder.query({
       query: ({ cardId, page, search = "" }) => {
         const params = new URLSearchParams({ page: page.toString() });
@@ -431,98 +348,6 @@ export const apiSlice = createApi({
       invalidatesTags: (result, error, arg) => (!error ? ["User"] : null),
     }),
 
-    patchUpdateUserQuizProgress: builder.mutation({
-      query: (user) => ({
-        url: "/user/quiz-progress",
-        method: "PATCH",
-        body: user,
-      }),
-      invalidatesTags: (result, error, arg) => {
-        if (!error) {
-          const tags = ["Report"];
-
-          // Add struggling quiz tracking
-          if (arg.isFirstQuestion) {
-            tags.push("User");
-          }
-
-          // Only invalidate FocusQuizData if NOT on focus quiz page
-          if (!arg.skipFocusQuizInvalidation) {
-            tags.push({ type: "FocusQuizData", id: arg.card_id });
-          }
-
-          return tags;
-        }
-        return [];
-      },
-    }),
-
-    updateUserReviewProgress: builder.mutation({
-      query: (progress) => ({
-        url: "/user/review-progress",
-        method: "PATCH",
-        body: progress,
-      }),
-      invalidatesTags: (
-        result,
-        error,
-        { card_id, skipFocusReviewInvalidation }
-      ) => {
-        if (!error) {
-          const tags = [
-            { type: "Report", id: "LIST" },
-            { type: "Report", id: card_id },
-            { type: "RegularReviewData", id: card_id },
-            { type: "RegularReviewData", id: "LIST" },
-          ];
-
-          // Only invalidate FocusReviewData if NOT on focus review page
-          if (!skipFocusReviewInvalidation) {
-            tags.push({ type: "FocusReviewData", id: card_id });
-          }
-
-          return tags;
-        }
-        return [];
-      },
-    }),
-
-    updateUserWeakCards: builder.mutation({
-      query: (weakCardData) => ({
-        url: "/user/weak-cards",
-        method: "PATCH",
-        body: weakCardData,
-      }),
-      invalidatesTags: (
-        result,
-        error,
-        { cardId, skipFocusReviewInvalidation, skipRegularReviewInvalidation }
-      ) => {
-        if (!error) {
-          const tags = [
-            { type: "Report", id: "LIST" },
-            { type: "Report", id: cardId },
-          ];
-
-          // Only invalidate RegularReviewData if NOT on regular review page
-          if (!skipRegularReviewInvalidation) {
-            tags.push(
-              { type: "RegularReviewData", id: cardId },
-              { type: "RegularReviewData", id: "LIST" }
-            );
-          }
-
-          // Only invalidate FocusReviewData if NOT on focus review page
-          if (!skipFocusReviewInvalidation) {
-            tags.push({ type: "FocusReviewData", id: cardId });
-          }
-
-          return tags;
-        }
-        return [];
-      },
-    }),
-
     postLogoutUser: builder.mutation({
       query: () => ({
         url: "/user/logout",
@@ -553,48 +378,6 @@ export const apiSlice = createApi({
             { type: "Card", id: "LIST" },
           ]
           : [{ type: "Card", id: "LIST" }],
-    }),
-
-    getFocusReviewData: builder.query({
-      query: (cardId) => `/user/focus-review/${cardId}`,
-      providesTags: (result, error, cardId) => [
-        { type: "FocusReviewData", id: cardId },
-      ],
-    }),
-
-    getFocusQuizData: builder.query({
-      query: (cardId) => `/user/focus-quiz/${cardId}`,
-      providesTags: (result, error, cardId) => [
-        { type: "FocusQuizData", id: cardId },
-      ],
-    }),
-
-    updateUserStrugglingQuiz: builder.mutation({
-      query: (strugglingQuizData) => ({
-        url: "/user/struggling-quiz",
-        method: "PATCH",
-        body: strugglingQuizData,
-      }),
-      invalidatesTags: (
-        result,
-        error,
-        { cardId, skipFocusQuizInvalidation }
-      ) => {
-        if (!error) {
-          const tags = [
-            { type: "Report", id: "LIST" },
-            { type: "Report", id: cardId },
-          ];
-
-          // Only invalidate FocusQuizData if NOT on focus quiz page
-          if (!skipFocusQuizInvalidation) {
-            tags.push({ type: "FocusQuizData", id: cardId });
-          }
-
-          return tags;
-        }
-        return [];
-      },
     }),
 
     // Review Queue Management Endpoints
@@ -628,19 +411,6 @@ export const apiSlice = createApi({
             { type: "CardReviewQueue", id: cardId },
             { type: "CardOverview", id: cardId },
           ];
-        }
-        return [];
-      },
-    }),
-
-    deleteReviewItem: builder.mutation({
-      query: ({ cardId, itemId }) => ({
-        url: `/card/${cardId}/review-queue/${itemId}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (result, error, { cardId }) => {
-        if (!error) {
-          return [{ type: "CardReviewQueue", id: cardId }];
         }
         return [];
       },
@@ -720,7 +490,6 @@ export const apiSlice = createApi({
 
 export const {
   useGetCategoriesPaginatedQuery,
-  useGetCardsByCategoryQuery,
   useGetCardsByCategoryPaginatedQuery,
   usePostCreateNewCardMutation,
   useGetIndividualCardQuery,
@@ -729,27 +498,15 @@ export const {
   usePostLoginUserMutation,
   usePostAuthDetailsMutation,
   usePatchUpdateUserProfileMutation,
-  usePatchUpdateUserQuizProgressMutation,
-  useUpdateUserReviewProgressMutation,
-  useUpdateUserWeakCardsMutation,
   usePostLogoutUserMutation,
   usePostGoogleLoginMutation,
-  useGetUserProgressPaginatedQuery,
-  useGetUserStatsQuery,
-  useGetQuizProgressQuery,
-  useGetCardReviewProgressQuery,
-  useGetDetailedReportQuery,
   useGetCardLogsQuery,
   useGetReviewQueueItemsQuery,
   useGetPublicUserByUsernameQuery,
   useGetCardsByAuthorQuery,
-  useGetFocusReviewDataQuery,
-  useGetFocusQuizDataQuery,
-  useUpdateUserStrugglingQuizMutation,
   // Review Queue Management Hooks
   useAcceptReviewItemMutation,
   useRejectReviewItemMutation,
-  useDeleteReviewItemMutation,
   // Reviewer Management Hooks
   useGetReviewersQuery,
   useAddReviewersMutation,
