@@ -85,3 +85,45 @@ test("a sitting's key says the kind of class and its round, and is new each time
   assert.equal(newClassKey("review", 2, 1_700_000_000_000), "review:2:loyw3v28");
   assert.notEqual(newClassKey("quiz", 1, 1), newClassKey("quiz", 1, 2));
 });
+
+test("leaving halfway sends everything waiting, the held-back answer too, unfinished, and resolves once it's saved", async () => {
+  const { sent, send } = recorder();
+  const saver = new ClassSaver(send, sitting, { wait: async () => {} });
+  for (let i = 1; i <= 8; i++) saver.record(answer(i)); // a batch of five on its way, three waiting
+  await saver.leave();
+  // The three go at once, out of line (the server takes batches in any order), so they may take the first number.
+  assert.deepEqual(
+    sent.map(({ body, keepalive }) => [body.answers.length, body.finished, keepalive]).toSorted(),
+    [
+      [3, false, true],
+      [5, false, false],
+    ],
+  );
+  assert.deepEqual(sent.map(({ body }) => body.seq).toSorted(), [1, 2], "each batch its own number");
+  await saver.leave();
+  assert.equal(sent.length, 2, "leaving again sends nothing more");
+});
+
+test("leaving waits for a batch sent when the page was hidden, as well as those in line", async () => {
+  let release = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  const sent: number[] = [];
+  const saver = new ClassSaver(
+    async (body) => {
+      if (body.seq === 1) await held;
+      sent.push(body.seq);
+      return saved();
+    },
+    sitting,
+    { wait: async () => {} },
+  );
+  for (let i = 1; i <= 3; i++) saver.record(answer(i));
+  saver.flushNow(); // two go at once (one held back), and wait on the server
+  let left = false;
+  const leaving = saver.leave().then(() => (left = true));
+  await new Promise((resolve) => setTimeout(resolve, 10));
+  assert.equal(left, false, "not before the hidden page's batch is answered");
+  release();
+  await leaving;
+  assert.deepEqual(sent.toSorted(), [1, 2]);
+});
