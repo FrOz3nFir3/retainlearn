@@ -3,6 +3,7 @@ import { Routes, Route } from "react-router-dom";
 import EditCardPageSkeleton from "../../../components/ui/skeletons/EditCardPageSkeleton";
 import { ClassroomSkeleton } from "#features/classroom/ClassroomSkeleton.tsx";
 import { ClassSkeleton } from "#features/classes/ClassSkeleton.tsx";
+import NoSuchPage from "#features/not-found/NoSuchPage.tsx";
 
 // A study set's pages, under /study-sets/:id (App.jsx). The new study screens (D-17), each its own chunk: the set's
 // classroom, and its classes, named as the API names them (your decision, 2026-11-24). This file is loaded with the app,
@@ -14,7 +15,6 @@ const QuizClass = lazy(() => import("#features/classes/QuizClass.tsx"));
 // Today's editor, in its layout, until the editor is replaced (its own release, D-17).
 const IndividualCardPage = lazy(() => import("./IndividualCardPage"));
 const EditCardRoute = lazy(() => import("./EditCardRoute"));
-const NotFound = lazy(() => import("../../not-found/components/NotFound"));
 
 const classRoute = (Class, mode, label) => (
   <Suspense fallback={<ClassSkeleton label={label} mode={mode} />}>
@@ -49,11 +49,7 @@ const IndividualCardPageRoute = () => (
 
     <Route
       path="*"
-      element={
-        <Suspense fallback={null}>
-          <NotFound />
-        </Suspense>
-      }
+      element={<NoSuchPage />}
     />
   </Routes>
 );

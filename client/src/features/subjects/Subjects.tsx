@@ -20,7 +20,8 @@ import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi
 import { pennantOf, subjectPath } from "#features/campus/subjects.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
-import { problemOf, useAddSubjectMutation, useGetSubjectsQuery } from "./subjectsApi.ts";
+import { problemOf } from "#api/problem.ts";
+import { useAddSubjectMutation, useGetSubjectsQuery } from "./subjectsApi.ts";
 import { DIRECTORY_DESCRIPTION, DIRECTORY_TITLE, DirectorySkeleton, LIST_HEADING, SEARCH_BOX, SUBJECTS_GRID, TOOLBAR } from "./SubjectsSkeleton.tsx";
 
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;

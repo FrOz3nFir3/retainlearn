@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { NewStudySet, ObjectIdHex, SaveAnswers, SubjectName, TimeZone, subjectName, z } from "@retainlearn/core";
+import { Email, NewPassword, NewStudySet, ObjectIdHex, SaveAnswers, SignUpBody, SubjectName, TimeZone, Username, subjectName, z } from "@retainlearn/core";
 
 test("an id is 24 hexadecimal digits, as MongoDB's ids travel in URLs and JSON", () => {
   assert.equal(ObjectIdHex.safeParse("6740f1a2b3c4d5e6f7a8b9c0").success, true);
@@ -57,4 +57,17 @@ test("a new study set needs a topic and a subtopic that fit, in a subject that c
   assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "Present tense", category: "spanish" }).data?.category, "Spanish");
   assert.equal(NewStudySet.safeParse({ mainTopic: " ", subTopic: "Present tense", category: "Spanish" }).error?.issues[0]?.message, "Give the set a topic.");
   assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "x".repeat(121), category: "Spanish" }).success, false);
+});
+
+test("signing up: a username of 3 to 30 letters, numbers and underscores, and a password the server will take", () => {
+  assert.equal(Username.safeParse("lee_learner").success, true);
+  for (const bad of ["ab", "x".repeat(31), "has space", "dots.not.ok"]) assert.equal(Username.safeParse(bad).success, false, bad);
+  assert.equal(NewPassword.safeParse("Strong-pass1!").success, true);
+  assert.equal(NewPassword.safeParse("short1!A").error?.issues[0]?.message, "Use at least 10 characters.");
+  assert.equal(NewPassword.safeParse("nouppercase1!").error?.issues[0]?.message, "Add an uppercase letter.");
+  assert.equal(NewPassword.safeParse("NoSpecial123").error?.issues[0]?.message, "Add one of ! @ # $ % ^ & *.");
+  const body = { name: "Sam", username: "sam_1", email: "sam@example.com", password: "Strong-pass1!" };
+  assert.equal(SignUpBody.safeParse({ ...body, confirmPassword: "Strong-pass1!" }).success, true);
+  assert.equal(SignUpBody.safeParse({ ...body, confirmPassword: "different" }).error?.issues[0]?.message, "The two passwords don't match.");
+  assert.equal(Email.safeParse("not-an-email").success, false);
 });

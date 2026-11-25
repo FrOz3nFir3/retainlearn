@@ -64,6 +64,11 @@ export function useFieldErrors<Name extends string>(rules: Rules<Name>) {
     },
     // An error from elsewhere (the server's answer) on a field.
     setError,
+    // The form put back as it was: no errors, nothing typed yet.
+    reset: () => {
+      setErrors({});
+      edited.current.clear();
+    },
   };
 }
 

@@ -8,7 +8,7 @@ import {
 } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 
-import Footer from "../components/layout/Footer/Footer";
+import { SiteFooter } from "#components/layout/SiteFooter.tsx";
 import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
 import { useSession, useSessionCheck } from "#app/session.ts";
 import { TabBar } from "#components/layout/TabBar.tsx";
@@ -21,39 +21,29 @@ import { CampusSkeleton } from "#features/campus/CampusSkeleton.tsx";
 import { ReportCardSkeleton } from "#features/report-card/ReportCardSkeleton.tsx";
 import { SubjectSkeleton } from "#features/subjects/SubjectSkeleton.tsx";
 import { SubjectsSkeleton } from "#features/subjects/SubjectsSkeleton.tsx";
+import { SignInSkeleton } from "#features/sign-in/SignInSkeleton.tsx";
+// The home page for visitors comes with the app: most of them land there.
+import Landing from "#features/landing/Landing.tsx";
+import { LegalSkeleton } from "#features/legal/LegalSkeleton.tsx";
+import NoSuchPage from "#features/not-found/NoSuchPage.tsx";
+import { ProfileSkeleton } from "#features/profile/ProfileSkeleton.tsx";
+import { PublicProfileSkeleton } from "#features/profile/PublicProfileSkeleton.tsx";
 import IndividualCardPageRoute from "../features/cards/routes/IndividualCardPageRoute";
 
 // Lazy-loaded route wrappers
-const LandingPageRoute = lazy(() =>
-  import("../features/home/routes/LandingPageRoute")
-);
 const Subjects = lazy(() => import("#features/subjects/Subjects.tsx"));
 const Subject = lazy(() => import("#features/subjects/Subject.tsx"));
 const ReportCard = lazy(() => import("#features/report-card/ReportCard.tsx"));
-const ProfilePageRoute = lazy(() =>
-  import("../features/profile/routes/ProfilePageRoute")
-);
-const PublicPageRoute = lazy(() =>
-  import("../features/profile/routes/PublicPageRoute")
-);
-const AuthenticationRoute = lazy(() =>
-  import("../features/authentication/routes/AuthenticationRoute")
-);
-const PrivacyPolicyRoute = lazy(() =>
-  import("../features/home/routes/PrivacyPolicyRoute")
-);
-const TermsOfServiceRoute = lazy(() =>
-  import("../features/home/routes/TermsOfServiceRoute")
-);
-const NotFoundRoute = lazy(() =>
-  import("../features/not-found/routes/NotFoundRoute")
-);
+const Profile = lazy(() => import("#features/profile/Profile.tsx"));
+const PublicProfile = lazy(() => import("#features/profile/PublicProfile.tsx"));
+const SignIn = lazy(() => import("#features/sign-in/SignIn.tsx"));
+const Legal = lazy(() => import("#features/legal/Legal.tsx"));
 const Campus = lazy(() => import("#features/campus/Campus.tsx"));
 
 // "/": the campus for a signed-in player (its skeleton while the session is checked), the landing page for a visitor.
 const HomeRoute = () =>
   useSession() === "out" ? (
-    <LandingPageRoute />
+    <Landing />
   ) : (
     <Suspense fallback={<CampusSkeleton />}>
       <Campus />
@@ -67,7 +57,8 @@ const RootLayout = () => {
   useSessionCheck();
   const session = useSession();
   const { pathname } = useLocation();
-  const inClass = isClassPath(pathname);
+  // A class, and signing in or up, take the whole screen: no bars.
+  const inClass = isClassPath(pathname) || pathname === "/sign-in" || pathname === "/sign-up";
   const publicPage = pathname === "/privacy" || pathname === "/terms" || (pathname === "/" && session === "out");
   return (
   <ErrorBoundary>
@@ -79,7 +70,7 @@ const RootLayout = () => {
           <Outlet />
         </Suspense>
       </main>
-      {publicPage && <Footer />}
+      {publicPage && <SiteFooter />}
       {!inClass && <TabBar />}
       <Toaster />
       <ScrollRestoration
@@ -142,31 +133,55 @@ const router = createBrowserRouter([
       },
       {
         path: "profile",
-        element: <ProfilePageRoute />,
+        element: (
+          <Suspense fallback={<ProfileSkeleton />}>
+            <Profile />
+          </Suspense>
+        ),
       },
       {
         path: "profile/:username",
-        element: <PublicPageRoute />,
+        element: (
+          <Suspense fallback={<PublicProfileSkeleton />}>
+            <PublicProfile />
+          </Suspense>
+        ),
       },
       {
         path: "sign-in",
-        element: <AuthenticationRoute mode="sign-in" />,
+        element: (
+          <Suspense fallback={<SignInSkeleton mode="sign-in" />}>
+            <SignIn mode="sign-in" />
+          </Suspense>
+        ),
       },
       {
         path: "sign-up",
-        element: <AuthenticationRoute mode="sign-up" />,
+        element: (
+          <Suspense fallback={<SignInSkeleton mode="sign-up" />}>
+            <SignIn mode="sign-up" />
+          </Suspense>
+        ),
       },
       {
         path: "privacy",
-        element: <PrivacyPolicyRoute />,
+        element: (
+          <Suspense fallback={<LegalSkeleton kind="privacy" />}>
+            <Legal kind="privacy" />
+          </Suspense>
+        ),
       },
       {
         path: "terms",
-        element: <TermsOfServiceRoute />,
+        element: (
+          <Suspense fallback={<LegalSkeleton kind="terms" />}>
+            <Legal kind="terms" />
+          </Suspense>
+        ),
       },
       {
         path: "*",
-        element: <NotFoundRoute />,
+        element: <NoSuchPage />,
       },
     ],
   },
