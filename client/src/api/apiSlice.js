@@ -289,15 +289,6 @@ export const apiSlice = createApi({
       ],
     }),
 
-    patchUpdateUserProfile: builder.mutation({
-      query: (user) => ({
-        url: "/user",
-        method: "PATCH",
-        body: user,
-      }),
-      invalidatesTags: (result, error, arg) => (!error ? ["User"] : null),
-    }),
-
     postLogoutUser: builder.mutation({
       query: () => ({
         url: "/user/logout",
@@ -311,23 +302,6 @@ export const apiSlice = createApi({
         method: "POST",
         body: user,
       }),
-    }),
-
-    getPublicUserByUsername: builder.query({
-      query: (username) => `/users/${username}`,
-      providesTags: (result, error, arg) => [{ type: "User", id: arg }],
-    }),
-
-    getCardsByAuthor: builder.query({
-      query: ({ username, page, limit }) =>
-        `/users/${username}/cards?page=${page}`,
-      providesTags: (result) =>
-        result?.cards
-          ? [
-            ...result.cards.map(({ _id }) => ({ type: "Card", id: _id })),
-            { type: "Card", id: "LIST" },
-          ]
-          : [{ type: "Card", id: "LIST" }],
     }),
 
     // Review Queue Management Endpoints
@@ -444,13 +418,10 @@ export const {
   usePostRegisterUserMutation,
   usePostLoginUserMutation,
   usePostAuthDetailsMutation,
-  usePatchUpdateUserProfileMutation,
   usePostLogoutUserMutation,
   usePostGoogleLoginMutation,
   useGetCardLogsQuery,
   useGetReviewQueueItemsQuery,
-  useGetPublicUserByUsernameQuery,
-  useGetCardsByAuthorQuery,
   // Review Queue Management Hooks
   useAcceptReviewItemMutation,
   useRejectReviewItemMutation,

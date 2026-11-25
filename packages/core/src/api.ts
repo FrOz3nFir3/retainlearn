@@ -131,6 +131,36 @@ export const NewStudySet = z.object({
 });
 export type NewStudySetBody = z.input<typeof NewStudySet>;
 
+// Signing in and signing up (POST /api/user/login and /api/user/register: the account's endpoints keep their names
+// until they're renamed together), and your profile's details (PATCH /api/user). The forms check with these, the same
+// rules the server applies: a username of 3 to 30 letters, numbers and underscores, a name up to 100 characters, and a
+// password of at least 10 characters with an uppercase and a lowercase letter, a number and one of ! @ # $ % ^ & *.
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const PASSWORD_HINT = "At least 10 characters, with an uppercase and a lowercase letter, a number and one of ! @ # $ % ^ & *.";
+export const AccountName = z.string().trim().min(1, "Enter your name.").max(100, "Keep your name to 100 characters.");
+export const Username = z
+  .string()
+  .trim()
+  .min(3, "Use at least 3 characters.")
+  .max(30, "Keep it to 30 characters.")
+  .regex(/^[a-zA-Z0-9_]+$/, "Use letters, numbers and underscores only.");
+export const Email = z.string().trim().regex(EMAIL, "Enter an email address like name@example.com.");
+export const NewPassword = z
+  .string()
+  .min(10, "Use at least 10 characters.")
+  .regex(/[A-Z]/, "Add an uppercase letter.")
+  .regex(/[a-z]/, "Add a lowercase letter.")
+  .regex(/[0-9]/, "Add a number.")
+  .regex(/[!@#$%^&*]/, "Add one of ! @ # $ % ^ & *.");
+export const SignInBody = z.object({
+  loginIdentifier: z.string().trim().min(1, "Enter your email or username."),
+  password: z.string().min(1, "Enter your password."),
+});
+export const SignUpBody = z
+  .object({ name: AccountName, username: Username, email: Email, password: NewPassword, confirmPassword: z.string() })
+  .refine((body) => body.password === body.confirmPassword, { message: "The two passwords don't match.", path: ["confirmPassword"] });
+export const ProfileDetails = z.object({ name: AccountName, username: Username, email: Email });
+
 // POST /api/campus/subjects?tz=…: a subject's building on your campus, on the first free plot, before you study it
 // (a class in a subject puts it there too). It gives back the name as it's kept. DELETE /api/campus/subjects/:name
 // takes one away again, while you haven't started it; your progress in it would stay either way.

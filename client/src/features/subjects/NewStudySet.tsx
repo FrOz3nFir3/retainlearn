@@ -11,7 +11,8 @@ import { Dialog } from "#components/ui/Dialog.tsx";
 import { Field, inputClass, schemaRule, useFieldErrors } from "#components/ui/Field.tsx";
 import { browserTimeZone } from "#features/campus/campusApi.ts";
 import { setPath } from "#features/classes/modes.ts";
-import { problemOf, useAddSubjectMutation, useCreateStudySetMutation } from "./subjectsApi.ts";
+import { problemOf } from "#api/problem.ts";
+import { useAddSubjectMutation, useCreateStudySetMutation } from "./subjectsApi.ts";
 
 const FORM = "new-study-set";
 

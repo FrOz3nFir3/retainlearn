@@ -51,9 +51,12 @@ export function TopBar() {
               <AccountMenu />
             </>
           ) : session === "out" ? (
-            <Link to="/sign-in" className={buttonClass("primary", "sm")}>
-              Sign in
-            </Link>
+            <>
+              <ThemeMenu />
+              <Link to="/sign-in" className={buttonClass("primary", "sm")}>
+                Sign in
+              </Link>
+            </>
           ) : (
             // While the session is checked: the signed-in cluster's shapes (status, then the avatar's button), so the
             // bar doesn't move when it answers.
@@ -104,6 +107,33 @@ const SCHEMES: { value: SchemeChoice; label: string }[] = [
   { value: "dark", label: "Dark" },
 ];
 
+// The theme for a visitor (the account menu has it for a player): System, Light or Dark, behind a sun or moon.
+function ThemeMenu() {
+  const { choice, deviceDark } = useColorScheme();
+  const dark = choice === "dark" || (choice === "system" && deviceDark);
+  return (
+    <Menu
+      label="Theme"
+      triggerClassName="grid size-9 place-items-center rounded-xl text-ink/65 transition-colors hover:bg-ink/5 hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand aria-expanded:bg-ink/8"
+      trigger={<Icon name={dark ? "moon" : "sun"} className="size-5" />}
+    >
+      <ThemeChoices choice={choice} deviceDark={deviceDark} />
+    </Menu>
+  );
+}
+
+function ThemeChoices({ choice, deviceDark }: { choice: SchemeChoice; deviceDark: boolean }) {
+  return (
+    <MenuGroup label="Theme">
+      {SCHEMES.map((scheme) => (
+        <MenuRadio key={scheme.value} checked={choice === scheme.value} onSelect={() => setColorScheme(scheme.value)}>
+          {scheme.value === "system" ? `System (now ${deviceDark ? "dark" : "light"})` : scheme.label}
+        </MenuRadio>
+      ))}
+    </MenuGroup>
+  );
+}
+
 // Your account: your profile, the theme (a setting, so behind this menu rather than a switch always on show; guide:
 // dark-mode-toggle), and signing out.
 function AccountMenu() {
@@ -129,13 +159,7 @@ function AccountMenu() {
         Your profile
       </MenuLink>
       <MenuSeparator />
-      <MenuGroup label="Theme">
-        {SCHEMES.map((scheme) => (
-          <MenuRadio key={scheme.value} checked={choice === scheme.value} onSelect={() => setColorScheme(scheme.value)}>
-            {scheme.value === "system" ? `System (now ${deviceDark ? "dark" : "light"})` : scheme.label}
-          </MenuRadio>
-        ))}
-      </MenuGroup>
+      <ThemeChoices choice={choice} deviceDark={deviceDark} />
       <MenuSeparator />
       <MenuButton icon="logout" onSelect={() => void signOut()}>
         Sign out

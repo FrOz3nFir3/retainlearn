@@ -15,9 +15,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Helmet } from "@dr.pogodin/react-helmet";
 
-const NotFound = lazy(() =>
-  import("../../../features/not-found/components/NotFound")
-);
+import NoSuchPage from "#features/not-found/NoSuchPage.tsx";
 
 function IndividualCardPage() {
   const params = useParams();
@@ -62,7 +60,7 @@ function IndividualCardPage() {
   };
 
   if (isFetching) return <IndividualCardPageSkeleton isFocusedActivity={false} view="overview" />;
-  if (!cardData) return <NotFound />;
+  if (!cardData) return <NoSuchPage />;
 
   return (
     <div className="bg-brand-light dark:bg-[#0f0d1a] min-h-screen font-sans">

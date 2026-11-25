@@ -24,7 +24,8 @@ import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { NewStudySet } from "./NewStudySet.tsx";
 import { matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
 import type { Order, Room } from "./subjectProgress.ts";
-import { problemOf, useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
+import { problemOf } from "#api/problem.ts";
+import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
 import { SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
 
 const SETS_PER_PAGE = 12;

@@ -61,17 +61,19 @@ export function Page({ title, eyebrow, back, onBack, actions, children, width = 
   );
 }
 
-// A page whose title comes with its data (a study set's): the same frame and heading, with the Back arrow, and
+// A page whose title comes with its data (a study set's): the same frame and heading, with the Back arrow (back), and
 // placeholders where the eyebrow and the title go, then the content's skeleton (children). Screen readers hear label.
 // A page whose title is known already uses Page itself, with Loading in it.
-export function PageSkeleton({ label, width = "max-w-5xl", eyebrow = true, actions, children }: { label: string; width?: string; eyebrow?: boolean; actions?: ReactNode; children: ReactNode }) {
+export function PageSkeleton({ label, width = "max-w-5xl", eyebrow = true, back = true, actions, children }: { label: string; width?: string; eyebrow?: boolean; back?: boolean; actions?: ReactNode; children: ReactNode }) {
   return (
     <div className={FRAME}>
       <Loading label={label} className={cx(BODY, width)}>
         <div className={HEADER}>
-          <span className="grid size-10 shrink-0 place-items-center text-ink/25">
-            <Icon name="arrowLeft" className="size-5" />
-          </span>
+          {back && (
+            <span className="grid size-10 shrink-0 place-items-center text-ink/25">
+              <Icon name="arrowLeft" className="size-5" />
+            </span>
+          )}
           <div className="min-w-0 flex-1">
             {eyebrow && (
               <div className={EYEBROW}>
