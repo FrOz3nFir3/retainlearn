@@ -1,4 +1,3 @@
-import { getAuthorOfCard } from "../models/cards/cards.model.js";
 import Card from "../models/cards/cards.mongo.js";
 import { Types } from "mongoose";
 
@@ -51,18 +50,6 @@ export async function checkReviewPermissions(req, res, next) {
     console.error("Error checking review permissions:", error);
     return res.status(500).json({ error: "Failed to check permissions" });
   }
-}
-
-/**
- * Middleware to require author permissions for destructive operations
- */
-export function requireAuthorPermission(req, res, next) {
-  if (!req.isAuthor) {
-    return res.status(403).json({
-      error: "Only the card author can perform this action",
-    });
-  }
-  next();
 }
 
 /**

@@ -64,9 +64,28 @@ export type ProgressForRules = {
 };
 
 // Your progress in every set you've started, as the report card shows it: its copied titles and counts (so no set is
-// read), what you've seen and answered, and the quizzes you've taken. One query on the userId + setId index.
+// read), what you've seen and answered, and the quizzes you've taken. Matched on the userId + setId index, then
+// reshaped by the database: each flashcard comes as when you saw it and when you missed it, without its recall-point
+// marks (up to 30 each), which the report card doesn't read and which would be most of the bytes.
+type ReportCardRow = Pick<ProgressDoc, "setId" | "setInfo" | "questions" | "quiz" | "lastAt"> & { flashcards: ReportCardSet["flashcards"] };
 export async function reportCardSets(userId: string): Promise<ReportCardSet[]> {
-  const docs = await Progress.find({ userId: oid(userId) }, { setId: 1, setInfo: 1, flashcards: 1, questions: 1, quiz: 1, lastAt: 1 }).lean<ProgressDoc[]>();
+  const docs = await Progress.aggregate<ReportCardRow>([
+    { $match: { userId: oid(userId) } },
+    {
+      $project: {
+        setId: 1,
+        setInfo: 1,
+        questions: 1,
+        quiz: 1,
+        lastAt: 1,
+        flashcards: {
+          $arrayToObject: {
+            $map: { input: { $objectToArray: { $ifNull: ["$flashcards", {}] } }, in: { k: "$$this.k", v: { seenAt: "$$this.v.seenAt", missedOn: "$$this.v.missedOn" } } },
+          },
+        },
+      },
+    },
+  ]);
   return docs.map((p) => ({
     setId: String(p.setId),
     category: p.setInfo?.category ?? "",
