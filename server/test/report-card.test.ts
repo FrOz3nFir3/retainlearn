@@ -50,3 +50,23 @@ test("after a class it lists the set with its titles, counts and progress, and t
   assert.equal(studied?.questions[questionId]?.level, 1);
   assert.ok(studied?.lastAt);
 });
+
+test("each flashcard comes as when you saw it and when you missed it, without its recall-point marks", async () => {
+  const set = (await (await t.api(`/api/study-sets/${js}`)).json()) as StudySetContent;
+  const flashcardId = set.flashcards[0]!._id;
+  const body = {
+    timeZone: IST,
+    classKey: "review:1:a",
+    mode: "review",
+    seq: 1,
+    finished: true,
+    answers: [{ kind: "flashcard", itemId: flashcardId, knew: false, points: [{ key: "block-scoped", knew: false }], ms: 1000 }],
+  };
+  assert.equal((await t.api(`/api/study-sets/${js}/answers`, { method: "POST", headers: lee, body: JSON.stringify(body) })).status, 200);
+
+  const flashcard = (await reportCard()).sets.find((s) => s.setId === js)?.flashcards[flashcardId];
+  assert.ok(flashcard?.seenAt && flashcard.missedOn, "seen, and missed");
+  assert.deepEqual(Object.keys(flashcard).sort(), ["missedOn", "seenAt"], "no recall-point marks");
+  const progress = (await (await t.api(`/api/study-sets/${js}/progress`, { headers: lee })).json()) as { flashcards: Record<string, { points?: unknown[] }> };
+  assert.equal(progress.flashcards[flashcardId]?.points?.length, 1, "the classroom still gets them");
+});

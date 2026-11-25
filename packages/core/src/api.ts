@@ -95,7 +95,7 @@ export type ReportCardSet = {
   subtopic: string;
   flashcardCount: number;
   questionCount: number;
-  flashcards: Record<string, FlashcardProgress>;
+  flashcards: Record<string, Pick<FlashcardProgress, "seenAt" | "missedOn">>; // without the recall-point marks, which it doesn't read
   questions: Record<string, QuestionProgress>;
   quiz: { started: number; finished: number };
   lastAt: string | null;
