@@ -124,7 +124,7 @@ jobs:
           echo
           grep -q '"status":"ok"' health.json
           grep -q '"state":"done"' health.json
-          curl -fsS -o /dev/null -H "X-Forwarded-Proto: https" "http://localhost:3000/api/cards/categories?page=1"
+          curl -fsS -o /dev/null -H "X-Forwarded-Proto: https" "http://localhost:3000/api/subjects?page=1"
           docker exec api node --version
           # The shared rules (TypeScript, run by Node directly) and Zod load in the image.
           docker exec api node --input-type=module -e 'const core = await import("@retainlearn/core"); if (typeof core.planDay !== "function" || !core.TimeZone.safeParse("Asia/Kolkata").success) process.exit(1); console.log("The shared rules load in the image");'
