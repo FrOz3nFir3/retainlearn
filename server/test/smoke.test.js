@@ -32,7 +32,7 @@ test("a study set's overview opens", async () => {
   assert.match(JSON.stringify(await res.json()), /Fundamentals/);
 });
 
-test("your stats need a login", async () => {
-  const res = await t.api("/api/user/stats");
+test("your report card needs a login", async () => {
+  const res = await t.api("/api/report-card?tz=UTC");
   assert.equal(res.status, 401);
 });

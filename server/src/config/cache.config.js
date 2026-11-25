@@ -16,7 +16,6 @@ export const CACHE_CONFIG = {
         USER: 60 * 60 * 2, // 2 hours
         CARD: 60 * 60 * 6, // 6 hours  
         CATEGORY: 60 * 60 * 6, // 6 hours
-        PROGRESS: 60 * 30, // 30 minutes
         REVIEW_QUEUE: 60 * 60 * 2, // 2 hours
         SEARCH: 60 * 30, // 30 minutes
         REPORT: 60 * 60, // 1 hour
@@ -64,7 +63,6 @@ export const CACHE_TYPES = {
     USER: "user",
     CARD: "card",
     CATEGORY: "category",
-    PROGRESS: "progress",
     REVIEW_QUEUE: "review_queue",
     SEARCH: "search",
     REPORT: "report",

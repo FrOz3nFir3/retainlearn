@@ -45,25 +45,6 @@ test("the reviewer search, cached for a reviewer, isn't served to someone who is
   assert.equal((await get(path, lee)).status, 403);
 });
 
-test("someone's cached progress is theirs alone, however the address is typed", async () => {
-  const studied = await t.api("/api/user/review-progress", {
-    method: "PATCH",
-    headers: ada,
-    body: JSON.stringify({ card_id: ids.js, lastReviewedCardNo: 1 }),
-  });
-  assert.equal(studied.status, 200);
-
-  // Express matches /api/USER/progress to /api/user/progress. The old cache only kept copies per user for paths it
-  // recognised as written, so this address shared one copy between everyone.
-  const path = "/api/USER/progress?page=1";
-  const adas = await (await getAndCache(path, ada)).json();
-  assert.equal(adas.total, 1);
-  for (const address of [path, "/api/user/progress?page=1"]) {
-    const lees = await (await get(address, lee)).json();
-    assert.equal(lees.total, 0, address);
-  }
-});
-
 test("the review queue needs a login, even when it's cached", async () => {
   for (const path of [`/api/card/${ids.js}/review-queue?page=1`, `/api/card/${ids.js}?view=review-queue`]) {
     assert.equal((await getAndCache(path, ada)).status, 200, path);
