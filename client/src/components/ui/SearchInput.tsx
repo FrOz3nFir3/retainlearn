@@ -1,5 +1,6 @@
 // A search box: its label for screen readers, the search icon, and type="search", so the browser offers a clear
-// button and the phone keyboard's key says Search.
+// button and the phone keyboard's key says Search. No autocorrect or capitals: what's typed is looked up as it is
+// (guide: forms).
 import type { ComponentPropsWithRef } from "react";
 import { cx } from "#utils/cx.ts";
 import { inputClass } from "./Field.tsx";
@@ -15,6 +16,10 @@ export function SearchInput({ value, onChange, label, placeholder, className, ..
       <input
         type="search"
         enterKeyHint="search"
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="none"
+        spellCheck={false}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder ?? label}

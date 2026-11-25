@@ -19,12 +19,8 @@ import { isClassPath } from "#features/classes/modes.ts";
 const LandingPageRoute = lazy(() =>
   import("../features/home/routes/LandingPageRoute")
 );
-const CategoryPageRoute = lazy(() =>
-  import("../features/cards/routes/CategoryPageRoute")
-);
-const CardsPageRoute = lazy(() =>
-  import("../features/cards/routes/CardsPageRoute")
-);
+const Subjects = lazy(() => import("#features/subjects/Subjects.tsx"));
+const Subject = lazy(() => import("#features/subjects/Subject.tsx"));
 const IndividualCardPageRoute = lazy(() =>
   import("../features/cards/routes/IndividualCardPageRoute")
 );
@@ -103,11 +99,11 @@ const router = createBrowserRouter([
       },
       {
         path: "subjects",
-        element: <CategoryPageRoute />,
+        element: <Subjects />,
       },
       {
         path: "subjects/:name",
-        element: <CardsPageRoute />,
+        element: <Subject />,
       },
       {
         path: "study-sets/:id/*",

@@ -109,47 +109,6 @@ export const apiSlice = createApi({
       providesTags: ["Card"],
     }),
 
-    getCategoriesPaginated: builder.query({
-      query: ({ page = 1, search = "" }) => {
-        const params = new URLSearchParams({
-          page: page.toString(),
-        });
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-        return `/cards/categories?${params.toString()}`;
-      },
-      providesTags: ["Card"],
-      // Keep separate cache entries for each page and search combination
-      serializeQueryArgs: ({ queryArgs }) => {
-        return {
-          page: queryArgs.page || 1,
-          search: queryArgs.search || "",
-        };
-      },
-    }),
-
-    getCardsByCategoryPaginated: builder.query({
-      query: ({ category, page = 1, search = "" }) => {
-        const params = new URLSearchParams({
-          page: page.toString(),
-        });
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-        return `/cards/${category}?${params.toString()}`;
-      },
-      providesTags: ["Card"],
-      // Keep separate cache entries for each page and search combination
-      serializeQueryArgs: ({ queryArgs }) => {
-        return {
-          category: queryArgs.category,
-          page: queryArgs.page || 1,
-          search: queryArgs.search || "",
-        };
-      },
-    }),
-
     getIndividualCard: builder.query({
       query: ({ id, view = "overview", skipLogs = false }) => {
         const params = new URLSearchParams();
@@ -175,15 +134,6 @@ export const apiSlice = createApi({
         // Fallback
         return [{ type: "CardOverview", id }];
       },
-    }),
-
-    postCreateNewCard: builder.mutation({
-      query: (card) => ({
-        url: "/cards",
-        method: "POST",
-        body: card,
-      }),
-      invalidatesTags: (result, error, arg) => (!error ? ["Card"] : null),
     }),
 
     patchUpdateCard: builder.mutation({
@@ -489,9 +439,6 @@ export const apiSlice = createApi({
 });
 
 export const {
-  useGetCategoriesPaginatedQuery,
-  useGetCardsByCategoryPaginatedQuery,
-  usePostCreateNewCardMutation,
   useGetIndividualCardQuery,
   usePatchUpdateCardMutation,
   usePostRegisterUserMutation,

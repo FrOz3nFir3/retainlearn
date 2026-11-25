@@ -5,13 +5,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Ref } from "react";
 import { Link } from "react-router-dom";
-import type { ReportCard as ReportCardData, StudySetStatus } from "@retainlearn/core";
+import type { ReportCard as ReportCardData } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import type { BarTone } from "#components/ui/Bar.tsx";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
+import { cardClass, cardLinkClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
-import type { ChipTone } from "#components/ui/Chip.tsx";
 import { Confirm } from "#components/ui/Confirm.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
@@ -20,16 +20,17 @@ import { Page } from "#components/ui/Page.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
 import { browserTimeZone, useToday } from "#features/campus/campusApi.ts";
+import { SET_STATUS_TONE } from "#features/campus/subjects.ts";
+import { cx } from "#utils/cx.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { QuizReport } from "./QuizReport.tsx";
 import { useReportCard, useResetQuizMutation } from "./reportCardApi.ts";
-import { lastStudied, matchesSearch, overview, studiedSets } from "./reportCardStats.ts";
+import { daysAgoInWords, matchesSearch, overview, studiedSets } from "./reportCardStats.ts";
 import type { StudiedSet } from "./reportCardStats.ts";
 
 const SHOWN = 10; // sets shown at first, and added by each "Show more"
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
-const STATUS_TONE: Record<StudySetStatus["key"], ChipTone> = { empty: "neutral", new: "neutral", missed: "rose", fading: "orange", mastered: "mint", inProgress: "brand" };
 
 export default function ReportCard() {
   const session = useSession();
@@ -268,11 +269,11 @@ function SetRow({ studied, onQuizReport, linkRef }: { studied: StudiedSet; onQui
   const answers = stats.right + stats.wrong;
   return (
     <li>
-      <article className="@container relative rounded-2xl border border-ink/7 bg-surface p-4 transition-colors has-[[data-card-link]:focus-visible]:outline-2 has-[[data-card-link]:focus-visible]:outline-offset-2 has-[[data-card-link]:focus-visible]:outline-brand has-[[data-card-link]:hover]:border-brand/35">
+      <article className={cx("@container", cardClass)}>
         <header className="flex flex-wrap items-start gap-x-3 gap-y-2">
           <hgroup className="min-w-0 flex-1 basis-56">
             <h3 className="font-semibold text-balance">
-              <Link ref={linkRef} to={setPath(set.setId)} data-card-link className="outline-none after:absolute after:inset-0 after:rounded-2xl after:content-['']">
+              <Link ref={linkRef} to={setPath(set.setId)} data-card-link className={cardLinkClass}>
                 {set.subtopic}
               </Link>
             </h3>
@@ -281,8 +282,8 @@ function SetRow({ studied, onQuizReport, linkRef }: { studied: StudiedSet; onQui
             </p>
           </hgroup>
           <div className="flex flex-wrap gap-1.5">
-            <Chip tone={STATUS_TONE[status.key]}>{status.label}</Chip>
-            {stats.daysAgo != null && <Chip>{`Studied ${lastStudied(stats.daysAgo)}`}</Chip>}
+            <Chip tone={SET_STATUS_TONE[status.key]}>{status.label}</Chip>
+            {stats.daysAgo != null && <Chip>{`Studied ${daysAgoInWords(stats.daysAgo)}`}</Chip>}
           </div>
         </header>
         <div className="mt-3 grid gap-3 @lg:grid-cols-2">

@@ -16,6 +16,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock, SkeletonLine } from "#components/ui/Skeleton.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
+import { subjectPath } from "#features/campus/subjects.ts";
 import { classPath, setPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
@@ -89,7 +90,10 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
     <Page
       title={set.subtopic}
       eyebrow={`${set.topic} in ${set.category}`}
-      back={`/subjects/${encodeURIComponent(set.category)}`}
+      back={subjectPath(set.category)}
+      headTitle={`${set.topic}: ${set.subtopic}`}
+      description={set.description || `Study ${set.topic}: ${set.subtopic}, in ${set.category}, with flashcards and quizzes.`}
+      noindex={!set.listed}
       width="max-w-3xl"
       actions={
         signedIn && (
@@ -152,7 +156,18 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
               })}
             </ol>
           ) : (
-            <Empty icon="review" title="Nothing to study yet" body="This set has no flashcards or questions yet." />
+            <Empty
+              icon="review"
+              title="Nothing to study yet"
+              body="This set has no flashcards or questions yet."
+              action={
+                signedIn && (
+                  <Link to={`${home}/edit`} className={buttonClass("primary")}>
+                    Add flashcards
+                  </Link>
+                )
+              }
+            />
           )}
         </section>
       </div>
