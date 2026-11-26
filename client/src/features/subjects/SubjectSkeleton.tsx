@@ -1,10 +1,13 @@
 // A subject page's skeleton (PLAN 14.15): loaded with the app, so the route shows it the moment a subject is opened,
 // before the page's own code arrives, and the page shows it while the subject loads. Built from the page's real frame:
-// the subject's name (from the address, as it's kept), its counts to come, Up next (signed in, or being checked), and
-// the study sets' heading over cards in a set's shape.
+// the subject's name (from the address, as it's kept), its counts to come, on a phone "Add to my campus" (signed in,
+// unless your campus is loaded and has the subject), Up next (signed in, or being checked), and the study sets' heading
+// over cards in a set's shape.
 import { useParams } from "react-router-dom";
 import { subjectName } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
+import { useCampus } from "#features/campus/campusApi.ts";
+import { cx } from "#utils/cx.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { cardClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
@@ -14,13 +17,24 @@ import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.ts
 
 export const SETS_HEADING = "flex items-baseline gap-2 font-display text-xl font-semibold outline-none";
 export const SETS_GRID = "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3";
+// "Add to my campus" on a phone: the whole width, under the title (beside it on wider screens).
+export const ADD_ON_PHONE = "w-full sm:hidden";
 
 export function SubjectSkeleton() {
   const name = subjectName(useParams().name ?? "");
-  const signedIn = useSession() !== "out";
+  const session = useSession();
+  const signedIn = session !== "out";
+  const campus = useCampus(session !== "in");
+  const onCampus = campus.data?.subjects.some((s) => s.category === name) ?? false;
   return (
     <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects">
       <Loading label={`Loading ${name}`} className="space-y-5">
+        {signedIn && !onCampus && (
+          <span className={cx(buttonClass("primary"), ADD_ON_PHONE)}>
+            <Icon name="plus" className="size-4 shrink-0" />
+            Add to my campus
+          </span>
+        )}
         {signedIn && (
           <div className="panel flex flex-wrap items-center gap-3 bg-surface p-4">
             <SkeletonBlock className="size-10 shrink-0 rounded-xl" />

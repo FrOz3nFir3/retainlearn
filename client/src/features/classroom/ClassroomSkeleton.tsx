@@ -1,12 +1,14 @@
 // The classroom's skeleton (PLAN 14.15): loaded with the app, so the route shows it the moment a classroom is opened,
 // before the classroom's own code arrives, and the classroom shows it while the set and your progress load. Built from
 // the classroom's real frame: the heading's placeholders (and Edit's, signed in), how you stand (signed in, or being
-// checked) or a guest's note, Up next, and the rounds' heading over rows in a round's shape.
+// checked) or a guest's note, Up next, the rounds' heading over rows in a round's shape, and "Report this set".
 import { useSession } from "#app/session.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
+import { Icon } from "#components/ui/Icon.tsx";
 import { PageSkeleton } from "#components/ui/Page.tsx";
 import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { cx } from "#utils/cx.ts";
 
 export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
@@ -67,6 +69,12 @@ export function ClassroomSkeleton() {
             ))}
           </div>
         </section>
+        {signedIn && (
+          <span className={cx(buttonClass("quiet", "sm"), "border-transparent bg-transparent text-ink/55")}>
+            <Icon name="flag" className="size-4 shrink-0" />
+            Report this set
+          </span>
+        )}
       </div>
     </PageSkeleton>
   );

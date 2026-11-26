@@ -6,18 +6,19 @@ import {
   ScrollRestoration,
   useLocation,
 } from "react-router-dom";
-import { Toaster } from "react-hot-toast";
 
 import { SiteFooter } from "#components/layout/SiteFooter.tsx";
-import ErrorBoundary from "../components/ErrorBoundary/ErrorBoundary";
+import { CrashScreen } from "#components/layout/CrashScreen.tsx";
 import { useSession, useSessionCheck } from "#app/session.ts";
 import { TabBar } from "#components/layout/TabBar.tsx";
 import { TopBar } from "#components/layout/TopBar.tsx";
 import { isClassPath } from "#features/classes/modes.ts";
-// Each new screen's skeleton, loaded with the app, so a screen shows it the moment it's opened, before its own code
-// arrives (PLAN 14.15). The study set's routes (small) come with the app for the same reason: they hold the classroom's
-// and the classes' skeletons.
+// Each screen's skeleton, loaded with the app, so a screen shows it the moment it's opened, before its own code
+// arrives (PLAN 14.15).
 import { CampusSkeleton } from "#features/campus/CampusSkeleton.tsx";
+import { ClassroomSkeleton } from "#features/classroom/ClassroomSkeleton.tsx";
+import { ClassSkeleton } from "#features/classes/ClassSkeleton.tsx";
+import { EditorSkeleton } from "#features/editor/EditorSkeleton.tsx";
 import { ReportCardSkeleton } from "#features/report-card/ReportCardSkeleton.tsx";
 import { SubjectSkeleton } from "#features/subjects/SubjectSkeleton.tsx";
 import { SubjectsSkeleton } from "#features/subjects/SubjectsSkeleton.tsx";
@@ -28,7 +29,6 @@ import { LegalSkeleton } from "#features/legal/LegalSkeleton.tsx";
 import NoSuchPage from "#features/not-found/NoSuchPage.tsx";
 import { ProfileSkeleton } from "#features/profile/ProfileSkeleton.tsx";
 import { PublicProfileSkeleton } from "#features/profile/PublicProfileSkeleton.tsx";
-import IndividualCardPageRoute from "../features/cards/routes/IndividualCardPageRoute";
 
 // Lazy-loaded route wrappers
 const Subjects = lazy(() => import("#features/subjects/Subjects.tsx"));
@@ -39,6 +39,17 @@ const PublicProfile = lazy(() => import("#features/profile/PublicProfile.tsx"));
 const SignIn = lazy(() => import("#features/sign-in/SignIn.tsx"));
 const Legal = lazy(() => import("#features/legal/Legal.tsx"));
 const Campus = lazy(() => import("#features/campus/Campus.tsx"));
+// A study set's pages, under /study-sets/:id: its classroom, its classes (named as the API names them) and its editor.
+const Classroom = lazy(() => import("#features/classroom/Classroom.tsx"));
+const ReviewClass = lazy(() => import("#features/classes/ReviewClass.tsx"));
+const QuizClass = lazy(() => import("#features/classes/QuizClass.tsx"));
+const Editor = lazy(() => import("#features/editor/Editor.tsx"));
+
+const classRoute = (Class, mode, label) => (
+  <Suspense fallback={<ClassSkeleton label={label} mode={mode} />}>
+    <Class mode={mode} />
+  </Suspense>
+);
 
 // "/": the campus for a signed-in player (its skeleton while the session is checked), the landing page for a visitor.
 const HomeRoute = () =>
@@ -60,8 +71,8 @@ const RootLayout = () => {
   // A class, and signing in or up, take the whole screen: no bars.
   const inClass = isClassPath(pathname) || pathname === "/sign-in" || pathname === "/sign-up";
   return (
-  <ErrorBoundary>
-    <div className={`bg-gray-100 dark:bg-gray-900 min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.75rem+max(0.25rem,env(safe-area-inset-bottom,0px)))]"}`}>
+  <CrashScreen>
+    <div className={`bg-chalk min-h-dvh flex flex-col ${inClass ? "" : "max-md:pb-[calc(3.75rem+max(0.25rem,env(safe-area-inset-bottom,0px)))]"}`}>
       {!inClass && <TopBar />}
       <main className={`flex grow flex-col ${inClass ? "" : "min-h-[calc(100dvh-3.5rem)] sm:min-h-[calc(100dvh-4rem)]"}`}>
         {/* A page whose code is still coming shows its own skeleton (its route's); this keeps the bars up meanwhile. */}
@@ -71,24 +82,17 @@ const RootLayout = () => {
       </main>
       {!inClass && <SiteFooter />}
       {!inClass && <TabBar />}
-      <Toaster />
       <ScrollRestoration
         getKey={(location, matches) => {
-          // probably look into this later
-          if (
-            location.search.includes("cardNo") ||
-            location.search.includes("quizNo") ||
-            location.search.includes("flashcardFilter") ||
-            location.search.includes("search") ||
-            location.pathname.startsWith("/subjects")
-          ) {
+          // Pages whose address changes as you use them (a search, the editor's tabs and filter) keep their place.
+          if (location.search.includes("search") || location.pathname.startsWith("/subjects") || location.pathname.endsWith("/edit")) {
             return location.pathname;
           }
           return location.key;
         }}
       />
     </div>
-  </ErrorBoundary>
+  </CrashScreen>
   );
 };
 
@@ -119,8 +123,30 @@ const router = createBrowserRouter([
         ),
       },
       {
-        path: "study-sets/:id/*",
-        element: <IndividualCardPageRoute />,
+        path: "study-sets/:id",
+        children: [
+          {
+            index: true,
+            element: (
+              <Suspense fallback={<ClassroomSkeleton />}>
+                <Classroom />
+              </Suspense>
+            ),
+          },
+          { path: "review", element: classRoute(ReviewClass, "review", "Loading the review") },
+          { path: "review-missed", element: classRoute(ReviewClass, "reviewMissed", "Loading the review") },
+          { path: "quiz", element: classRoute(QuizClass, "quiz", "Loading the quiz") },
+          { path: "retry-missed", element: classRoute(QuizClass, "retryMissed", "Loading the quiz") },
+          {
+            path: "edit",
+            element: (
+              <Suspense fallback={<EditorSkeleton />}>
+                <Editor />
+              </Suspense>
+            ),
+          },
+          { path: "*", element: <NoSuchPage /> },
+        ],
       },
       {
         path: "report-card",
@@ -191,9 +217,9 @@ import { HelmetProvider } from "@dr.pogodin/react-helmet";
 function App() {
   return (
     <HelmetProvider>
-      <ErrorBoundary>
+      <CrashScreen>
         <RouterProvider router={router} />
-      </ErrorBoundary>
+      </CrashScreen>
     </HelmetProvider>
   );
 }

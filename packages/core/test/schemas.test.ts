@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { Email, NewPassword, NewStudySet, ObjectIdHex, SaveAnswers, SignUpBody, SubjectName, TimeZone, Username, subjectName, z } from "@retainlearn/core";
+import { Email, NewPassword, NewStudySet, ObjectIdHex, SaveAnswers, SignUpBody, StudySetReport, SubjectName, TimeZone, Username, subjectName, z } from "@retainlearn/core";
 
 test("an id is 24 hexadecimal digits, as MongoDB's ids travel in URLs and JSON", () => {
   assert.equal(ObjectIdHex.safeParse("6740f1a2b3c4d5e6f7a8b9c0").success, true);
@@ -57,6 +57,14 @@ test("a new study set needs a topic and a subtopic that fit, in a subject that c
   assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "Present tense", category: "spanish" }).data?.category, "Spanish");
   assert.equal(NewStudySet.safeParse({ mainTopic: " ", subTopic: "Present tense", category: "Spanish" }).error?.issues[0]?.message, "Give the set a topic.");
   assert.equal(NewStudySet.safeParse({ mainTopic: "Verbs", subTopic: "x".repeat(121), category: "Spanish" }).success, false);
+});
+
+test("a report needs one of the reasons, and its note is optional and short", () => {
+  assert.deepEqual(StudySetReport.parse({ reason: "wrong" }), { reason: "wrong", note: "" });
+  assert.equal(StudySetReport.parse({ reason: "spam", note: "  ads in every answer  " }).note, "ads in every answer");
+  assert.equal(StudySetReport.safeParse({ reason: "boring" }).error?.issues[0]?.message, "Choose a reason.");
+  assert.equal(StudySetReport.safeParse({}).error?.issues[0]?.message, "Choose a reason.");
+  assert.equal(StudySetReport.safeParse({ reason: "other", note: "x".repeat(501) }).success, false);
 });
 
 test("signing up: a username of 3 to 30 letters, numbers and underscores, and a password the server will take", () => {

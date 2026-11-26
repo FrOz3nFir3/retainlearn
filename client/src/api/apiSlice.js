@@ -89,120 +89,13 @@ const baseQueryWithReauth = async (args, api, extraOptions) => {
   return result;
 };
 
-// Define our single API slice object
+// The one API slice. Each feature adds its own endpoints and tags (injectEndpoints, in its own *Api.ts); these are
+// the account's: signing in or up, the session check, signing out.
 export const apiSlice = createApi({
   reducerPath: "cards",
   baseQuery: baseQueryWithReauth,
-  tagTypes: [
-    "Card",
-    "CardOverview", // For view=overview (metadata + counts)
-    "CardFlashcards", // For view=review and view=review_text (flashcard data)
-    "CardQuiz", // For view=quiz (quiz data)
-    "CardReviewQueue", // For view=review-queue (review queue data)
-    "User",
-    "Reviewers", // For reviewer management
-  ],
-  // The "endpoints" represent operations and requests for this server
+  tagTypes: [],
   endpoints: (builder) => ({
-    getAllCards: builder.query({
-      query: () => `/cards/all`,
-      providesTags: ["Card"],
-    }),
-
-    getIndividualCard: builder.query({
-      query: ({ id, view = "overview", skipLogs = false }) => {
-        const params = new URLSearchParams();
-        if (skipLogs) {
-          params.append("skipLogs", "true");
-        }
-        const queryString = params.toString();
-        return `/card/${id}?view=${view}${queryString ? `&${queryString}` : ""}`;
-      },
-      providesTags: (result, error, { id, view }) => {
-        // Provide view-specific tags for granular cache control
-        if (view === "review") {
-          return [{ type: "CardFlashcards", id }];
-        } else if (view === "quiz") {
-          return [{ type: "CardQuiz", id }];
-        } else if (view === "review-queue") {
-          return [{ type: "CardReviewQueue", id }];
-        } else if (view === "overview") {
-          return [{ type: "CardOverview", id }];
-        } else if (view === "review_text") {
-          return [{ type: "CardFlashcards", id }];
-        }
-        // Fallback
-        return [{ type: "CardOverview", id }];
-      },
-    }),
-
-    patchUpdateCard: builder.mutation({
-      query: (card) => ({
-        url: "/card",
-        method: "PATCH",
-        body: card,
-      }),
-      invalidatesTags: (result, error, arg) => {
-        if (error) return [];
-
-        const { _id, updateType } = arg;
-        const tags = ["Card"]; // Always invalidate the general Card list
-
-        // Auto-detect update type based on parameters if not explicitly provided
-        let detectedUpdateType = updateType;
-        if (!detectedUpdateType) {
-          // Check for quiz-related parameters
-          if (
-            arg.quizId ||
-            arg.deleteQuiz ||
-            arg.quizzes ||
-            arg.quizQuestion ||
-            arg.quizAnswer ||
-            arg.option ||
-            arg.deleteOption ||
-            arg.minimumOptions ||
-            arg.reorderQuizzes
-          ) {
-            detectedUpdateType = "quiz";
-          }
-          // Check for flashcard-related parameters
-          else if (
-            arg.cardId ||
-            arg.deleteFlashcard ||
-            arg.review ||
-            arg.question ||
-            arg.answer ||
-            arg.reorderFlashcards
-          ) {
-            detectedUpdateType = "flashcards";
-          } else {
-            // Main card fields (category, main-topic, sub-topic, description)
-            detectedUpdateType = "overview";
-          }
-        }
-
-        // Invalidate specific view tags based on what was updated
-        if (detectedUpdateType === "flashcards") {
-          // Only invalidate flashcard data and overview (for counts)
-          tags.push({ type: "CardFlashcards", id: _id });
-          tags.push({ type: "CardOverview", id: _id });
-        } else if (detectedUpdateType === "quiz") {
-          // Only invalidate quiz data and overview (for counts)
-          tags.push({ type: "CardQuiz", id: _id });
-          tags.push({ type: "CardOverview", id: _id });
-        } else if (detectedUpdateType === "overview") {
-          // Main card fields changed - invalidate overview only
-          tags.push({ type: "CardOverview", id: _id });
-        }
-
-        // Always invalidate review queue data when card is updated
-        // This ensures review queue items are refreshed after any card changes
-        tags.push({ type: "CardReviewQueue", id: _id });
-
-        return tags;
-      },
-    }),
-
     postRegisterUser: builder.mutation({
       query: (user) => ({
         url: "/user/register",
@@ -224,69 +117,6 @@ export const apiSlice = createApi({
         url: `/user/authed`,
         method: "POST",
       }),
-      providesTags: ["User"],
-    }),
-
-    getCardLogs: builder.query({
-      query: ({ cardId, page, search = "" }) => {
-        const params = new URLSearchParams({ page: page.toString() });
-        if (search.trim()) {
-          params.append("search", search.trim());
-        }
-        return `/card/${cardId}/logs?${params.toString()}`;
-      },
-      serializeQueryArgs: ({ queryArgs }) => {
-        const { cardId, search = "" } = queryArgs;
-        return `${cardId}-${search.trim()}`;
-      },
-      forceRefetch({ currentArg, previousArg }) {
-        return currentArg !== previousArg;
-      },
-      merge: (currentCache, newItems, { arg }) => {
-        // If it's page 1, replace the cache (new search or reset)
-        if (arg.page === 1) {
-          return {
-            logs: newItems.logs,
-            hasMore: newItems.hasMore,
-          };
-        }
-        // Otherwise, append for infinite scroll
-        return {
-          logs: [...currentCache.logs, ...newItems.logs],
-          hasMore: newItems.hasMore,
-        };
-      },
-    }),
-
-    getReviewQueueItems: builder.query({
-      query: ({ cardId, page }) => {
-        const params = new URLSearchParams({ page: page.toString() });
-        return `/card/${cardId}/review-queue?${params.toString()}`;
-      },
-      serializeQueryArgs: ({ queryArgs }) => {
-        const { cardId } = queryArgs;
-        return `reviewQueue-${cardId}`;
-      },
-      forceRefetch({ currentArg, previousArg }) {
-        return currentArg !== previousArg;
-      },
-      merge: (currentCache, newItems, { arg }) => {
-        // If it's page 1, replace the cache (new data or reset)
-        if (arg.page === 1) {
-          return {
-            items: newItems.items,
-            hasMore: newItems.hasMore,
-          };
-        }
-        // Otherwise, append for infinite scroll
-        return {
-          items: [...currentCache.items, ...newItems.items],
-          hasMore: newItems.hasMore,
-        };
-      },
-      providesTags: (result, error, { cardId }) => [
-        { type: "CardReviewQueue", id: cardId },
-      ],
     }),
 
     postLogoutUser: builder.mutation({
@@ -303,133 +133,13 @@ export const apiSlice = createApi({
         body: user,
       }),
     }),
-
-    // Review Queue Management Endpoints
-    acceptReviewItem: builder.mutation({
-      query: ({ cardId, itemId }) => ({
-        url: `/card/${cardId}/review-queue/${itemId}/accept`,
-        method: "POST",
-      }),
-      invalidatesTags: (result, error, { cardId }) => {
-        if (!error) {
-          return [
-            { type: "CardReviewQueue", id: cardId },
-            { type: "CardOverview", id: cardId },
-            { type: "CardFlashcards", id: cardId },
-            { type: "CardQuiz", id: cardId },
-            "Card",
-          ];
-        }
-        return [];
-      },
-    }),
-
-    rejectReviewItem: builder.mutation({
-      query: ({ cardId, itemId }) => ({
-        url: `/card/${cardId}/review-queue/${itemId}/reject`,
-        method: "POST",
-      }),
-      invalidatesTags: (result, error, { cardId }) => {
-        if (!error) {
-          return [
-            { type: "CardReviewQueue", id: cardId },
-            { type: "CardOverview", id: cardId },
-          ];
-        }
-        return [];
-      },
-    }),
-
-    // Reviewer Management Endpoints
-    getReviewers: builder.query({
-      query: (cardId) => `/card/${cardId}/reviewers`,
-      providesTags: (result, error, cardId) => [
-        { type: "Reviewers", id: cardId },
-      ],
-    }),
-
-    addReviewers: builder.mutation({
-      query: ({ cardId, usernames }) => ({
-        url: `/card/${cardId}/reviewers`,
-        method: "POST",
-        body: { usernames },
-      }),
-      invalidatesTags: (result, error, { cardId }) => {
-        if (!error) {
-          return [{ type: "Reviewers", id: cardId }];
-        }
-        return [];
-      },
-    }),
-
-    removeReviewer: builder.mutation({
-      query: ({ cardId, username }) => ({
-        url: `/card/${cardId}/reviewers/${username}`,
-        method: "DELETE",
-      }),
-      invalidatesTags: (result, error, { cardId }) => {
-        if (!error) {
-          return [{ type: "Reviewers", id: cardId }];
-        }
-        return [];
-      },
-    }),
-
-    // User Search Endpoint
-    searchUsers: builder.query({
-      query: ({ search, id, page }) => {
-        const params = new URLSearchParams({
-          id: id?.toString(),
-          page: page?.toString()
-        });
-        if (search && search.trim()) {
-          params.append("search", search.trim());
-        }
-        return `/users/search?${params.toString()}`;
-      },
-      providesTags: ["User"],
-      // Serialize query args to cache only by search term and id, not page
-      serializeQueryArgs: ({ queryArgs }) => {
-        return {
-          search: queryArgs.search?.trim() || "",
-          id: queryArgs.id,
-        };
-      },
-      // Force refetch when page changes
-      forceRefetch({ currentArg, previousArg }) {
-        return currentArg?.page !== previousArg?.page;
-      },
-    }),
-
-    // "Report this set": one report per person per set.
-    reportSet: builder.mutation({
-      query: ({ cardId, reason, note }) => ({
-        url: `/card/${cardId}/report`,
-        method: "POST",
-        body: { reason, note },
-      }),
-    }),
   }),
 });
 
 export const {
-  useGetIndividualCardQuery,
-  usePatchUpdateCardMutation,
   usePostRegisterUserMutation,
   usePostLoginUserMutation,
   usePostAuthDetailsMutation,
   usePostLogoutUserMutation,
   usePostGoogleLoginMutation,
-  useGetCardLogsQuery,
-  useGetReviewQueueItemsQuery,
-  // Review Queue Management Hooks
-  useAcceptReviewItemMutation,
-  useRejectReviewItemMutation,
-  // Reviewer Management Hooks
-  useGetReviewersQuery,
-  useAddReviewersMutation,
-  useRemoveReviewerMutation,
-  // User Search Hook
-  useSearchUsersQuery,
-  useReportSetMutation,
 } = apiSlice;

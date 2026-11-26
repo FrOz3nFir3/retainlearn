@@ -1,25 +1,29 @@
 // A study set's classroom (/study-sets/:id, the prototype's Classroom): how you stand in it, what to do next, going
 // over or retrying what you missed, a mixed quiz of what you hold, and its rounds, each with its review and quiz. While
-// the set and your progress load, its skeleton. Someone not signed in can study, and is told nothing is saved. The
-// set's editor is today's (/study-sets/:id/edit) until it's replaced (D-17).
-import { useMemo } from "react";
+// the set and your progress load, its skeleton. Someone not signed in can study, and is told nothing is saved. Signed
+// in, Edit opens the set's editor (features/editor), and "Report this set" is at the foot of the page. The description
+// is the editor's HTML, shown as user content.
+import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { MIX_READY, isPlayerCard, mixableCount, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, When } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
-import { buttonClass } from "#components/ui/Button.tsx";
+import { Button, buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
+import { RichText } from "#components/ui/RichText.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
 import { classPath, setPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
+import { textOf } from "#utils/safeHtml.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
 import { ClassroomSkeleton } from "./ClassroomSkeleton.tsx";
+import { ReportStudySet } from "./ReportStudySet.tsx";
 import { RoundRow } from "./RoundRow.tsx";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -70,6 +74,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
   const held = Object.values(progress?.questions ?? {}).filter((q) => isPlayerCard(q)).length;
   const mixable = held >= MIX_READY ? mixableCount(rounds, progress, when) : 0;
   const home = setPath(set._id);
+  const [reporting, setReporting] = useState(false);
 
   return (
     <Page
@@ -77,7 +82,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
       eyebrow={`${set.topic} in ${set.category}`}
       back={subjectPath(set.category)}
       headTitle={`${set.topic}: ${set.subtopic}`}
-      description={set.description || `Study ${set.topic}: ${set.subtopic}, in ${set.category}, with flashcards and quizzes.`}
+      description={textOf(set.description) || `Study ${set.topic}: ${set.subtopic}, in ${set.category}, with flashcards and quizzes.`}
       noindex={!set.listed}
       width="max-w-3xl"
       actions={
@@ -98,7 +103,7 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
             to keep your progress and earn player cards.
           </p>
         )}
-        {set.description && <p className="text-sm text-ink/65">{set.description}</p>}
+        {textOf(set.description) && <RichText html={set.description} className="!text-sm text-ink/65" />}
 
         {signedIn && stats.started && (
           <section aria-label="How you stand in this set" className="panel bg-surface p-4">
@@ -155,7 +160,13 @@ function ClassroomView({ set, progress, when, signedIn }: { set: StudySetContent
             />
           )}
         </section>
+        {signedIn && (
+          <Button size="sm" icon="flag" onClick={() => setReporting(true)} className="border-transparent bg-transparent text-ink/55 hover:text-rose-ink">
+            Report this set
+          </Button>
+        )}
       </div>
+      {reporting && <ReportStudySet setId={set._id} name={set.subtopic} onClose={() => setReporting(false)} />}
     </Page>
   );
 }
