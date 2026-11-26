@@ -243,3 +243,24 @@ test("a reset takes today's retry of that set off the timetable, and rings the l
   await resetQuiz();
   assert.equal((await xp()) - before, XP.timetableDone, "a second reset has nothing to take off, and the bell rings once");
 });
+
+test("your own order of a set's flashcards is kept with your progress, and null brings back the author's", async () => {
+  const order = (set: string, body: object, who: Record<string, string> = lee) =>
+    t.api(`/api/study-sets/${set}/order`, { method: "PUT", headers: who, body: JSON.stringify(body) });
+  const orderOf = async (set: string) => ((await (await t.api(`/api/study-sets/${set}/progress`, { headers: lee })).json()) as ProgressView).order;
+  const loop = String(ids.loopCard);
+  assert.equal((await order(js, { order: [loop, constCard] })).status, 200);
+  assert.deepEqual(await orderOf(js), [loop, constCard]);
+  assert.equal((await order(js, { order: [loop, loop] })).status, 400, "each flashcard once");
+  assert.equal((await order(js, { order: [String(ids.cellCard)] })).status, 400, "another set's flashcard");
+  assert.equal((await order(js, { order: null })).status, 200);
+  assert.equal(await orderOf(js), null);
+  assert.equal((await t.api(`/api/study-sets/${js}/order`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: '{"order":null}' })).status, 401);
+
+  // A set you haven't studied keeps your order too, and stays out of your report card.
+  const bio = String(ids.bio);
+  assert.equal((await order(bio, { order: [String(ids.cellCard)] })).status, 200);
+  assert.deepEqual(await orderOf(bio), [String(ids.cellCard)]);
+  const card = (await (await t.api(`/api/report-card?tz=${encodeURIComponent(IST)}`, { headers: lee })).json()) as { sets: { setId: string }[] };
+  assert.ok(!card.sets.some((s) => s.setId === bio), "not in the report card");
+});

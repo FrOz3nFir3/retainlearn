@@ -60,6 +60,8 @@ const PATHS = {
   sunrise: <><path d="M3 19.5h18M7.5 19.5a4.5 4.5 0 0 1 9 0" /><path d="M4.8 13.3l1.4 1.4M19.2 13.3l-1.4 1.4" /><path d="M12 9.5v-6M9.5 6L12 3.5 14.5 6" /></>,
   sunset: <><path d="M3 19.5h18M7.5 19.5a4.5 4.5 0 0 1 9 0" /><path d="M4.8 13.3l1.4 1.4M19.2 13.3l-1.4 1.4" /><path d="M12 3.5v6M9.5 7L12 9.5 14.5 7" /></>,
   moon: <path d="M19.5 14.5A7.5 7.5 0 0 1 9.5 4.5a7.5 7.5 0 1 0 10 10z" />,
+  grip: <><circle cx="9" cy="6.5" r="1.2" fill="currentColor" /><circle cx="15" cy="6.5" r="1.2" fill="currentColor" /><circle cx="9" cy="12" r="1.2" fill="currentColor" /><circle cx="15" cy="12" r="1.2" fill="currentColor" /><circle cx="9" cy="17.5" r="1.2" fill="currentColor" /><circle cx="15" cy="17.5" r="1.2" fill="currentColor" /></>,
+  more: <><circle cx="12" cy="5.5" r="1.3" fill="currentColor" /><circle cx="12" cy="12" r="1.3" fill="currentColor" /><circle cx="12" cy="18.5" r="1.3" fill="currentColor" /></>,
 } satisfies Record<string, ReactNode>;
 
 export type IconName = keyof typeof PATHS;

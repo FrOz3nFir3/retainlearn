@@ -135,6 +135,50 @@
     background: #21252b;
     color: #9da5b4;
   }
+  /* Long code, folded to its first lines (RichText.tsx), fading out above its "Show all N lines" button. */
+  & pre.is-folded {
+    max-height: 15.5em;
+    overflow: hidden;
+    mask-image: linear-gradient(to bottom, black 65%, transparent);
+  }
+  & .rich-unfold {
+    display: block;
+    width: 100%;
+    margin-top: -0.75rem;
+    border-radius: 0 0 0.75rem 0.75rem;
+    padding: 0.5rem;
+    font-size: 12px;
+    font-weight: 600;
+    background: #282c34;
+    color: #c8ccd4;
+    cursor: pointer;
+    &:hover {
+      color: white;
+    }
+    &:focus-visible {
+      outline: 2px solid var(--color-brand);
+      outline-offset: 2px;
+    }
+  }
+  & .code-block-wrapper .rich-unfold {
+    margin-top: 0;
+    border-radius: 0;
+  }
+  /* A long answer's titled parts, as headings, when it's read whole (Note.tsx). */
+  & .answer-part {
+    margin-top: 1.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--color-ink) 6%, transparent);
+    padding-top: 1rem;
+    scroll-margin-top: 10rem;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    color: var(--color-ink);
+    &:first-child {
+      margin-top: 0;
+      border-top: 0;
+      padding-top: 0;
+    }
+  }
   & blockquote {
     border-left: 3px solid color-mix(in oklab, var(--color-ink) 15%, transparent);
     padding-left: 0.875rem;

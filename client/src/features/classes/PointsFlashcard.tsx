@@ -9,6 +9,7 @@ import { Button } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { ClassShell } from "./ClassShell.tsx";
+import { Note } from "./Note.tsx";
 import type { ReviewFlashcard } from "./reviewPlan.ts";
 import { Ring } from "./Ring.tsx";
 
@@ -151,7 +152,7 @@ export function PointsFlashcard({ shell, flashcard, last, marks, onMark, onDone,
       )}
       <details className="mt-5">
         <summary className="cursor-pointer text-sm font-semibold text-brand">Read the full answer</summary>
-        <RichText html={flashcard.answer} className="panel mt-2 bg-surface p-4" />
+        <Note html={flashcard.answer} className="panel mt-2 bg-surface p-4" />
       </details>
     </ClassShell>
   );

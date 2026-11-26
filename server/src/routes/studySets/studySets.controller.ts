@@ -1,11 +1,11 @@
 // Studying a set (PLAN 14.4, 14.10): its content, your progress in it, and saving your answers as a class goes.
 import type { Request, Response } from "express";
-import { ResetQuizQuery, SaveAnswers, SetParams, dayKey } from "@retainlearn/core";
+import { ResetQuizQuery, SaveAnswers, SetParams, StudySetOrder, dayKey } from "@retainlearn/core";
 import type { SavedAnswers, When } from "@retainlearn/core";
 import { inputOf } from "#middleware/validate.ts";
 import { userIdOf } from "#middleware/routeHelpers.ts";
 import { studySetContent, studySetExists, studySetOutline } from "#models/studySets/studySets.model.ts";
-import { progressView, resetQuiz, saveAnswers } from "#models/progress/progress.model.ts";
+import { progressView, resetQuiz, saveAnswers, setOrder } from "#models/progress/progress.model.ts";
 import { logAnswers } from "#models/answers/answers.model.ts";
 import { countAnswers, dropRetryPeriods, finishPeriod } from "#models/activity/activity.model.ts";
 import { addXp, finishClass, playerOf, refreshSubject, setClassLeft } from "#models/players/players.model.ts";
@@ -14,6 +14,7 @@ import { subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 export const setInput = { params: SetParams };
 export const answersInput = { params: SetParams, body: SaveAnswers };
 export const resetQuizInput = { params: SetParams, query: ResetQuizQuery };
+export const orderInput = { params: SetParams, body: StudySetOrder };
 
 const notFound = (res: Response) => res.status(404).json({ error: "There's no such study set" });
 
@@ -94,4 +95,16 @@ export async function postAnswers(req: Request, res: Response) {
     xp: saved.xp + bonus,
     ...(finished ? { finished } : {}),
   } satisfies SavedAnswers);
+}
+
+// PUT /api/study-sets/:id/order  { order }: your own order of the set's flashcards, or null for the author's. Every id
+// must be one of the set's flashcards; ones left out (added since) go at the end. Answers with the order kept.
+export async function putOrder(req: Request, res: Response) {
+  const { params, body } = inputOf<typeof orderInput>(res);
+  const set = await studySetOutline(params.id);
+  if (!set) return notFound(res);
+  const ids = new Set(set.flashcards.map((f) => f._id));
+  if (body.order && !body.order.every((id) => ids.has(id))) return res.status(400).json({ error: "That order names flashcards this set doesn't have" });
+  await setOrder(userIdOf(req), params.id, body.order);
+  res.json({ order: body.order });
 }

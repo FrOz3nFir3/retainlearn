@@ -43,6 +43,12 @@ export function upNextHere(rooms: readonly Room[]): { room: Room; why: string } 
   return null;
 }
 
+// The other sets that need you, after "Up next here": points or questions missed, player cards fading, or started and
+// not finished, the most pressing first (the prototype's "Also needs attention"), up to three.
+export function alsoNeedsAttention(rooms: readonly Room[], next: Room | null, max = 3): Room[] {
+  return ordered(rooms.filter((r) => r !== next && (r.status.key === "missed" || r.status.key === "fading" || r.status.key === "inProgress")), "attention").slice(0, max);
+}
+
 // The two orders of the sets: as they were added (the building's floors), or what needs you first (most missed first
 // within each status).
 export type Order = "building" | "attention";

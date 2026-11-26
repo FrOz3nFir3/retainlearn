@@ -4,7 +4,7 @@ import { Types } from "mongoose";
 import Player, { SETTINGS_DEFAULTS } from "#models/players/players.mongo.ts";
 import type { PlayerDoc } from "#models/players/players.mongo.ts";
 import { currentStreak, levelOf, streakAfterClass } from "@retainlearn/core";
-import type { Campus, Day, ReportCard, Streak } from "@retainlearn/core";
+import type { Campus, Day, ReportCard, SettingsPatchBody, Streak } from "@retainlearn/core";
 
 // A subject's summary, as the rules work it out from your progress in it (services/campus.ts). Stored on the player
 // with its plot: the place of its building on the campus.
@@ -75,6 +75,12 @@ export async function playerOf(userId: string, timeZone: string, subjects: () =>
     if (!other) throw error;
     return other;
   }
+}
+
+// Some of your settings, the ones given (PATCH /api/campus/settings), on a player already made.
+export async function updateSettings(userId: string, patch: SettingsPatchBody): Promise<void> {
+  const changes = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined).map(([key, value]) => [`settings.${key}`, value]));
+  if (Object.keys(changes).length) await Player.updateOne({ _id: userId }, { $set: changes });
 }
 
 // A subject's summary refreshed outside a class (after a set's quizzes are reset), if the player has the subject. One
