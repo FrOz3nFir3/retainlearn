@@ -1,6 +1,7 @@
 // A subject's page (/subjects/:name, the prototype's BuildingHud as a list): its study sets, how you stand in it,
-// which set is up next there, and a new study set. A signed-in player can put the subject on their campus, or take it
-// off while they haven't started it. Your progress comes from your report card and your campus, which the app keeps
+// which set is up next there, and a new study set. A signed-in player can put the subject on their campus (beside the
+// title, or under it on a phone, where beside it would squeeze the counts onto two lines), or take it off while they
+// haven't started it. Your progress comes from your report card and your campus, which the app keeps
 // already, so the page itself asks only for the subject's sets. The search, the order and the page are in the address.
 import { useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -26,7 +27,7 @@ import { matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectPr
 import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf } from "#api/problem.ts";
 import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
-import { SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
+import { ADD_ON_PHONE, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
 
 const SETS_PER_PAGE = 12;
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -131,13 +132,18 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
       noindex={subject.sets.length === 0}
       actions={
         onCampus === false && (
-          <Button tone="primary" size="sm" icon="plus" disabled={adding.isLoading} onClick={addToCampus}>
+          <Button tone="primary" size="sm" icon="plus" disabled={adding.isLoading} onClick={addToCampus} className="max-sm:hidden">
             Add to my campus
           </Button>
         )
       }
     >
       <div className="space-y-5">
+        {onCampus === false && (
+          <Button tone="primary" icon="plus" disabled={adding.isLoading} onClick={addToCampus} className={ADD_ON_PHONE}>
+            Add to my campus
+          </Button>
+        )}
         <div role="status" className="empty:hidden">
           {notice && <p className={notice.tone === "done" ? "rounded-2xl bg-mint-wash px-3.5 py-2.5 text-sm text-mint-ink" : "rounded-2xl bg-rose-wash px-3.5 py-2.5 text-sm text-rose-ink"}>{notice.text}</p>}
         </div>
