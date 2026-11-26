@@ -1,6 +1,6 @@
 // A flashcard reviewed whole (fewer than two recall points): it turns over to its answer (Space, or a tap), then you
-// rate how well you knew it (1 Perfect, 2 Close, 3 Difficult). Only Perfect counts as known. A long answer is shown
-// below the question instead of on a flashcard.
+// rate how well you knew it (1 Perfect, 2 Close, 3 Difficult). Only Perfect counts as known. A long answer or question
+// (or one with code or a list) is shown as panels, the answer below the question, instead of on a flashcard.
 import { useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import { textOf } from "#utils/safeHtml.ts";
@@ -28,7 +28,7 @@ type Props = {
 
 export function WholeFlashcard({ shell, flashcard, onDone, notice }: Props) {
   const [revealed, setRevealed] = useState(false);
-  const long = isLong(flashcard.answer);
+  const long = isLong(flashcard.answer) || isLong(flashcard.question);
   const rate = (i: number) => onDone({ id: flashcard._id, knew: i === 0, points: [], known: i === 0 ? 1 : 0, weight: 1, missed: i === 0 ? [] : ["The whole flashcard"] });
 
   useEffect(() => {
