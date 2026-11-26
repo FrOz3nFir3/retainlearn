@@ -2,12 +2,10 @@ import { configureStore } from "@reduxjs/toolkit";
 import { setupListeners } from "@reduxjs/toolkit/query";
 import { apiSlice } from "../api/apiSlice";
 import authSlicer from "../features/authentication/state/authSlice";
-import cardSlicer from "../features/cards/state/cardSlice";
 
 const reducer = {
   [apiSlice.reducerPath]: apiSlice.reducer,
   auth: authSlicer.reducer,
-  card: cardSlicer.reducer,
 };
 const store = configureStore({
   reducer,

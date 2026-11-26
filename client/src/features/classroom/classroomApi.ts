@@ -1,7 +1,7 @@
 // A study set and your progress in it (PLAN 14.10). The content is public and changes rarely, so it stays cached for
 // ten minutes after its last use. Your progress is updated in place from what each saved batch returns (classesApi.ts),
-// with no refetch.
-import type { ProgressView, StudySetContent } from "@retainlearn/core";
+// with no refetch. "Report this set" sends a report (today's endpoint, until the editing API, P1-11).
+import type { ProgressView, StudySetContent, StudySetReportBody } from "@retainlearn/core";
 import { apiSlice } from "#api/apiSlice.js";
 
 export const classroomApi = apiSlice.enhanceEndpoints({ addTagTypes: ["StudySet", "Progress"] }).injectEndpoints({
@@ -15,7 +15,10 @@ export const classroomApi = apiSlice.enhanceEndpoints({ addTagTypes: ["StudySet"
       query: (setId) => `/study-sets/${setId}/progress`,
       providesTags: (_result, _error, setId) => [{ type: "Progress", id: setId }],
     }),
+    reportStudySet: build.mutation<void, StudySetReportBody & { setId: string }>({
+      query: ({ setId, ...body }) => ({ url: `/card/${setId}/report`, method: "POST", body }),
+    }),
   }),
 });
 
-export const { useGetStudySetQuery, useGetProgressQuery } = classroomApi;
+export const { useGetStudySetQuery, useGetProgressQuery, useReportStudySetMutation } = classroomApi;

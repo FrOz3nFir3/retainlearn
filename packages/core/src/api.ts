@@ -131,6 +131,16 @@ export const NewStudySet = z.object({
 });
 export type NewStudySetBody = z.input<typeof NewStudySet>;
 
+// POST /api/card/:id/report: "Report this set" (P0-14), with a reason and an optional note. The old endpoint's name
+// until the editing API (P1-11). The reasons are the ones the reports collection keeps (studySetReports.mongo.js).
+export const REPORT_REASONS = ["spam", "offensive", "wrong", "other"] as const;
+export const REPORT_NOTE_MAX = 500;
+export const StudySetReport = z.object({
+  reason: z.enum(REPORT_REASONS, { error: "Choose a reason." }),
+  note: z.string().trim().max(REPORT_NOTE_MAX, `Keep the note to ${REPORT_NOTE_MAX} characters.`).default(""),
+});
+export type StudySetReportBody = z.input<typeof StudySetReport>;
+
 // Signing in and signing up (POST /api/user/login and /api/user/register: the account's endpoints keep their names
 // until they're renamed together), and your profile's details (PATCH /api/user). The forms check with these, the same
 // rules the server applies: a username of 3 to 30 letters, numbers and underscores, a name up to 100 characters, and a

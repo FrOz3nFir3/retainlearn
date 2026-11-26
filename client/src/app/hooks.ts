@@ -10,3 +10,6 @@ export const useAppSelector = useSelector.withTypes<RootState>();
 
 // Whether someone is signed in (the session the old app keeps in state.auth).
 export const useSignedIn = (): boolean => useAppSelector((state) => Boolean((state.auth as { user?: unknown }).user));
+
+// Your username while you're signed in, else null.
+export const useMyUsername = (): string | null => useAppSelector((state) => (state.auth as { user?: { username?: string } | null }).user?.username ?? null);
