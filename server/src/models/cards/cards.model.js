@@ -444,7 +444,8 @@ export async function updateCard(details) {
       card.review.some((r) => r._id.toString() === id)
     );
 
-    if (validIds.length === card.review.length) {
+    // Each flashcard exactly once: a repeated id would copy one and drop another.
+    if (validIds.length === card.review.length && new Set(validIds).size === validIds.length) {
       // Create a reordered array based on the provided order
       const reviewMap = new Map();
 
@@ -474,7 +475,8 @@ export async function updateCard(details) {
       card.quizzes.some((q) => q._id.toString() === id)
     );
 
-    if (validIds.length === card.quizzes.length) {
+    // Each question exactly once, as for flashcards.
+    if (validIds.length === card.quizzes.length && new Set(validIds).size === validIds.length) {
       const quizMap = new Map();
       // fill the map with current data
       for (let quizItem of card.quizzes) {
