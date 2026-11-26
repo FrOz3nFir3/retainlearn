@@ -12,12 +12,15 @@ export async function checkReviewPermissions(req, res, next) {
     return res.status(401).json({ error: "Authentication required" });
   }
 
-  const cardId = req.body?._id || req.params?.id || req.query?.id;
+  // The set checked is the one the handler acts on: the one in the address where there is one (reviewers, accepting
+  // and rejecting suggestions), the body's for a save (PATCH /api/card has none in its address), and the query's for
+  // the reviewer search.
+  const cardId = req.params?.id ?? (req.method === "PATCH" ? req.body?._id : req.query?.id);
   if (!cardId) {
     return res.status(400).json({ error: "Card ID is required" });
   }
 
-  if (!Types.ObjectId.isValid(cardId)) {
+  if (typeof cardId !== "string" || !Types.ObjectId.isValid(cardId)) {
     return res.status(400).json({ error: "Invalid card ID" });
   }
 
