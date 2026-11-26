@@ -1,10 +1,12 @@
 // A review under way (the prototype's ReviewRun): its flashcards one at a time, point by point (PointsFlashcard) or whole
 // (WholeFlashcard), with every recall point in the header's track. Each flashcard is saved as you finish it
-// (useClassSaver), with the points you marked, so leaving loses at most the one you're on. The end: the share of
-// recall points you knew on a ring, what comes back sooner, the next class to take, and the XP, streak and timetable.
+// (useClassSaver), with the points you marked, so leaving loses at most the one you're on. The end (the prototype's):
+// the share of recall points you knew on a ring, the flashcards with points missed before and after, the round's panel
+// with every round to jump to, the next class (after a round: its quiz, else the questions you missed in it, else what's
+// up next), what comes back sooner, and the XP, streak and timetable.
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { reviewFlashcard, studySetStats } from "@retainlearn/core";
+import { quizDone, reviewFlashcard, reviewLoad, roundState, setRounds, studySetStats, upNext } from "@retainlearn/core";
 import type { FlashcardProgress, ProgressView, StudySetContent, When } from "@retainlearn/core";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
@@ -13,6 +15,8 @@ import { classPath } from "./modes.ts";
 import { PointsFlashcard } from "./PointsFlashcard.tsx";
 import type { FlashcardResult } from "./PointsFlashcard.tsx";
 import { PointTrack } from "./PointTrack.tsx";
+import { recallPoints } from "./recallPoints.ts";
+import { RoundStrip } from "./RoundStrip.tsx";
 import type { PointState } from "./PointTrack.tsx";
 import type { ReviewPlan } from "./reviewPlan.ts";
 import { byPoints } from "./reviewPlan.ts";
@@ -93,15 +97,37 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
     const share = total ? known / total : 0;
     const comeBack = all.filter((r) => !r.knew);
     const missedNow = Object.values(mine).filter((f) => f.missedOn != null).length;
+    const missedBefore = Object.values(progress?.flashcards ?? {}).filter((f) => f.missedOn != null).length;
     const quizIds = set.questions.filter((q) => q.flashcardId && plan.flashcards.some((c) => c._id === q.flashcardId)).map((q) => q._id);
+    // The set's rounds as they stand now, for the round's panel and what's next.
+    const after = { setId: set._id, order: progress?.order ?? null, flashcards: mine, questions: progress?.questions ?? {}, quiz: progress?.quiz ?? { started: 0, finished: 0 }, classInProgress: null, lastAt: null };
+    const rounds = setRounds(set, progress?.order, (f) => reviewLoad(recallPoints(f.answer).length));
+    const states = rounds.map((r) => roundState(r, after, when));
+    const at = plan.round ? rounds.findIndex((r) => r.n === plan.round) : -1;
+    const round = rounds[at];
+    const here = states[at];
+    const missedInRound = round ? round.questions.filter((q) => progress?.questions[q._id]?.missedOn != null).map((q) => q._id) : [];
+    const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+    const onward = round && here ? (round.questions.length && !quizDone(here) ? { round, mode: "quiz" as const } : missedInRound.length ? null : upNext(rounds, states)) : null;
     const next =
       mode === "reviewMissed"
         ? Object.values(progress?.questions ?? {}).some((q) => q.missedOn != null) && { to: classPath(set._id, "retryMissed"), title: "Next: retry the questions you missed", body: "The quiz questions you got wrong, now that you've gone over them." }
-        : quizIds.length > 0 && {
-            to: `${classPath(set._id, "quiz")}?${plan.round ? `round=${plan.round}` : `ids=${quizIds.join(",")}`}`,
-            title: plan.round ? `Next: quiz round ${plan.round}` : `Next: ${quizIds.length} quiz questions on these flashcards`,
-            body: "On what you just reviewed, while it's fresh. Each one you get right becomes a player card.",
-          };
+        : round
+          ? missedInRound.length && here && quizDone(here)
+            ? { to: `${classPath(set._id, "retryMissed")}?ids=${missedInRound.join(",")}`, title: `Next: retry ${plural(missedInRound.length, "quiz question")} you missed`, body: "The ones in this round, now that you've gone over it." }
+            : onward && {
+                to: `${classPath(set._id, onward.mode)}?round=${onward.round.n}`,
+                title: `Next: ${onward.mode === "review" ? "review" : "quiz"} round ${onward.round.n}`,
+                body:
+                  onward.mode === "quiz"
+                    ? `${plural(onward.round.questions.length, "quiz question")}${onward.round.n === plan.round ? " on what you just reviewed, while it's fresh" : ""}. Each one you get right becomes a player card.`
+                    : `${plural(onward.round.flashcards.length, "flashcard")}, about ${onward.round.load} recall points.`,
+              }
+          : quizIds.length > 0 && {
+              to: `${classPath(set._id, "quiz")}?ids=${quizIds.join(",")}`,
+              title: `Next: ${quizIds.length} quiz questions on these flashcards`,
+              body: "On what you just reviewed, while it's fresh. Each one you get right becomes a player card.",
+            };
     return (
       <ClassShell {...shellBase} progress={1}>
         {result ? (
@@ -125,13 +151,22 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
                 </div>
               </div>
             }
-            lines={[]}
+            lines={missedBefore || missedNow ? [["Flashcards with points you missed", `${missedBefore} → ${missedNow}`]] : []}
             extra={
               <>
+                {round && here && (
+                  <div className="panel bg-surface p-4">
+                    <p className="font-semibold">
+                      Round {round.n} of {rounds.length}: {here.reviewed} of {here.flashcards} flashcards reviewed
+                    </p>
+                    <p className="text-sm text-ink/55">{here.weak ? `${here.weak === 1 ? "1 has" : `${here.weak} have`} points you missed: they wait in “Go over what you missed”.` : "Nothing missed in this round."}</p>
+                    <RoundStrip setId={set._id} rounds={rounds} states={states} current={round.n} kind="review" returnTo={returnTo} />
+                  </div>
+                )}
                 {next && (
                   <div className="panel flex items-center gap-3 bg-surface p-4">
                     <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
-                      <Icon name="quiz" className="size-5" />
+                      <Icon name={next.to.includes("/retry-missed") ? "focus" : next.to.includes("/review") ? "review" : "quiz"} className="size-5" />
                     </span>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold">{next.title}</p>

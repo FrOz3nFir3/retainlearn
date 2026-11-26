@@ -90,8 +90,23 @@ export function QuestionsTab({ set, access, suggestions, onNotice }: Props) {
     </Button>
   );
 
+  const unlinked = rows.filter((r) => r.linked < 0).length;
+
   return (
     <div className="space-y-3">
+      {unlinked > 0 && (
+        <div className="flex flex-col gap-3 rounded-2xl bg-orange-wash px-4 py-3 text-sm sm:flex-row sm:items-center">
+          <p className="min-w-0 flex-1 text-orange-ink">
+            <span className="font-semibold">{unlinked === 1 ? "1 quiz question isn't" : `${unlinked} quiz questions aren't`} linked to a flashcard.</span> People who miss {unlinked === 1 ? "it" : "them"} get nothing to
+            read: link the flashcard that teaches {unlinked === 1 ? "it" : "each one"}.
+          </p>
+          {filter !== "none" && (
+            <Button size="sm" onClick={() => setFilter("none")}>
+              Show {unlinked === 1 ? "it" : "them"}
+            </Button>
+          )}
+        </div>
+      )}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
         <SearchInput label="Search the quiz questions" value={query} onChange={setQuery} placeholder="Search questions, answers and options" className="lg:flex-1" />
         <label className="flex items-center gap-2 text-sm">

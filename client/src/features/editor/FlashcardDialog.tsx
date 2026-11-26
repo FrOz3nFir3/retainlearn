@@ -1,6 +1,6 @@
 // A flashcard in a dialog, new or saved (the prototype's FlashcardEditor): its question and answer, and how the
 // answer will be reviewed, in recall points found from its bold labels, titles and lists (features/classes) or as one
-// card. The set's editors save it; anyone else signed in suggests the change, for a reviewer to accept. A guest sees
+// card, and a preview of it as learners see it. The set's editors save it; anyone else signed in suggests the change, for a reviewer to accept. A guest sees
 // it as learners do, with a way to sign in.
 import { useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -30,6 +30,7 @@ function FlashcardForm({ setId, eyebrow, flashcard, index, access, onClose, onSa
   const [answer, setAnswer] = useState({ html: flashcard?.answer ?? "", changed: false });
   const [tried, setTried] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
   const [save, saving] = useSaveStudySetMutation();
   const points = useMemo(() => recallPoints(answer.html), [answer.html]);
 
@@ -122,6 +123,23 @@ function FlashcardForm({ setId, eyebrow, flashcard, index, access, onClose, onSa
             <p className="mt-1">Learners recall one point at a time, and only the ones they miss come back.</p>
           </details>
         </section>
+        <div>
+          <Button size="sm" icon={preview ? "chevronUp" : "eye"} aria-expanded={preview} onClick={() => setPreview((p) => !p)}>
+            {preview ? "Hide preview" : "Show preview"}
+          </Button>
+          {preview && (
+            <div className="mt-2 overflow-hidden rounded-2xl border border-ink/10">
+              <div className="bg-brand px-4 py-3">
+                <p className="text-[11px] font-semibold text-white/70">Question</p>
+                {isBlank(question.html) ? <p className="text-sm text-white/60">Nothing yet</p> : <RichText html={question.html} className="!text-white [&_strong]:!text-white" />}
+              </div>
+              <div className="bg-surface px-4 py-3">
+                <p className="text-[11px] font-semibold text-bell-ink">Answer</p>
+                {isBlank(answer.html) ? <p className="text-sm text-ink/45">Nothing yet</p> : <RichText html={answer.html} />}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </Dialog>
   );

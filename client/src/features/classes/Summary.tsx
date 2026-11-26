@@ -68,7 +68,7 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
             <h2 id="class-summary" className="font-display text-3xl font-semibold">
               {title}
             </h2>
-            {result?.firstToday && <p className="mt-1 text-sm font-semibold text-bell-ink">Streak kept: {result.streak} days</p>}
+            {result?.firstToday && <p className="mt-1 text-sm font-semibold text-bell-ink">Streak kept: {result.streak} {result.streak === 1 ? "day" : "days"}</p>}
           </div>
           {result && (
             <p className="rounded-2xl bg-bell-wash px-4 py-2 text-right">

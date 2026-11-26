@@ -13,6 +13,7 @@ import { Dialog } from "#components/ui/Dialog.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { classPath } from "#features/classes/modes.ts";
+import { Note } from "#features/classes/Note.tsx";
 import type { Reading } from "./Rounds.tsx";
 
 type Props = { set: StudySetContent; item: Reading; progress: ProgressView | null; returnTo: string; onClose: () => void };
@@ -37,7 +38,7 @@ export function ReadItem({ set, item, progress, returnTo, onClose }: Props) {
         <p className="text-xs font-semibold text-brand">Question</p>
         <RichText html={item.flashcard.question} className="mt-1 text-[16px] font-medium text-ink" />
         {shown ? (
-          <RichText html={item.flashcard.answer} className="panel mt-3 bg-surface p-4" />
+          <Note html={item.flashcard.answer} className="panel mt-3 bg-surface p-4" />
         ) : (
           <div className="mt-3 rounded-2xl border border-dashed border-ink/15 px-4 py-5 text-center">
             <p className="text-sm text-ink/60">Try to recall it first: trying before you look is what makes it stick.</p>
