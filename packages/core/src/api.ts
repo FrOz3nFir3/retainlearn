@@ -14,6 +14,25 @@ export const SetParams = z.object({ id: ObjectIdHex });
 // GET /api/campus?tz=Asia/Kolkata: the browser says where it is, so "today" is the player's day.
 export const CampusQuery = z.object({ tz: TimeZone });
 
+// PUT /api/study-sets/:id/order: your own order of a set's flashcards (each one's quiz questions move with it, so the
+// rounds follow it), or null for the author's. Kept with your progress in the set; flashcards added later go at the end.
+export const STUDY_SET_ORDER_MAX = 5000;
+export const StudySetOrder = z.object({
+  order: z
+    .array(ObjectIdHex)
+    .max(STUDY_SET_ORDER_MAX)
+    .refine((ids) => new Set(ids).size === ids.length, "Name each flashcard once.")
+    .nullable(),
+});
+export type StudySetOrderBody = z.input<typeof StudySetOrder>;
+
+// PATCH /api/campus/settings?tz=…: some of your settings, the ones sent. For now what the classroom shows of each
+// round: its review and its quiz, or one of them.
+export const STUDY_VIEWS = ["both", "review", "quiz"] as const;
+export type StudyView = (typeof STUDY_VIEWS)[number];
+export const SettingsPatch = z.object({ studyView: z.enum(STUDY_VIEWS).optional() });
+export type SettingsPatchBody = z.input<typeof SettingsPatch>;
+
 const ms = z.number().int().min(0).max(3_600_000); // how long it took to answer, up to an hour
 // A recall point's key comes from the answer's text (its section and first words), under 150 characters.
 const RecallPoint = z.object({ key: z.string().min(1).max(160), knew: z.boolean() });

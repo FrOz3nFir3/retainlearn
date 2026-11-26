@@ -22,3 +22,27 @@ export const classroomApi = apiSlice.enhanceEndpoints({ addTagTypes: ["StudySet"
 });
 
 export const { useGetStudySetQuery, useGetProgressQuery, useReportStudySetMutation } = classroomApi;
+
+// Your own order of the set's flashcards (the rounds follow it), or null for the author's. Shown at once: the cached
+// progress takes the new order, and goes back to the old one if the save fails.
+export const orderApi = classroomApi.injectEndpoints({
+  endpoints: (build) => ({
+    saveOrder: build.mutation<{ order: string[] | null }, { setId: string; order: string[] | null }>({
+      query: ({ setId, order }) => ({ url: `/study-sets/${setId}/order`, method: "PUT", body: { order } }),
+      async onQueryStarted({ setId, order }, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          classroomApi.util.updateQueryData("getProgress", setId, (progress) => {
+            progress.order = order;
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
+  }),
+});
+
+export const { useSaveOrderMutation } = orderApi;

@@ -117,3 +117,13 @@ test("a player made from the old app's copied progress gets its subjects, and a 
     "a set gone quiet for 5 days climbs back",
   );
 });
+
+test("what the classroom shows of each round is one of your settings, saved as you pick it", async () => {
+  const patch = (body: object) => t.api(`/api/campus/settings?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: ada, body: JSON.stringify(body) });
+  assert.equal((await patch({ studyView: "quiz" })).status, 200);
+  assert.equal((await campus(ada)).player.settings.studyView, "quiz");
+  assert.equal((await patch({ studyView: "everything" })).status, 400);
+  assert.equal((await patch({})).status, 200, "nothing to change is fine");
+  assert.equal((await campus(ada)).player.settings.studyView, "quiz");
+  assert.equal((await t.api(`/api/campus/settings?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 401);
+});

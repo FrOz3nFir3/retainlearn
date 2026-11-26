@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ReportCard, ReportCardSet, Subject } from "@retainlearn/core";
-import { matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
+import { alsoNeedsAttention, matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
 
 const when = { today: "2026-11-24", timeZone: "UTC" };
 const subject: Subject = {
@@ -81,4 +81,18 @@ test("search matches every word typed in a set's titles, in any case", () => {
   assert.ok(matchesSearch(set, "grid"));
   assert.ok(matchesSearch(set, "CSS  layout"));
   assert.ok(!matchesSearch(set, "flex"));
+});
+
+test("also needing attention: the other sets with something missed, fading or half done, most pressing first, never Up next's", () => {
+  const go = studied({ setId: "go", topic: "Go", subtopic: "Channels", flashcards: { f1: { seenAt: "2026-11-23T10:00:00Z" } } });
+  const { rooms } = subjectProgress(subject, card([js, css, go]), when);
+  const next = upNextHere(rooms)?.room ?? null;
+  assert.equal(next?.set._id, "js", "the missed one is Up next");
+  assert.deepEqual(
+    alsoNeedsAttention(rooms, next).map((r) => r.set._id),
+    ["css", "go"],
+    "the half-done ones, not Up next's, not the empty one",
+  );
+  assert.deepEqual(alsoNeedsAttention(rooms, next, 1).map((r) => r.set._id), ["css"], "up to the most asked for");
+  assert.deepEqual(alsoNeedsAttention(subjectProgress(subject, null, when).rooms, null), [], "signed out: none");
 });

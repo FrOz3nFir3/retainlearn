@@ -14,7 +14,7 @@ import { ClassShell, Resumed } from "./ClassShell.tsx";
 import { Pips } from "./Pips.tsx";
 import type { QuizPlan } from "./quizPlan.ts";
 import { answerOptions } from "./quizPlan.ts";
-import { Summary } from "./Summary.tsx";
+import { Summary, useWasCold } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
 import { useClassSaver } from "./useClassSaver.ts";
 
@@ -51,6 +51,7 @@ type Props = {
 };
 
 export function QuizRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
+  const wasCold = useWasCold(set.category);
   const questions = plan.questions;
   const [options] = useState(() => questions.map((q) => answerOptions(q)));
   const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
@@ -138,6 +139,7 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
         {result ? (
           <Summary
             setId={set._id}
+            warmAgain={wasCold}
             title={plan.title ? `${plan.title}: done` : "Quiz finished"}
             result={result}
             hero={<Pips marks={marks.map((m) => ({ correct: m.correct ?? false }))} total={questions.length} index={-1} />}

@@ -1,17 +1,18 @@
 // The campus (PLAN 14.10): everything it shows, in one call. Two point reads on most loads (your player and today's
 // activity); at the day's first load the timetable and fading cards are drawn up from your progress, and kept.
 import type { Request, Response } from "express";
-import { AddSubject, CampusQuery, SubjectParams, dayKey, daysSince, subjectStatus } from "@retainlearn/core";
+import { AddSubject, CampusQuery, SettingsPatch, SubjectParams, dayKey, daysSince, subjectStatus } from "@retainlearn/core";
 import type { AddedSubject, Campus, When } from "@retainlearn/core";
 import { inputOf } from "#middleware/validate.ts";
 import { userIdOf } from "#middleware/routeHelpers.ts";
-import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject } from "#models/players/players.model.ts";
+import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject, updateSettings } from "#models/players/players.model.ts";
 import { activityOf } from "#models/activity/activity.model.ts";
 import { planToday, subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const campusInput = { query: CampusQuery };
 export const addSubjectInput = { query: CampusQuery, body: AddSubject };
 export const removeSubjectInput = { params: SubjectParams };
+export const settingsInput = { query: CampusQuery, body: SettingsPatch };
 
 // GET /api/campus?tz=Asia/Kolkata
 export async function getCampus(req: Request, res: Response) {
@@ -67,4 +68,15 @@ export async function deleteSubject(req: Request, res: Response) {
   const removed = await removeSubject(userIdOf(req), params.name);
   if (removed === "kept") return res.status(409).json({ error: "You've started studying this subject, so it stays on your campus." });
   res.status(204).end();
+}
+
+// PATCH /api/campus/settings?tz=…  { studyView }: some of your settings, the ones sent. Your player is made first if
+// this is before your first visit. Answers with what was saved.
+export async function patchSettings(req: Request, res: Response) {
+  const { query, body } = inputOf<typeof settingsInput>(res);
+  const userId = userIdOf(req);
+  const when: When = { today: dayKey(new Date(), query.tz), timeZone: query.tz };
+  await playerOf(userId, query.tz, () => subjectsFromProgress(userId, when));
+  await updateSettings(userId, body);
+  res.json(body);
 }

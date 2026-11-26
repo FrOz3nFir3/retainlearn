@@ -30,6 +30,15 @@ function viewOf(setId: string, p: ProgressDoc | null): ProgressView {
   };
 }
 
+// Your own order of a set's flashcards, or null for the author's (PUT /api/study-sets/:id/order). Kept with your
+// progress in the set, which is made if you haven't started it: it stays not started, with no details of the set, so
+// the report card and the campus (which read the sets you've studied) leave it out.
+export async function setOrder(userId: string, setId: string, order: string[] | null): Promise<void> {
+  const filter = { userId: oid(userId), setId: oid(setId) };
+  if (order) await Progress.updateOne(filter, { $set: { order: order.map(oid) } }, { upsert: true });
+  else await Progress.updateOne(filter, { $unset: { order: 1 } });
+}
+
 // A set's quizzes afresh (the report card's quiz report): what you missed, your record of answers (right and wrong) and
 // the quizzes counted are cleared, while your player cards (each one's level and when you last remembered it) and your
 // flashcards stay. A quiz left halfway is dropped, since its answers so far are gone. One update the database works
@@ -70,7 +79,8 @@ export type ProgressForRules = {
 type ReportCardRow = Pick<ProgressDoc, "setId" | "setInfo" | "questions" | "quiz" | "lastAt"> & { flashcards: ReportCardSet["flashcards"] };
 export async function reportCardSets(userId: string): Promise<ReportCardSet[]> {
   const docs = await Progress.aggregate<ReportCardRow>([
-    { $match: { userId: oid(userId) } },
+    // Sets you've studied: they carry the set's details (a progress made only to keep your order doesn't).
+    { $match: { userId: oid(userId), "setInfo.category": { $exists: true } } },
     {
       $project: {
         setId: 1,

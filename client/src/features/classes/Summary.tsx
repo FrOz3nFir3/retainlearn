@@ -1,7 +1,10 @@
 // The end of a class, for review and quiz alike: what finished, the XP it earned counting up to its total, the streak
-// if this was the day's first class, the timetable's bell when this class completed it, and mastery before and after.
+// if this was the day's first class, the timetable's bell when this class completed it, its subject warm again when it
+// had gone cold, and mastery before and after.
 // hero: the class's big moment under the title (a round's stars, the recall ring). lines: more [label, value] rows.
 import { useEffect, useState } from "react";
+import type { Campus } from "@retainlearn/core";
+import { useCampus } from "#features/campus/campusApi.ts";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { useSignedIn } from "#app/hooks.ts";
@@ -34,9 +37,23 @@ function CountUp({ to, ms = 900 }: { to: number; ms?: number }) {
   return <>{n}</>;
 }
 
-type Props = { setId: string; title?: string; result: ClassResult | null; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
+// Whether the set's subject had gone cold when the class began (its building cools while you're away), so its end can
+// say it's warm again. From the first campus seen: the one the app has as the class opens, or, for a class opened
+// straight from its address, the one fetched as it opens, well before the class's saves warm the subject up.
+const coldIn = (campus: Campus | undefined, category: string): boolean | null => (campus ? campus.subjects.find((s) => s.category === category)?.status === "cold" : null);
+export function useWasCold(category: string): boolean {
+  const signedIn = useSignedIn();
+  const campus = useCampus(!signedIn);
+  const [cold, setCold] = useState(() => coldIn(campus.data, category));
+  useEffect(() => {
+    if (cold === null && campus.data) setCold(coldIn(campus.data, category));
+  }, [cold, campus.data, category]);
+  return cold === true;
+}
 
-export function Summary({ setId, title = "Class finished", result, hero, lines, extra, actions }: Props) {
+type Props = { setId: string; title?: string; result: ClassResult | null; warmAgain?: boolean; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
+
+export function Summary({ setId, title = "Class finished", result, warmAgain = false, hero, lines, extra, actions }: Props) {
   const signedIn = useSignedIn();
   const returnTo = useReturnTo(setId);
   const rows: (readonly [string, ReactNode])[] = [
@@ -74,6 +91,7 @@ export function Summary({ setId, title = "Class finished", result, hero, lines, 
           </dl>
         )}
         {result?.timetableDone && <p className="mt-3 rounded-xl bg-bell-wash px-3 py-2 text-sm font-semibold text-bell-ink">Timetable done. The bell rings on your campus.</p>}
+        {result && warmAgain && <p className="mt-3 rounded-xl bg-mint-wash px-3 py-2 text-sm font-semibold text-mint-ink">This subject is warm again.</p>}
       </div>
       {extra}
       <div className="flex flex-wrap justify-end gap-2">

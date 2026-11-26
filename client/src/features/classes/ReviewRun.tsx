@@ -17,7 +17,7 @@ import type { PointState } from "./PointTrack.tsx";
 import type { ReviewPlan } from "./reviewPlan.ts";
 import { byPoints } from "./reviewPlan.ts";
 import { Ring } from "./Ring.tsx";
-import { Summary } from "./Summary.tsx";
+import { Summary, useWasCold } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
 import { useClassSaver } from "./useClassSaver.ts";
 import { WholeFlashcard } from "./WholeFlashcard.tsx";
@@ -36,6 +36,7 @@ type Props = {
 };
 
 export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
+  const wasCold = useWasCold(set.category);
   const flashcards = plan.flashcards;
   const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
   const [index, setIndex] = useState(start);
@@ -106,6 +107,7 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
         {result ? (
           <Summary
             setId={set._id}
+            warmAgain={wasCold}
             title={mode === "reviewMissed" ? "Gone over" : plan.round ? `Round ${plan.round} reviewed` : "Review done"}
             result={result}
             hero={

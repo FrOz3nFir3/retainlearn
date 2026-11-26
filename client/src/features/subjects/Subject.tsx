@@ -23,7 +23,7 @@ import { setPath } from "#features/classes/modes.ts";
 import { useReportCard } from "#features/report-card/reportCardApi.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { NewStudySet } from "./NewStudySet.tsx";
-import { matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
+import { alsoNeedsAttention, matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
 import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf } from "#api/problem.ts";
 import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
@@ -81,6 +81,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
   const order: Order = signedIn && params.get("order") === "attention" ? "attention" : "building";
   const { rooms, stats } = useMemo(() => subjectProgress(subject, card, when), [subject, card, when]);
   const next = signedIn ? upNextHere(rooms) : null;
+  const attention = signedIn ? alsoNeedsAttention(rooms, next?.room ?? null) : [];
   const found = useMemo(() => ordered(rooms, order).filter((r) => matchesSearch(r.set, search)), [rooms, order, search]);
   const pages = Math.max(1, Math.ceil(found.length / SETS_PER_PAGE));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(params.get("page"))) || 1));
@@ -177,6 +178,25 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
             <Link to={setPath(next.room.set._id)} className={buttonClass("primary")}>
               Open its classroom
             </Link>
+            {attention.length > 0 && (
+              <div className="hidden w-full border-t border-ink/[0.06] pt-3 sm:block">
+                <h3 className="mb-1 text-[11px] font-semibold text-ink/50">Also needs attention</h3>
+                <ul>
+                  {attention.map((r) => (
+                    <li key={r.set._id}>
+                      <Link to={setPath(r.set._id)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:outline-brand">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/[0.08] text-brand">
+                          <Icon name={r.status.key === "missed" ? "focus" : r.status.key === "fading" ? "clock" : "review"} className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.set.subtopic}</span>
+                        <span className="shrink-0 text-xs text-ink/55">{r.status.label}</span>
+                        <Icon name="chevronRight" className="size-4 shrink-0 text-ink/30" />
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </section>
         ) : (
           signedIn &&
