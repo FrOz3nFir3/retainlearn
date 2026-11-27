@@ -28,7 +28,7 @@ const studied = (over: Partial<ReportCardSet>): ReportCardSet => ({
   lastAt: "2026-11-23T10:00:00.000Z",
   ...over,
 });
-const card = (sets: ReportCardSet[]): ReportCard => ({ xp: 0, level: 1, streak: { count: 0, freezes: 0 }, subjects: 1, sets });
+const card = (sets: ReportCardSet[]): ReportCard => ({ xp: 0, level: 1, streak: { count: 0, freezes: 0 }, subjects: 1, sets, skills: [] });
 
 const css = studied({ setId: "css", topic: "CSS", subtopic: "Grid layout", flashcards: { f1: { seenAt: "2026-11-23T10:00:00Z" } } });
 const js = studied({ flashcards: { f1: { seenAt: "2026-11-20T10:00:00Z", missedOn: "2026-11-20" } }, questions: { q1: { level: 0, right: 0, wrong: 1, missedOn: "2026-11-23" } } });

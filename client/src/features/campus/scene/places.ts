@@ -8,6 +8,8 @@ const BASE_HALF = 42; // half the lot's width with the first two rings
 // Your coach's office, just off the quad on the left as you come in: door, where you stand to go in; coach, where they
 // wait beside it. Plots never come closer than 21 m from the middle, so it stays clear of any subject added later.
 export const OFFICE = { pos: [-6.4, 15.2] as XZ, rot: Math.PI / 2, door: [-2.6, 15.2] as XZ, coach: [-2.9, 17.6] as XZ };
+// The noticeboard of skill paths, where the quad's west path meets the ring; stand: where you stop to read it.
+export const NOTICEBOARD = { pos: [-10.6, 1.6] as XZ, rot: Math.PI / 4, stand: [-9.4, 2.8] as XZ };
 export const LAMPS = [20, 100, 200, 250, 290, 330].map((deg) => polar(deg, 13.2));
 // On the quad's lawn, once you've unlocked it.
 export const FOUNTAIN: XZ = [-5.4, 5.4];
@@ -24,7 +26,7 @@ const TREES: (readonly [number, number, number?])[] = [
 // The trees on the lot: everywhere but near the plots in use (avoid) and the office; a bigger lot gets trees in its
 // new outer band too. Each spot is [x, z, scale].
 export function treeSpots(avoid: readonly XZ[], half: number): (readonly [number, number, number?])[] {
-  const keepClear = [...avoid, OFFICE.pos];
+  const keepClear = [...avoid, OFFICE.pos, NOTICEBOARD.pos];
   const extra: (readonly [number, number, number])[] = [];
   for (let x = -half + 5; x <= half - 5; x += 9) {
     for (let z = -half + 5; z <= half - 5; z += 9) {

@@ -152,7 +152,8 @@ export type ReportCardSet = {
   quiz: { started: number; finished: number };
   lastAt: string | null;
 };
-export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[] };
+// skills: the paths' skills you've earned (P2-07), each with its path's title as it was, the earliest first.
+export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[]; skills: { pathId: string; title: string; at: string }[] };
 
 // GET /api/subjects?search=…&page=…: every subject with a listed study set, 12 a page, the most recently updated
 // first. search finds the subjects with a word in their name that starts with it, in any case ("dev" finds "Web
@@ -254,6 +255,9 @@ export type Campus = {
     // Back after days without a class: how many, and the streak that ended meanwhile (0: none ended, or a freeze kept
     // it). null when your last class was today or yesterday.
     away: { days: number; endedStreak: number } | null;
+    // The path you follow (P2-07), while you can see it: how far along it you are, and its current step (null once
+    // every step is done), for the campus's trail and tile, the coach and the report card.
+    path: CampusPath | null;
   };
   subjects: CampusSubject[];
   timetable: (Period & { set: { topic: string; subtopic: string; category: string } | null })[];
@@ -269,6 +273,8 @@ export type PathPerson = { _id: string; username: string; name: string };
 // GET /api/paths?search=…&subject=…&mine=1&page=…: listed public paths, 12 a page, the most recently changed first.
 // search: those with a word in their title that starts with it, in any case (as subjects); subject: one subject's.
 // mine=1 (signed in): the paths you can edit instead, public or private, listed or not. A page past the last has none.
+// Each with its steps you can study (steps) and their flashcards; you (signed in): whether you follow it and can edit
+// it, how many of its steps you've done, and for its editors how many suggestions wait for them.
 export const PATHS_PER_PAGE = 12;
 export const PathsQuery = z.object({
   search: z.string().trim().max(100).default(""),
@@ -287,6 +293,8 @@ export type PathListing = {
   listed: boolean;
   author: PathPerson | null;
   updatedAt: string;
+  flashcards: number;
+  you: { following: boolean; canEdit: boolean; isAuthor: boolean; done: number; toReview: number } | null;
 };
 export type PathsPage = { paths: PathListing[]; total: number; page: number; pages: number };
 
@@ -368,7 +376,7 @@ export const PATH_HISTORY_PER_PAGE = 20;
 export const PathHistoryQuery = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1) });
 export type PathHistoryKind = "created" | "edited" | "suggestion" | "deleted";
 export type PathHistoryEntry = { _id: string; at: string; kind: PathHistoryKind; by: PathPerson | null; from: PathPerson | null; summary: string[] };
-export type PathHistoryPage = { entries: PathHistoryEntry[]; page: number; pages: number };
+export type PathHistoryPage = { entries: PathHistoryEntry[]; total: number; page: number; pages: number };
 
 // POST /api/paths/:id/steps/:stepId/test-out?tz=…  { answers }: a test out of a step, as the browser marked it (the
 // answers themselves are saved as any class's are). Checked here (checkTestOut): when it passed, the step is done for
@@ -383,3 +391,15 @@ export type PathSkill = { pathId: string; title: string; at: string };
 
 // POST /api/paths/:id/report  { reason, note }: "Report this path", as a set is reported (StudySetReport): enough
 // people reporting it take it out of the lists until it's checked.
+
+// The path you follow, on your campus (Campus["player"]["path"]): its current step's number, set, name and subject,
+// and for a picked step the step its class keeps to (?step=).
+export type CampusPath = {
+  _id: string;
+  title: string;
+  category: string;
+  done: number;
+  total: number;
+  current: { n: number; stepId: string; setId: string; name: string; category: string; step: string | null } | null;
+  setIds: string[]; // its steps' study sets, in its order (a classroom's banner, and its skeleton, know whether to show)
+};

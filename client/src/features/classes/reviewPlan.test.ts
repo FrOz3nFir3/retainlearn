@@ -64,3 +64,23 @@ test("a flashcard with fewer than two recall points is reviewed whole", () => {
   const plan = planReview(set, null, false, when, {}, () => [point("only")]);
   assert.equal(byPoints(plan.flashcards[0]!), false);
 });
+
+test("a path's step: its flashcards you haven't seen first, a round's worth of points; what you missed kept to it", () => {
+  const step = new Set(["f1", "f2", "f3", "f4", "f5", "f6", "f7"]);
+  const seen = { seenAt: "2026-11-23T06:00:00Z", missedOn: null, points: [] };
+  const plan = planReview(set, progress({ f1: seen, f2: seen }), false, when, { step }, pointsOf);
+  assert.deepEqual(
+    [plan.title, plan.flashcards.map((c) => c._id), plan.again, plan.picked],
+    ["This step", ["f3", "f4", "f5", "f6", "f7"], false, true],
+  );
+  const allSeen = progress(Object.fromEntries([...step].map((id) => [id, seen])));
+  assert.deepEqual(
+    planReview(set, allSeen, false, when, { step }, pointsOf).flashcards.map((c) => c._id),
+    ["f1", "f2", "f3", "f4", "f5"],
+  );
+  const missed = { seenAt: "2026-11-23T06:00:00Z", missedOn: "2026-11-23", points: [] };
+  assert.deepEqual(
+    planReview(set, progress({ f1: missed, f9: missed }), true, when, { step }, pointsOf).flashcards.map((c) => c._id),
+    ["f1"],
+  );
+});

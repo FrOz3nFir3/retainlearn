@@ -9,7 +9,10 @@ import { Suspense, lazy, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
 import { isPlayerCard, reviewLoad, roundState, setRounds, shortTopic, studyPlan, studySetStats } from "@retainlearn/core";
-import type { ProgressView, StudySetContent, StudyView, When } from "@retainlearn/core";
+import type { PathView, ProgressView, StudySetContent, StudyView, When } from "@retainlearn/core";
+import { skipToken } from "@reduxjs/toolkit/query";
+import { useGetPathQuery } from "#features/paths/pathsApi.ts";
+import { PathStepBanner } from "#features/paths/PathStepBanner.tsx";
 import { useMyUsername } from "#app/hooks.ts";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
@@ -21,7 +24,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
-import { useToday } from "#features/campus/campusApi.ts";
+import { useCampus, useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
 import { useWorld } from "#features/campus/view.ts";
 import { setPath, stepPath } from "#features/classes/modes.ts";
@@ -32,11 +35,11 @@ import type { Notice } from "#features/editor/shared.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
-import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
+import { useGetProgressQuery, useGetStudySetQuery, useReportStudySetMutation } from "./classroomApi.ts";
 import { ABOUT_LABEL, ClassroomGuestNote, ClassroomSkeleton, DESK_ROW, STUDY_VIEWS_ITEMS } from "./ClassroomSkeleton.tsx";
 import { OrderDialog } from "./OrderDialog.tsx";
 import { ReadItem } from "./ReadItem.tsx";
-import { ReportStudySet } from "./ReportStudySet.tsx";
+import { ReportDialog } from "./ReportDialog.tsx";
 import { RoundList } from "./Rounds.tsx";
 import type { Reading, SetRound } from "./Rounds.tsx";
 import { useStudyView } from "./useStudyView.ts";
@@ -53,6 +56,11 @@ export default function Classroom() {
   const study = useStudyView(signedIn);
   const world = useWorld();
   const when = useToday();
+  // The path you follow, when this set is one of its steps: its banner, first.
+  const campus = useCampus(!signedIn);
+  const followed = campus.data?.player.path;
+  const inPath = signedIn && followed?.setIds.includes(id) ? followed._id : null;
+  const path = useGetPathQuery(inPath ?? skipToken);
   if (set.isError) {
     return (
       <Page title="Not found" back="/subjects">
@@ -60,10 +68,22 @@ export default function Classroom() {
       </Page>
     );
   }
-  if (!set.data || session === "checking" || (signedIn && progress.isLoading) || study.loading) return <ClassroomSkeleton />;
+  const waiting = session === "checking" || (signedIn && (progress.isLoading || (!campus.data && !campus.isError) || (!!inPath && !path.data && !path.isError))) || study.loading;
+  if (!set.data || waiting) return <ClassroomSkeleton />;
   // In 3D, a classroom whose subject is on your campus is a panel over its room, in its building (D-20).
   const overRoom = world.shown && world.view.kind === "room";
-  return <ClassroomView set={set.data} progress={progress.data ?? null} when={when} signedIn={signedIn} view={study.view} onView={study.setView} overRoom={overRoom} />;
+  return (
+    <ClassroomView
+      set={set.data}
+      progress={progress.data ?? null}
+      when={when}
+      signedIn={signedIn}
+      view={study.view}
+      onView={study.setView}
+      overRoom={overRoom}
+      path={inPath ? (path.data ?? null) : null}
+    />
+  );
 }
 
 // A way into a class, as a row: what it is, why, and Start. returnTo: where the class goes back to (the classroom).
@@ -124,9 +144,9 @@ function UpNext({ next, returnTo }: { next: Next; returnTo: string }) {
 
 // overRoom: in 3D, the classroom is a panel over the world (the side panel): over its room, the building opened up
 // behind it, or over the campus for a subject that isn't on it (no building).
-type ViewProps = { set: StudySetContent; progress: ProgressView | null; when: When; signedIn: boolean; view: StudyView; onView: (view: StudyView) => void; overRoom: boolean };
+type ViewProps = { set: StudySetContent; progress: ProgressView | null; when: When; signedIn: boolean; view: StudyView; onView: (view: StudyView) => void; overRoom: boolean; path: PathView | null };
 
-function ClassroomView({ set, progress, when, signedIn, view: picked, onView, overRoom }: ViewProps) {
+function ClassroomView({ set, progress, when, signedIn, view: picked, onView, overRoom, path }: ViewProps) {
   const order = progress?.order ?? null;
   const rounds: SetRound[] = useMemo(() => setRounds(set, order, (f) => reviewLoad(recallPoints(f.answer).length)), [set, order]);
   const states = rounds.map((r) => roundState(r, progress, when));
@@ -136,6 +156,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView, ov
   const reviewer = progress?.reviewer === true;
   const both = set.flashcards.length > 0 && set.questions.length > 0;
   const [reporting, setReporting] = useState(false);
+  const [report, reportState] = useReportStudySetMutation();
   const [ordering, setOrdering] = useState(false);
   const [orderSaved, setOrderSaved] = useState<"mine" | "author's" | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
@@ -189,6 +210,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView, ov
       }
     >
       <div className="space-y-5">
+        {path && <PathStepBanner path={path} setId={set._id} when={when} />}
         {!signedIn && <ClassroomGuestNote returnTo={home} />}
 
         {signedIn && stats.started && (
@@ -275,7 +297,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView, ov
           </Button>
         )}
       </div>
-      {reporting && <ReportStudySet setId={set._id} name={set.subtopic} onClose={() => setReporting(false)} />}
+      {reporting && <ReportDialog kind="set" name={set.subtopic} send={(body) => report({ setId: set._id, ...body }).unwrap()} sending={reportState.isLoading} onClose={() => setReporting(false)} />}
       {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} onSaved={setOrderSaved} />}
       {reading && <ReadItem set={set} item={reading} progress={progress} returnTo={home} onClose={() => setReading(null)} />}
     </Page>

@@ -24,6 +24,7 @@ import { GOOGLE_CLIENT_ID } from "#features/sign-in/GoogleSignIn.tsx";
 import useLogout from "#hooks/useLogout.js";
 import { AuthoredSetCard, AuthoredSetsSkeleton, IdentityCard, ProfileSkeleton, SECTION, SECTION_TITLE, SETS_GRID } from "./ProfileSkeleton.tsx";
 import { useGetAuthoredSetsQuery, useUpdateProfileMutation } from "./profileApi.ts";
+import { ProfileSkills } from "#features/paths/Skills.tsx";
 
 type Me = { name: string; username: string; email: string; googleId?: string | null; joinedAt?: string };
 // "joined November 2026", from when the account was made.
@@ -86,6 +87,7 @@ function ProfileView({ user }: { user: Me }) {
           />
           <EditDetails user={user} />
           <Display />
+          <ProfileSkills />
         </div>
         <div className="space-y-4">
           <ConnectedAccounts linked={Boolean(user.googleId)} />

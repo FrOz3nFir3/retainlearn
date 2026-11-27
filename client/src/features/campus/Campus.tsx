@@ -106,6 +106,23 @@ function CampusView({ campus, onPick, broken }: { campus: CampusData; onPick: (i
               </article>
             </li>
             <li>
+              {/* Skill paths (the prototype's noticeboard, as a tile): and the path you follow, how far along it you are. */}
+              <article className={cardClass}>
+                <h3 className="flex items-center gap-2 font-display text-lg font-semibold">
+                  <Icon name="path" className="size-5 shrink-0 text-brand" />
+                  <Link to="/paths" data-card-link className={cardLinkClass}>
+                    Paths
+                  </Link>
+                </h3>
+                <p className="mt-1 text-xs text-ink/50">Step-by-step routes through a subject.</p>
+                {campus.player.path && (
+                  <div className="mt-auto pt-3">
+                    <Chip tone="brand">{campus.player.path.current ? `Your path: step ${campus.player.path.current.n} of ${campus.player.path.total}` : "Your path: all done"}</Chip>
+                  </div>
+                )}
+              </article>
+            </li>
+            <li>
               <Link
                 to="/subjects"
                 className="flex h-full min-h-24 items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-ink/15 p-4 text-sm font-semibold text-brand transition-colors hover:border-brand/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"

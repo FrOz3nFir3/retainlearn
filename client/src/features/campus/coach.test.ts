@@ -17,6 +17,7 @@ const campus = (over: { player?: Partial<Campus["player"]>; timetable?: Campus["
     unlocks: [],
     classLeft: null,
     away: null,
+    path: null,
     ...over.player,
   },
   subjects: over.subjects ?? [],

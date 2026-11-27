@@ -81,11 +81,21 @@ const onBroken = (listener: () => void) => {
 export const useBroken = (): boolean => useSyncExternalStore(onBroken, () => broken, () => broken);
 
 // The pages the 3D world stays behind (D-20), by their address: the campus itself, the subjects list over it, a
-// subject's page as the inside of its building, and a study set's page (its classroom, not its classes) over its room.
-export type WorldView = { kind: "campus" } | { kind: "directory" } | { kind: "building"; category: string } | { kind: "room"; setId: string };
+// subject's page as the inside of its building, a study set's page (its classroom, not its classes) over its room, and
+// skill paths, their list and a path's page, over the campus (the prototype's; their editor is a page of its own).
+export type WorldView =
+  | { kind: "campus" }
+  | { kind: "directory" }
+  | { kind: "building"; category: string }
+  | { kind: "room"; setId: string }
+  | { kind: "paths" }
+  | { kind: "path"; id: string };
 export function worldViewOf(pathname: string): WorldView | null {
   if (pathname === "/") return { kind: "campus" };
   if (pathname === "/subjects") return { kind: "directory" };
+  if (pathname === "/paths") return { kind: "paths" };
+  const path = /^\/paths\/([0-9a-f]{24})$/.exec(pathname)?.[1];
+  if (path) return { kind: "path", id: path };
   const subject = /^\/subjects\/([^/]+)$/.exec(pathname)?.[1];
   if (subject) {
     try {

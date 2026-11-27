@@ -28,7 +28,7 @@ test("the report card is for signed-in players, with the browser's time zone", a
 });
 
 test("before any class it's empty, and reading it makes no player", async () => {
-  assert.deepEqual(await reportCard(), { xp: 0, level: 1, streak: { count: 0, freezes: 0 }, subjects: 0, sets: [] });
+  assert.deepEqual(await reportCard(), { xp: 0, level: 1, streak: { count: 0, freezes: 0 }, subjects: 0, sets: [], skills: [] });
   assert.equal(await Player.exists({ _id: ids.learner }), null);
 });
 

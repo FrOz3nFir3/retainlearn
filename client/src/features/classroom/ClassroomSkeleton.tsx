@@ -13,6 +13,7 @@ import { PageSkeleton } from "#components/ui/Page.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { useWorld } from "#features/campus/view.ts";
+import { useCampus } from "#features/campus/campusApi.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 
@@ -39,9 +40,14 @@ export function ClassroomGuestNote({ returnTo }: { returnTo: string }) {
   );
 }
 
+// The banner of a classroom in the path you follow (paths/PathStepBanner.tsx): its frame, shared with the page.
+export const STEP_BANNER = "flex flex-wrap items-center gap-3 rounded-2xl border border-brand/20 bg-brand/4 p-3";
+
 export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
   const { id = "" } = useParams();
+  // In the path you follow (your campus says): its banner comes first.
+  const inPath = !!useCampus(useSession() !== "in").data?.player.path?.setIds.includes(id); // asked once signed in, with its token
   // In 3D, over its room (a panel), when the world can tell its building: from the set, or from the room it was opened in.
   const world = useWorld();
   const desk: [IconName, string][] = [
@@ -65,6 +71,19 @@ export function ClassroomSkeleton() {
       }
     >
       <div className="space-y-5">
+        {inPath && (
+          <div className={STEP_BANNER}>
+            <SkeletonBlock className="size-9 shrink-0 rounded-xl" />
+            <div className="min-w-0 flex-1 basis-48">
+              <p className="text-sm font-semibold">
+                <SkeletonText className="w-48" />
+              </p>
+              <p className="text-xs">
+                <SkeletonText className="w-56" />
+              </p>
+            </div>
+          </div>
+        )}
         {signedIn ? (
           <div className="panel bg-surface p-4">
             <div className="flex items-baseline justify-between">

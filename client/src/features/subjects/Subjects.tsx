@@ -23,6 +23,7 @@ import { cx } from "#utils/cx.ts";
 import { problemOf } from "#api/problem.ts";
 import { useWorld } from "#features/campus/view.ts";
 import { useAddSubjectMutation, useGetSubjectsQuery } from "./subjectsApi.ts";
+import { DirectoryTabs } from "./DirectoryTabs.tsx";
 import { DIRECTORY_DESCRIPTION, DIRECTORY_TITLE, DirectorySkeleton, LIST_HEADING, SEARCH_BOX, SUBJECTS_GRID, TOOLBAR } from "./SubjectsSkeleton.tsx";
 
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
@@ -93,6 +94,7 @@ export default function Subjects() {
   const data = list.data;
   return (
     <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={overWorld ? "/" : false} description={DIRECTORY_DESCRIPTION} panel={overWorld ? "side" : undefined}>
+      <DirectoryTabs />
       <div className={TOOLBAR}>
         <search className={SEARCH_BOX}>
           <form

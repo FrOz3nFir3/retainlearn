@@ -27,6 +27,22 @@ export function OffCampusNote() {
   return <p className="text-xs text-pretty text-ink/50">This subject isn't on your campus yet, so it shows as a list. Add it to see its building.</p>;
 }
 
+// The path you follow, when it's this subject's (paths/PathsHere.tsx): its card's frame, and its placeholder here.
+export const FOLLOWED_CARD = "block rounded-2xl border border-ink/8 bg-surface p-3";
+function FollowedHereSkeleton() {
+  return (
+    <div className={FOLLOWED_CARD}>
+      <p className="text-sm">
+        <SkeletonText className="w-40" />
+      </p>
+      <p className="text-xs">
+        <SkeletonText className="w-48" />
+      </p>
+      <SkeletonBlock className="mt-2 h-1.5 w-full rounded-full" />
+    </div>
+  );
+}
+
 export function SubjectSkeleton() {
   const name = subjectName(useParams().name ?? "");
   const session = useSession();
@@ -37,7 +53,9 @@ export function SubjectSkeleton() {
   const world = useWorld();
   const overWorld = world.shown && world.view.kind === "building";
   const broken = useBroken();
-  if (overWorld && onCampus) return <LobbySkeleton name={name} />;
+  // Following a path here (your campus says): its card comes after Up next.
+  const followedHere = signedIn && campus.data?.player.path?.category === name;
+  if (overWorld && onCampus) return <LobbySkeleton name={name} followed={followedHere} />;
   return (
     <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects" panel={overWorld ? "list" : undefined}>
       <Loading label={`Loading ${name}`} className="space-y-5">
@@ -65,6 +83,7 @@ export function SubjectSkeleton() {
             <span className={buttonClass("primary")}>Start</span>
           </div>
         )}
+        {followedHere && <FollowedHereSkeleton />}
         <div>
           <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
             <p className={SETS_HEADING}>
@@ -111,7 +130,7 @@ export function SubjectSkeleton() {
 
 // In 3D, the page is its building's lobby (Subject.tsx): the panel's frame, Up next here and the study sets' heading
 // with the lift's line, as placeholders in their places.
-function LobbySkeleton({ name }: { name: string }) {
+function LobbySkeleton({ name, followed }: { name: string; followed: boolean }) {
   return (
     <Page title={name} eyebrow={<SkeletonText className="w-48" />} back="/" panel="lobby">
       <Loading label={`Loading ${name}`} className="space-y-5">
@@ -130,6 +149,7 @@ function LobbySkeleton({ name }: { name: string }) {
           </div>
           <span className={buttonClass("primary")}>Start</span>
         </div>
+        {followed && <FollowedHereSkeleton />}
         <div>
           <div className="mb-2 flex items-center justify-between gap-2">
             <p className="flex items-baseline gap-1.5 text-sm font-semibold">

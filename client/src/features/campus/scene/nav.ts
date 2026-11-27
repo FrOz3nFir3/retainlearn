@@ -5,7 +5,7 @@
 import * as THREE from "three";
 import { occupiedPoints } from "./layout.ts";
 import type { CampusLayout } from "./layout.ts";
-import { FOUNTAIN, LAMPS, OFFICE, treeSpots } from "./places.ts";
+import { FOUNTAIN, LAMPS, NOTICEBOARD, OFFICE, treeSpots } from "./places.ts";
 import type { XZ } from "./places.ts";
 import { facingCenter } from "./util.ts";
 
@@ -47,6 +47,7 @@ function build(layout: CampusLayout, fountain: boolean): Nav {
     ...treeSpots(occupiedPoints(layout), half).map(([x, z, s = 1]) => disc([x, z], 1.1 * s + 0.3)),
     ...LAMPS.map((p) => disc(p, 0.2 + BODY)),
     box(OFFICE.pos, OFFICE.rot, 3.3 + BODY, 2.5 + BODY), // the coach's office, on its base
+    box(NOTICEBOARD.pos, NOTICEBOARD.rot, 1.9 + BODY, 0.3 + BODY), // the paths' noticeboard
   ];
   const n = Math.ceil(half * 2);
   const blocked = new Uint8Array(n * n);

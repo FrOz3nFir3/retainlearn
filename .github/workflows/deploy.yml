@@ -12,9 +12,11 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
+      # An error reply fails the job, so a deploy that never started shows red (a 520 once passed as green), after a
+      # few tries, 20 s apart, for a passing hiccup. A second deploy of the same commit is harmless.
       - name: Trigger Dokploy Deployment
         run: |
-          curl -v -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
+          curl -v --fail-with-body --retry 3 --retry-all-errors --retry-delay 20 -X POST "${{ secrets.DOKPLOY_URL }}/api/application.deploy" \
           -H "Content-Type: application/json" \
           -H "Accept: application/json" \
           -H "x-api-key: ${{ secrets.DOKPLOY_API_KEY }}" \

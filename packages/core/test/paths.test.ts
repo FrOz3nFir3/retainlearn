@@ -185,3 +185,25 @@ test("accepting a suggestion applies its own changes to the path as it is now, k
   );
   assert.equal(merged.steps[0]?.title, "Second first");
 });
+
+// ---------- Your path on the timetable ----------
+
+test("your path's current step as a period: its class, its place, and a picked step's own scope", async () => {
+  const { pathPeriod, planDay } = await import("@retainlearn/core");
+  const a = stepSet("a", 4, 4);
+  const b = stepSet("b", 4, 4);
+  const sets = new Map([a, b].map((s) => [s._id, s]));
+  const path = (progress = {}) => pathProgress({ pathId: "p1", category: "Programming", steps: [whole("s1", "a"), { ...whole("s2", "b"), flashcardIds: ["b-f1", "b-f2"] }], sets, progress, testedOut: [], when });
+  assert.deepEqual(pathPeriod("p1", "JS", path()), { setId: "a", category: "Programming", mode: "review", n: 1, of: 2, title: "JS", step: null });
+  const doneA = { a: progressOf(reviewedFirst(a, 4), cardsFirst(a, 4, 1, "2026-11-20")), b: progressOf({ ...reviewedFirst(b, 1, "2026-11-20") }) };
+  assert.deepEqual(pathPeriod("p1", "JS", path(doneA)), { setId: "b", category: "Programming", mode: "reviewMissed", n: 2, of: 2, title: "JS", step: "p1.s2" });
+  const all = { a: doneA.a, b: progressOf(reviewedFirst(b, 4), cardsFirst(b, 4, 1, "2026-11-20")) };
+  assert.equal(pathPeriod("p1", "JS", path(all)), null);
+
+  // First on the day's timetable when its subject is on your campus; otherwise left out.
+  const period = pathPeriod("p1", "JS", path(doneA));
+  const day = planDay({ sets: [a, b], progress: doneA, subjects: ["Programming"], today: when.today, timeZone: IST, path: period });
+  assert.deepEqual(day[0], { kind: "class", setId: "b", mode: "reviewMissed", why: { kind: "path", n: 2, of: 2, title: "JS" }, done: false, step: "p1.s2" });
+  assert.ok(!day.slice(1).some((p) => p.setId === "b"));
+  assert.ok(!planDay({ sets: [a, b], progress: doneA, subjects: ["Biology"], today: when.today, timeZone: IST, path: period }).length);
+});

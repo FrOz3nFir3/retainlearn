@@ -30,6 +30,8 @@ import { Timetable } from "./Timetable.tsx";
 import type { MapCommand, WorldView } from "./view.ts";
 import type { Inside } from "./scene/Interior.tsx";
 import type { ClassWalk } from "./scene/World.tsx";
+import { along as alongPath, inPathOrder, stepBadges } from "#features/paths/pathView.ts";
+import { useGetPathQuery } from "#features/paths/pathsApi.ts";
 
 const World = lazy(() => import("./scene/World.tsx"));
 
@@ -74,20 +76,24 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
   const [params] = useSearchParams();
   const pageSubject = view.kind === "building" ? view.category : view.kind === "room" ? category : null;
   const insideOf = pageSubject && campus.subjects.some((s) => s.category === pageSubject) ? pageSubject : null;
+  // The path you follow, when this is its subject's building: its rooms in its order, with their step badges.
+  const followedHere = insideOf && campus.player.path?.category === insideOf ? campus.player.path._id : null;
+  const followed = useGetPathQuery(followedHere ?? skipToken);
   const subject = useGetSubjectQuery(insideOf ?? skipToken);
   const card = useReportCard(!insideOf);
   const when = useToday();
   const inside = useMemo((): Inside | null => {
     if (!insideOf || !subject.data || subject.data.name !== insideOf) return null;
-    const { rooms } = subjectProgress(subject.data, card.data ?? null, when);
+    const along = followed.data ? alongPath(followed.data, when) : null;
+    const rooms = inPathOrder(subjectProgress(subject.data, card.data ?? null, when).rooms, along);
     const search = view.kind === "building" ? (params.get("search") ?? "").trim() : "";
     const found = rooms.filter((r) => matchesSearch(r.set, search));
     const asked = view.kind === "building" ? Number(params.get("page")) || null : null;
     const page = roomsPage(found, { page: asked, roomId: view.kind === "room" ? view.setId : null, search });
     const newHref = `${subjectPath(insideOf)}?new=1`;
-    return { page, roomId: view.kind === "room" ? view.setId : null, onOpen: (id) => navigate(setPath(id), { state: { building: insideOf } }), onNew: () => navigate(newHref), newHref };
+    return { page, roomId: view.kind === "room" ? view.setId : null, onOpen: (id) => navigate(setPath(id), { state: { building: insideOf } }), onNew: () => navigate(newHref), newHref, badges: stepBadges(along) };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate is stable
-  }, [insideOf, subject.data, card.data, when, view, params]);
+  }, [insideOf, subject.data, card.data, when, view, params, followed.data]);
   const [command, setCommand] = useState<MapCommand | null>(null);
   const send = (kind: MapCommand["kind"], value: number) => setCommand((c) => ({ kind, value, n: (c?.n ?? 0) + 1 }));
   const rung = campus.timetable.length > 0 && campus.timetable.every((p) => p.done);
@@ -144,6 +150,7 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
             onEnter={(b) => navigate(subjectPath(b.name))}
             onAddSubject={() => navigate("/subjects")}
             onReportCard={() => navigate("/report-card")}
+            onPaths={() => navigate("/paths")}
             onTower={tower}
             onRing={() => setRinging(true)}
             onLost={onBroken}

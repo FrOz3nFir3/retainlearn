@@ -25,8 +25,9 @@ import type { CampusBuilding } from "./layout.ts";
 import { navFor } from "./nav.ts";
 import { Coach, Students, You } from "./People.tsx";
 import type { Door } from "./People.tsx";
-import { OFFICE } from "./places.ts";
-import { Bus, BusStop, ClockTower, CoachOffice, Fountain, Hills, Lamps, Trees } from "./Props.tsx";
+import { NOTICEBOARD, OFFICE } from "./places.ts";
+import { Trail } from "./Trail.tsx";
+import { Bus, BusStop, ClockTower, CoachOffice, Fountain, Hills, Lamps, Noticeboard, Trees } from "./Props.tsx";
 import { Sky } from "./Sky.tsx";
 import { COLORS, doorPoint, facingCenter, prefersReducedMotion, roundedRectShape } from "./util.ts";
 import { you, walkTo } from "./you.ts";
@@ -54,6 +55,7 @@ export type WorldProps = {
   onEnter: (b: CampusBuilding) => void;
   onAddSubject: () => void;
   onReportCard: () => void;
+  onPaths: () => void; // the noticeboard: skill paths
   onTower: () => void;
   onRing: () => void;
   // The GPU gave up the canvas (a driver reset, or a phone short of memory): the campus goes 2D, offering 3D again.
@@ -335,7 +337,7 @@ function useVisible(): boolean {
   return visible;
 }
 
-export default function World({ campus, view, category, inside, coach, hour, command, walk, celebrate, onEnter, onAddSubject, onReportCard, onTower, onRing, onLost }: WorldProps) {
+export default function World({ campus, view, category, inside, coach, hour, command, walk, celebrate, onEnter, onAddSubject, onReportCard, onPaths, onTower, onRing, onLost }: WorldProps) {
   const layout = useMemo(() => layoutCampus(campus.subjects), [campus.subjects]);
   const onCampus = view.kind === "campus";
   // The building you're in, behind its subject's page or one of its classrooms, and the camera's shot of it.
@@ -351,6 +353,9 @@ export default function World({ campus, view, category, inside, coach, hour, com
   }, [layout, insideOf]);
   const fountain = campus.player.unlocks.includes("fountain");
   const nav = navFor(layout, fountain);
+  // The path you follow: its current step's building, where the trail leads (on your campus only).
+  const pathStep = campus.player.path?.current ?? null;
+  const pathBuilding = pathStep ? (layout.buildings.find((b) => b.id === slug(pathStep.category)) ?? null) : null;
   const visible = useVisible();
   const narrow = isNarrow();
   const g = grow(layout.half);
@@ -377,9 +382,14 @@ export default function World({ campus, view, category, inside, coach, hour, com
     you.inside = "office";
     onReportCard();
   };
+  const openPaths = () => {
+    you.inside = "paths";
+    onPaths();
+  };
   const doors: Door[] = [
     ...layout.buildings.map((b) => ({ id: b.id, name: b.name, at: doorPoint(b, 1.9), go: () => enter(b) })),
     { id: "office", name: "the coach's office", say: "See your report card", at: new THREE.Vector3(OFFICE.door[0], 0, OFFICE.door[1]), go: openOffice },
+    { id: "paths", name: "the noticeboard", say: "See the paths", at: new THREE.Vector3(NOTICEBOARD.stand[0], 0, NOTICEBOARD.stand[1]), go: openPaths },
   ];
   // The keys steer you while nothing else has focus, or one of the world's own labels does.
   const steerable = () => {
@@ -440,6 +450,8 @@ export default function World({ campus, view, category, inside, coach, hour, com
         {!insideId && <ClockTower streak={campus.player.streak.count} kept={campus.player.streak.keptToday} rung={rung} onTap={onTower} onRing={onRing} />}
         {fountain && <Fountain />}
         {!insideId && <CoachOffice who={coach.who} onOpen={openOffice} onTap={onCampus ? () => walkTo({ door: "office", then: openOffice }) : openOffice} onFocus={lookAt} />}
+        {!insideId && <Noticeboard onOpen={openPaths} onTap={onCampus ? () => walkTo({ door: "paths", then: openPaths }) : openPaths} onFocus={lookAt} />}
+        {onCampus && campus.player.path && pathBuilding && <Trail path={campus.player.path} building={pathBuilding} nav={nav} />}
         <Trees avoid={avoid} half={layout.half} />
         {!insideId && <Lamps />}
         <Bus curve={road} half={layout.half} />

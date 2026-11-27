@@ -56,3 +56,16 @@ test("a question's options are its answer and at most three wrong ones, so the a
     assert.equal(options.find((o) => o.correct)?.html, "Yes");
   }
 });
+
+test("a path's step: a round's worth of its questions, the ones you don't hold first; a test out of it; a retry kept to it", () => {
+  const step = { flashcards: new Set(set.flashcards.map((f) => f._id)), questions: new Set(["q1", "q2", "q3", "q4", "q5", "q6", "q7"]), testOut: false };
+  const at = (day: string) => ({ level: 1, refreshedAt: `${day}T06:00:00Z`, missedOn: null });
+  const held = progress({ q1: at("2026-11-20"), q2: at("2026-11-10"), q3: at("2026-11-15") });
+  const quiz = planQuiz(set, held, false, when, { step }, whole, fixed);
+  assert.deepEqual([quiz.title, quiz.round, ids(quiz.questions)], ["Quiz", null, ["q2", "q4", "q5", "q6", "q7"]]);
+  // Two rounds of 4 flashcards: all 7 of its questions, as it has fewer than 10.
+  const test = planQuiz(set, null, false, when, { step: { ...step, testOut: true } }, whole, fixed);
+  assert.deepEqual([test.title, ids(test.questions)], ["Skip test", ["q1", "q2", "q3", "q4", "q5", "q6", "q7"]]);
+  const missed = progress({ q1: { level: 0, refreshedAt: null, missedOn: "2026-11-23" }, q8: { level: 0, refreshedAt: null, missedOn: "2026-11-23" } });
+  assert.deepEqual(ids(planQuiz(set, missed, true, when, { step }, whole, fixed).questions), ["q1"]);
+});

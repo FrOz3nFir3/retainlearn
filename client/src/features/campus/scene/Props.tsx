@@ -3,7 +3,7 @@
 // clock tower (your streak, and the bell once today's timetable is done), the fountain you unlock, your coach's office
 // (your report card) and hills on the horizon. With reduced motion, flags hold still, the bell doesn't swing and the
 // bus waits at its stop.
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
@@ -12,7 +12,7 @@ import { pointer } from "./Building.tsx";
 import { onSkyLight } from "./daylight.ts";
 import { KitTrees } from "./kit.tsx";
 import { Label, PlaceLink } from "./Label.tsx";
-import { FOUNTAIN, LAMPS, OFFICE, beltSpots, busStop, treeSpots } from "./places.ts";
+import { FOUNTAIN, LAMPS, NOTICEBOARD, OFFICE, beltSpots, busStop, treeSpots } from "./places.ts";
 import type { XZ } from "./places.ts";
 import { COLORS, prefersReducedMotion, useLabelTexture } from "./util.ts";
 
@@ -457,5 +457,96 @@ export function Hills({ half }: { half: number }) {
     <mesh geometry={geometry} receiveShadow>
       <meshStandardMaterial color={COLORS.hill} roughness={1} flatShading />
     </mesh>
+  );
+}
+
+// The noticeboard of skill paths (the prototype's), where the quad's west path meets the ring: notices pinned to a board
+// say "pick one here", as a school's noticeboard does, and a game's quest board. A path's own home is its subject's
+// building; this is where you browse them across every subject. A tap (onTap) walks you over on your campus, and opens
+// the paths there; its label is the link straight to them. A ring round it while it's pointed at.
+const NOTICES: readonly (readonly [number, number, number, number, number, string])[] = [
+  // x, y, width, height, tilt and colour, on the board's face
+  [-0.86, 1.84, 0.66, 0.78, 0.05, "#FFFFFF"],
+  [-0.05, 1.8, 0.62, 0.86, -0.04, "#FDE68A"],
+  [0.8, 1.86, 0.68, 0.74, 0.06, "#CCFBF1"],
+];
+type NoticeboardProps = { onOpen: () => void; onTap?: () => void; onFocus?: (at: readonly [number, number]) => void };
+export function Noticeboard({ onOpen, onTap = onOpen, onFocus }: NoticeboardProps) {
+  const word = useLabelTexture("PATHS", { bg: COLORS.indigo, width: 512, height: 128 });
+  const [lit, setLit] = useState(false);
+  return (
+    <group position={[NOTICEBOARD.pos[0], 0, NOTICEBOARD.pos[1]]}>
+      <group
+        rotation-y={NOTICEBOARD.rot}
+        scale={1.25}
+        onClick={(e: ThreeEvent<MouseEvent>) => {
+          e.stopPropagation();
+          if (e.delta < 6) onTap();
+        }}
+        onPointerOver={(e: ThreeEvent<PointerEvent>) => {
+          pointer.onPointerOver(e);
+          setLit(true);
+        }}
+        onPointerOut={() => {
+          pointer.onPointerOut();
+          setLit(false);
+        }}
+      >
+        {/* Two posts, the board in its frame with "PATHS" across the top, a little roof, and three notices pinned up. */}
+        {[-1.4, 1.4].map((px) => (
+          <mesh key={px} position={[px, 1.5, -0.02]} castShadow>
+            <boxGeometry args={[0.16, 3, 0.16]} />
+            <meshStandardMaterial color={COLORS.trunk} roughness={0.8} />
+          </mesh>
+        ))}
+        <mesh position={[0, 2, -0.02]} castShadow receiveShadow>
+          <boxGeometry args={[2.9, 1.75, 0.12]} />
+          <meshStandardMaterial color={COLORS.indigo} roughness={0.6} />
+        </mesh>
+        <mesh position={[0, 1.865, 0.05]} receiveShadow>
+          <planeGeometry args={[2.64, 1.23]} />
+          <meshStandardMaterial color="#E9D8B8" roughness={0.95} />
+        </mesh>
+        {word && (
+          <mesh position={[0, 2.66, 0.05]}>
+            <planeGeometry args={[1.1, 0.27]} />
+            <meshBasicMaterial map={word} toneMapped={false} />
+          </mesh>
+        )}
+        <mesh position={[0, 3.02, 0.04]} castShadow>
+          <boxGeometry args={[3.3, 0.14, 0.56]} />
+          <meshStandardMaterial color={COLORS.indigoDeep} roughness={0.7} />
+        </mesh>
+        {NOTICES.map(([nx, ny, w, h, tilt, color]) => (
+          <group key={nx} position={[nx, ny, 0.08]} rotation-z={tilt}>
+            <mesh>
+              <planeGeometry args={[w, h]} />
+              <meshStandardMaterial color={color} roughness={0.9} />
+            </mesh>
+            {[0.16, 0.04, -0.08, -0.2].map((ly, i) => (
+              <mesh key={ly} position={[i ? 0 : -w * 0.08, ly, 0.008]}>
+                <planeGeometry args={[w * (i ? 0.66 : 0.5), i ? 0.035 : 0.06]} />
+                <meshBasicMaterial color={i ? "#A3A8C3" : COLORS.ink} />
+              </mesh>
+            ))}
+            <mesh position={[0, h / 2 - 0.07, 0.03]}>
+              <sphereGeometry args={[0.05, 10, 8]} />
+              <meshStandardMaterial color="#E11D48" roughness={0.4} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+      {lit && (
+        <mesh rotation-x={-Math.PI / 2} position-y={0.05}>
+          <ringGeometry args={[2.2, 2.45, 48]} />
+          <meshBasicMaterial color={COLORS.indigo} />
+        </mesh>
+      )}
+      <Label position={[0, 4.7, 0]}>
+        <PlaceLink href="/paths" label="Paths: step-by-step routes through a subject" go={onOpen} onFocus={() => onFocus?.(NOTICEBOARD.pos)}>
+          <span className="font-semibold">Paths</span>
+        </PlaceLink>
+      </Label>
+    </group>
   );
 }

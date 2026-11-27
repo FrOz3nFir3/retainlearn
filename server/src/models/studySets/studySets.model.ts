@@ -201,7 +201,7 @@ export async function stepSetsOf(ids: readonly string[]): Promise<Map<string, Pa
   if (!wanted.length) return new Map();
   const sets = await Card.find(
     { _id: { $in: wanted } },
-    { category: 1, "sub-topic": 1, listed: 1, listAt: 1, "review._id": 1, "quizzes._id": 1, "quizzes.flashcardId": 1 },
+    { category: 1, "main-topic": 1, "sub-topic": 1, listed: 1, listAt: 1, "review._id": 1, "quizzes._id": 1, "quizzes.flashcardId": 1 },
   ).lean<StoredSet[]>();
   return new Map(
     sets.map((set) => [
@@ -209,6 +209,7 @@ export async function stepSetsOf(ids: readonly string[]): Promise<Map<string, Pa
       {
         _id: String(set._id),
         title: set["sub-topic"],
+        topic: set["main-topic"],
         category: set.category,
         listed: isListed(set),
         flashcards: (set.review ?? []).map((f) => ({ _id: String(f._id) })),

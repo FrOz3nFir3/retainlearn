@@ -12,6 +12,8 @@ export const CLASS_KINDS: Record<ClassMode, { label: string; path: string }> = {
 // A study set's address (its classroom), and a class's in it: the one place the scheme is written.
 export const setPath = (setId: string): string => `/study-sets/${setId}`;
 export const classPath = (setId: string, mode: ClassMode): string => `${setPath(setId)}/${CLASS_KINDS[mode].path}`;
+// A timetable period's class: a path's step of picked flashcards keeps to the step (?step=).
+export const periodPath = (period: { setId: string; mode: ClassMode; step?: string }): string => `${classPath(period.setId, period.mode)}${period.step ? `?step=${period.step}` : ""}`;
 // The address of a step suggested by the next-step rule (core's studyPlan): its class, and which items.
 export const stepPath = (setId: string, step: StepAction): string => {
   const query = step.round ? `?round=${step.round}` : step.mix ? "?mix=1" : step.ids?.length ? `?ids=${step.ids.join(",")}` : "";

@@ -39,7 +39,7 @@ export function TopBar() {
         <nav aria-label="Main" className="ml-2 hidden md:block">
           <ul className="flex items-center gap-0.5">
             {mainPlaces(session === "out").map((place) => (
-              <li key={place.to}>
+              <li key={place.to} className={place.wide ? "hidden lg:block" : undefined}>
                 <NavLink
                   to={place.to}
                   end={place.to === "/"}

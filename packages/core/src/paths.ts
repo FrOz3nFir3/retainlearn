@@ -6,6 +6,7 @@ import { z } from "zod";
 import { MASTERED, studySetStats } from "./progress.ts";
 import type { ProgressBySet, StudySetStats } from "./progress.ts";
 import { ObjectIdHex, SubjectName } from "./schemas.ts";
+import type { ClassMode, PathPeriod } from "./timetable.ts";
 import type { FlashcardItem, QuestionItem, When } from "./types.ts";
 
 // ---------- What a path may hold ----------
@@ -60,9 +61,9 @@ export type PathVersion = z.infer<typeof PathContent>;
 
 // ---------- A step's study set, and what's in the step ----------
 
-// The study set a step draws on, as much of it as the rules need: its name, its subject, and its flashcards and
-// questions (each question with the flashcard it's linked to, if any).
-export type StepSet = { _id: string; title: string; category: string; flashcards: readonly FlashcardItem[]; questions: readonly QuestionItem[] };
+// The study set a step draws on, as much of it as the rules need: its name (and its topic, where it's shown), its
+// subject, and its flashcards and questions (each question with the flashcard it's linked to, if any).
+export type StepSet = { _id: string; title: string; topic?: string; category: string; flashcards: readonly FlashcardItem[]; questions: readonly QuestionItem[] };
 
 // A step's flashcards and questions: the whole set's, or the picked flashcards still in the set and the questions
 // linked to them.
@@ -254,4 +255,25 @@ export function mergeSuggestion(current: PathVersion, before: PathVersion, after
   });
   merged.steps = order.flatMap((id) => byId.get(id) ?? []);
   return merged;
+}
+
+// ---------- Your path on the timetable ----------
+
+// The path you follow's current step as the timetable's first period (planDay): its class (what you missed first, then
+// the flashcards you haven't seen, then its quiz), its place in the path, and for a picked step the step its class keeps
+// to (?step=). null when every step is done.
+export function pathPeriod(pathId: string, title: string, along: PathProgress): PathPeriod | null {
+  const current = along.current;
+  if (!current) return null;
+  const s = current.stats;
+  const mode: ClassMode = s.missedFlashcards ? "reviewMissed" : s.missedQuestions ? "retryMissed" : s.unreviewed > 0 ? "review" : s.questions ? "quiz" : "review";
+  return {
+    setId: current.set._id,
+    category: current.set.category,
+    mode,
+    n: along.steps.indexOf(current) + 1,
+    of: along.total,
+    title,
+    step: current.step.flashcardIds ? testedOutKey(pathId, current.step.id) : null,
+  };
 }

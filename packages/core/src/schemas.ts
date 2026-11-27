@@ -4,6 +4,10 @@
 import { z } from "zod";
 import { isTimeZone } from "./days.ts";
 
+// Parsing without compiling code as it runs: the site's CSP forbids eval, and Zod's check for it (new Function) is
+// reported as a violation each time, though Zod falls back. Set here, before any schema is made, for both sides.
+z.config({ jitless: true });
+
 export { z };
 
 // A MongoDB id as it travels in a URL or JSON: 24 hexadecimal digits, given back in lower case (as ids are stored).

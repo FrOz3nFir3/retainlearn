@@ -50,6 +50,7 @@ export function campusPlayer(player: PlayerDoc, today: Day): Campus["player"] {
     unlocks: player.unlocks ?? [],
     classLeft: left?.setId && left.key && left.day ? { setId: String(left.setId), key: left.key, day: left.day } : null,
     away: awayOf(player, today),
+    path: null, // the path you follow: the campus fills it in (services/campus.ts, followedPath)
   };
 }
 

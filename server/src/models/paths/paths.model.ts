@@ -78,27 +78,18 @@ export async function personByUsername(username: string): Promise<PathPerson | n
 }
 
 // A page of paths, the most recently changed first: listed public ones (of a subject, with a word in their title that
-// starts with search), or the ones mine can edit (public or private, listed or not).
-type ListedRow = Pick<PathDoc, "_id" | "title" | "category" | "description" | "exam" | "visibility" | "listed" | "listAt" | "contentAt" | "authorId"> & { steps: number };
-export async function pathsPage(query: { search: string; subject?: string | undefined; mine: string | null; page: number }): Promise<{ paths: PathListing[]; total: number }> {
+// starts with search), or the ones mine can edit (public or private, listed or not). Each listed as the lists show it
+// (PathListing) but for its numbers, which the steps' sets and the viewer's progress give (routes/paths).
+export type ListedPath = Omit<PathListing, "steps" | "flashcards" | "you"> & { doc: PathDoc };
+export async function pathsPage(query: { search: string; subject?: string | undefined; mine: string | null; page: number }): Promise<{ paths: ListedPath[]; total: number }> {
   const match: Record<string, unknown> = { deletedAt: null };
   if (query.mine) match.$or = [{ authorId: oid(query.mine) }, { editorIds: oid(query.mine) }];
   else Object.assign(match, { visibility: "public" }, listedFilter());
   if (query.subject) match.category = query.subject;
   if (query.search) match.title = new RegExp(`(?:^|\\s)${escapeRegex(query.search)}`, "i");
-  const [result] = await Path.aggregate<{ page: ListedRow[]; total: { n: number }[] }>([
+  const [result] = await Path.aggregate<{ page: PathDoc[]; total: { n: number }[] }>([
     { $match: match },
-    {
-      $facet: {
-        page: [
-          { $sort: { contentAt: -1, _id: 1 } },
-          { $skip: (query.page - 1) * PATHS_PER_PAGE },
-          { $limit: PATHS_PER_PAGE },
-          { $project: { title: 1, category: 1, description: 1, exam: 1, visibility: 1, listed: 1, listAt: 1, contentAt: 1, authorId: 1, steps: { $size: "$steps" } } },
-        ],
-        total: [{ $count: "n" }],
-      },
-    },
+    { $facet: { page: [{ $sort: { contentAt: -1, _id: 1 } }, { $skip: (query.page - 1) * PATHS_PER_PAGE }, { $limit: PATHS_PER_PAGE }], total: [{ $count: "n" }] } },
   ]);
   const rows = result?.page ?? [];
   const people = await peopleByIds(rows.map((r) => r.authorId));
@@ -108,15 +99,25 @@ export async function pathsPage(query: { search: string; subject?: string | unde
       title: r.title,
       category: r.category,
       description: r.description ?? "",
-      steps: r.steps,
       exam: r.exam ?? true,
       visibility: (r.visibility ?? "public") as PathVisibility,
       listed: listedNow(r),
       author: people.get(String(r.authorId)) ?? null,
       updatedAt: new Date(r.contentAt).toISOString(),
+      doc: r,
     })),
     total: result?.total[0]?.n ?? 0,
   };
+}
+
+// How many open suggestions wait on each of these paths.
+export async function openSuggestionCounts(pathIds: readonly string[]): Promise<Map<string, number>> {
+  if (!pathIds.length) return new Map();
+  const rows = await PathSuggestion.aggregate<{ _id: Types.ObjectId; n: number }>([
+    { $match: { pathId: { $in: pathIds.map(oid) }, status: "open" } },
+    { $group: { _id: "$pathId", n: { $sum: 1 } } },
+  ]);
+  return new Map(rows.map((r) => [String(r._id), r.n]));
 }
 
 // ---------- Writing ----------
