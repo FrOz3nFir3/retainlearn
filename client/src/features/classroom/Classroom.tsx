@@ -131,6 +131,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
   const both = set.flashcards.length > 0 && set.questions.length > 0;
   const [reporting, setReporting] = useState(false);
   const [ordering, setOrdering] = useState(false);
+  const [orderSaved, setOrderSaved] = useState<"mine" | "author's" | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
 
   // Up next and what else there is to do here: one rule for everywhere that suggests it (core's studyPlan). A set
@@ -245,6 +246,9 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
                 </div>
                 <RoundList set={set} rounds={rounds} states={states} progress={progress} view={view} when={when} current={plan.current} currentTag={plan.currentTag} returnTo={home} onRead={setReading} />
                 <p className="mt-1.5 text-xs text-ink/50">Open a round to see its flashcards and quiz questions.</p>
+                <p role="status" className="mt-1.5 text-xs font-semibold text-mint-ink empty:hidden">
+                  {orderSaved && (orderSaved === "mine" ? "Saved: the rounds follow your order." : "Saved: the rounds follow the author's order again.")}
+                </p>
               </div>
             </>
           )}
@@ -261,7 +265,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
         )}
       </div>
       {reporting && <ReportStudySet setId={set._id} name={set.subtopic} onClose={() => setReporting(false)} />}
-      {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} />}
+      {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} onSaved={setOrderSaved} />}
       {reading && <ReadItem set={set} item={reading} progress={progress} returnTo={home} onClose={() => setReading(null)} />}
     </Page>
   );

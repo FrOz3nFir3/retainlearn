@@ -307,7 +307,8 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
                     Review the flashcard{behind.length === 1 ? "" : "s"} behind your misses
                   </Link>
                 )}
-                {missedNow > 0 && mode !== "retryMissed" && (
+                {/* Missed in this class, a retry included: what you missed, again (as the prototype). */}
+                {missedNow > 0 && answers.some((a) => !a.correct) && (
                   <Link to={classPath(set._id, "retryMissed")} state={{ returnTo }} className={buttonClass("quiet")}>
                     Retry what you missed ({missedNow})
                   </Link>
