@@ -9,6 +9,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { reviewLoad, roundState, setRounds, studyPlan } from "@retainlearn/core";
 import type { ProgressView, StudySetContent } from "@retainlearn/core";
 import { useAppDispatch } from "#app/hooks.ts";
+import { useSession } from "#app/session.ts";
 import { useToday } from "#features/campus/campusApi.ts";
 import { setPath, stepPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
@@ -22,7 +23,9 @@ export function useNextClass(): { open: (setId: string) => Promise<void>; prefet
   const navigate = useNavigate();
   const { pathname, search } = useLocation();
   const when = useToday();
-  const { view } = useStudyView(true);
+  // The one-tap classes are a signed-in player's, so your settings are only asked for then (a visitor's page asked the
+  // API for a campus it can't have).
+  const { view } = useStudyView(useSession() === "in");
   const prefetchSet = classroomApi.usePrefetch("getStudySet");
   const prefetchProgress = classroomApi.usePrefetch("getProgress");
   const [opening, setOpening] = useState<string | null>(null);
