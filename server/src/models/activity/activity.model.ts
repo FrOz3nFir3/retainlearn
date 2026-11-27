@@ -15,12 +15,13 @@ const isDuplicateKey = (error: unknown) => (error as { code?: number } | null)?.
 
 // The day as the campus reads it. A period's why and set are kept as they were planned (planDay's shapes).
 const fromDoc = (doc: ActivityDoc | null): StoredDay => ({
-  timetable: (doc?.timetable ?? []).map(({ kind, setId, mode, arena, why, set, done }) => ({
+  timetable: (doc?.timetable ?? []).map(({ kind, setId, mode, arena, why, step, set, done }) => ({
     kind,
     ...(setId ? { setId: String(setId) } : {}),
     ...(mode ? { mode } : {}),
     ...(arena ? { arena } : {}),
     why,
+    ...(step ? { step } : {}),
     done: done ?? false,
     set: set ?? null,
   })) as PlannedPeriod[],
@@ -50,6 +51,12 @@ export async function activityOf(userId: string, day: Day, plan: () => Promise<{
     if (!isDuplicateKey(error)) throw error;
     return fromDoc(await Activity.findOne(filter).lean<ActivityDoc>()); // planned by another load at the same moment
   }
+}
+
+// Today's timetable planned again at the next load, as following a path or testing out of its step changes its first
+// period; unless a period is done already today, which keeps today as it is (the path's step comes from tomorrow).
+export async function replanToday(userId: string, day: Day): Promise<void> {
+  await Activity.updateOne({ userId: oid(userId), day, "timetable.done": { $ne: true } }, { $set: { timetable: [] } });
 }
 
 // Answers and XP from a saved batch, added to the day.

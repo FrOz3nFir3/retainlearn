@@ -9,7 +9,7 @@ import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject, 
 import { activityOf } from "#models/activity/activity.model.ts";
 import { classLeftDetail } from "#models/progress/progress.model.ts";
 import { setCounts } from "#models/studySets/studySets.model.ts";
-import { planToday, subjectSummary, subjectsFromProgress } from "#services/campus.ts";
+import { followedPath, planToday, subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const campusInput = { query: CampusQuery };
 export const addSubjectInput = { query: CampusQuery, body: AddSubject };
@@ -27,12 +27,15 @@ export async function getCampus(req: Request, res: Response) {
   const shown = campusPlayer(player, when.today);
   // A class left halfway today: what the coach says of it, read alongside today's plan.
   const left = shown.classLeft?.day === when.today ? shown.classLeft : null;
+  // The path you follow: where you are along it, and its current step, today's first period when the day is planned.
+  const followed = await followedPath(userId, player.paths, when);
   const [day, detail, sets] = await Promise.all([
     activityOf(userId, when.today, () =>
       planToday(
         userId,
         subjects.map((s) => s.category),
         when,
+        followed?.period ?? null,
       ),
     ),
     left ? classLeftDetail(userId, left.setId, left.key) : null,
@@ -40,7 +43,7 @@ export async function getCampus(req: Request, res: Response) {
   ]);
   res.json({
     day: when.today,
-    player: { ...shown, classLeft: left && detail ? { ...left, ...detail } : shown.classLeft },
+    player: { ...shown, classLeft: left && detail ? { ...left, ...detail } : shown.classLeft, path: followed?.summary ?? null },
     subjects: subjects.map((s) => ({
       category: s.category,
       plot: s.plot,

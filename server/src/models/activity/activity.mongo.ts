@@ -12,7 +12,8 @@ const periodSchema = new Schema(
     setId: { type: Schema.Types.ObjectId },
     mode: { type: String },
     arena: { type: String },
-    why: { type: Schema.Types.Mixed }, // why it's on today's timetable: { kind, n, of? } (packages/core, planDay)
+    why: { type: Schema.Types.Mixed }, // why it's on today's timetable: { kind, n, of?, title? } (packages/core, planDay)
+    step: { type: String }, // a path's step of picked flashcards ("pathId.stepId"), which its class keeps to
     set: { type: Schema.Types.Mixed }, // the set's { topic, subtopic, category }, copied, so the campus needs no lookup
     done: { type: Boolean, default: false },
   },

@@ -12,8 +12,8 @@
 // With nothing scoring, it carries on where you're furthest through (in another subject first), or starts something
 // new. Each period says why it's there, for the timetable bar and the coach.
 //
-// Ported from the prototype's data/timetable.js. Still to come, each with its feature: your path's next step as the
-// first period (paths, Phase 2), and a match as the last (the stadium, Phase 4).
+// Ported from the prototype's data/timetable.js, with your path's current step as the first period (paths). Still to
+// come, with its feature: a match as the last (the stadium, Phase 4).
 import { fadingCount, studySetStats } from "./progress.ts";
 import type { ProgressBySet, StudySetStats } from "./progress.ts";
 import type { Day, StudySet } from "./types.ts";
@@ -27,9 +27,14 @@ export type ClassMode = (typeof CLASS_MODES)[number];
 export type Why =
   | { kind: "missed" | "fading" | "cold"; n: number } // n: items due back, player cards fading, or days away
   | { kind: "continue"; n: number; of: number } // n of the set's flashcards reviewed
-  | { kind: "new" };
-// A period, as activity.timetable keeps it.
-export type Period = { kind: "class"; setId: string; mode: ClassMode; why: Why; done: boolean };
+  | { kind: "new" }
+  | { kind: "path"; n: number; of: number; title: string }; // step n of your path's of, in the path titled so
+// A period, as activity.timetable keeps it. step: a path's step of picked flashcards ("pathId.stepId"), which its class
+// keeps to (?step=).
+export type Period = { kind: "class"; setId: string; mode: ClassMode; why: Why; done: boolean; step?: string };
+
+// The path you follow's current step, as a period (core's pathPeriod): its set and subject, its class, and its place.
+export type PathPeriod = { setId: string; category: string; mode: ClassMode; n: number; of: number; title: string; step: string | null };
 
 type Reason = { score: number; mode: ClassMode; why: Why };
 
@@ -51,19 +56,22 @@ function need(st: StudySetStats, fading: number, subjectStarted: boolean): { sco
 }
 
 // sets: the study sets in your subjects, as studySetStats takes them, in a stable order (ties go to the first).
-// progress: your progress by set id. subjects: the categories on your campus. Returns up to CLASSES_A_DAY periods.
+// progress: your progress by set id. subjects: the categories on your campus. path: the current step of the path you
+// follow, the first period when its subject is on your campus (the prototype's). Returns up to CLASSES_A_DAY periods.
 export function planDay({
   sets,
   progress = {},
   subjects,
   today,
   timeZone = "UTC",
+  path = null,
 }: {
   sets: readonly StudySet[];
   progress?: ProgressBySet;
   subjects: readonly string[];
   today: Day;
   timeZone?: string;
+  path?: PathPeriod | null;
 }): Period[] {
   const when = { today, timeZone };
   const rooms = sets
@@ -81,6 +89,11 @@ export function planDay({
     usedSets.add(st.setId);
     usedSubjects.add(st.category);
   };
+  if (path && subjects.includes(path.category)) {
+    periods.push({ kind: "class", setId: path.setId, mode: path.mode, why: { kind: "path", n: path.n, of: path.of, title: path.title }, done: false, ...(path.step ? { step: path.step } : {}) });
+    usedSets.add(path.setId);
+    usedSubjects.add(path.category);
+  }
 
   while (periods.length < CLASSES_A_DAY) {
     const open = rooms.filter(({ st }) => !usedSets.has(st.setId) && !st.empty);

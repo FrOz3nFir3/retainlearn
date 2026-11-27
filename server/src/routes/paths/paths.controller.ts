@@ -80,6 +80,7 @@ import type { PathStepSet } from "#models/studySets/studySets.model.ts";
 import { progressInSets } from "#models/progress/progress.model.ts";
 import { addSkill, addSubject, addTestedOut, followPath, pathsOf, playerOf, unfollowPath } from "#models/players/players.model.ts";
 import { subjectSummary, subjectsFromProgress } from "#services/campus.ts";
+import { replanToday } from "#models/activity/activity.model.ts";
 import { TRUST, trustedFrom } from "#config/trust.config.js";
 import { Types } from "mongoose";
 
@@ -319,6 +320,7 @@ export async function putFollow(req: Request, res: Response) {
   // still follows it.
   if (!player.subjects?.some((s) => s.category === path.category)) await addSubject(me, await subjectSummary(me, path.category, when));
   await followPath(me, params.id);
+  await replanToday(me, when.today);
   res.json({ following: true });
 }
 
@@ -486,6 +488,7 @@ export async function postTestOut(req: Request, res: Response) {
   if (check === "passed") {
     await playerOf(me, query.tz, () => subjectsFromProgress(me, todayIn(query.tz)));
     await addTestedOut(me, testedOutKey(params.id, params.stepId));
+    await replanToday(me, todayIn(query.tz).today);
   }
   res.json({ passed: check === "passed" } satisfies TestOutResult);
 }

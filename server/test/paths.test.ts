@@ -288,3 +288,12 @@ test("each listed path with its numbers: the steps you can study and their flash
   await read<PathSuggestion>(await send("PUT", `/api/paths/${id}/suggestions/mine`, nina, { path: content([whole("s1", ids.js)], { title: "Numbered path", description: "Shorter" }), version: opened.version }));
   assert.deepEqual((await card(lee))?.you, { following: false, canEdit: true, isAuthor: true, done: 0, toReview: 1 });
 });
+
+test("the path you follow on your campus: how far along it you are, and its current step first on today's timetable", async () => {
+  const id = await make(lee, [whole("s1", ids.bio)], { category: "Biology", title: "Biology basics" });
+  await read(await send("PUT", `/api/paths/${id}/follow?${tz}`, omar));
+  const campus = await read<Campus>(await send("GET", `/api/campus?${tz}`, omar));
+  assert.deepEqual(campus.player.path, { _id: id, title: "Biology basics", category: "Biology", done: 0, total: 1, current: { n: 1, stepId: "s1", setId: String(ids.bio), name: "Basics", category: "Biology", step: null } });
+  assert.deepEqual([campus.timetable[0]?.setId, campus.timetable[0]?.why], [String(ids.bio), { kind: "path", n: 1, of: 1, title: "Biology basics" }]);
+  assert.equal((await read<Campus>(await send("GET", `/api/campus?${tz}`, lee))).player.path, null);
+});

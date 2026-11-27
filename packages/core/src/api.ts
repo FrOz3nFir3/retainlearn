@@ -254,6 +254,9 @@ export type Campus = {
     // Back after days without a class: how many, and the streak that ended meanwhile (0: none ended, or a freeze kept
     // it). null when your last class was today or yesterday.
     away: { days: number; endedStreak: number } | null;
+    // The path you follow (P2-07), while you can see it: how far along it you are, and its current step (null once
+    // every step is done), for the campus's trail and tile, the coach and the report card.
+    path: CampusPath | null;
   };
   subjects: CampusSubject[];
   timetable: (Period & { set: { topic: string; subtopic: string; category: string } | null })[];
@@ -387,3 +390,14 @@ export type PathSkill = { pathId: string; title: string; at: string };
 
 // POST /api/paths/:id/report  { reason, note }: "Report this path", as a set is reported (StudySetReport): enough
 // people reporting it take it out of the lists until it's checked.
+
+// The path you follow, on your campus (Campus["player"]["path"]): its current step's number, set, name and subject,
+// and for a picked step the step its class keeps to (?step=).
+export type CampusPath = {
+  _id: string;
+  title: string;
+  category: string;
+  done: number;
+  total: number;
+  current: { n: number; stepId: string; setId: string; name: string; category: string; step: string | null } | null;
+};
