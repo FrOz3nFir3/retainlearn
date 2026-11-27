@@ -1,4 +1,5 @@
 // What the editor's tabs and dialogs share: who's editing, the words for saving, and small text helpers.
+import type { PickOption } from "#components/ui/PickList.tsx";
 import { textOf } from "#utils/safeHtml.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 
@@ -14,6 +15,12 @@ export const savedNotice = (suggested: boolean, done: string, suggestedText: str
 
 export const plural = (n: number, word: string, many = `${word}s`): string => `${n} ${n === 1 ? word : many}`;
 export const clip = (text: string, n: number): string => (text.length > n ? `${text.slice(0, n - 1).trimEnd()}…` : text);
+// A set's flashcards as options to pick from (PickList), each "Flashcard N: its question", after the leading ones (Not
+// linked, All…).
+export const flashcardOptions = (flashcards: readonly { _id: string; question: string }[], leading: readonly PickOption[]): PickOption[] => [
+  ...leading,
+  ...flashcards.map((f, i) => ({ value: f._id, label: `Flashcard ${i + 1}: ${clip(textOf(f.question), 80)}` })),
+];
 
 // TipTap leaves "<p></p>" behind when a field is cleared, so emptiness is about the text, not the markup.
 export const isBlank = (html: string): boolean => !textOf(html);

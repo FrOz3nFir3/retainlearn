@@ -1,8 +1,10 @@
 // The app's top bar (the prototype's Hud top bar), on every page but a class: the logo, the main places, and for a
-// signed-in player their streak, level and account menu (profile, theme, sign out); Sign in otherwise. One compact row,
+// signed-in player their streak, level and account menu (profile, theme, sign out); Sign in otherwise; on wide screens a
+// search of the subjects. One compact row,
 // the one bar that stays at the top, sliding away while you scroll down (styles/kit.css; guide:
 // content-first-noise-reduction). On phones the main places are in the tab bar at the bottom (TabBar.tsx).
-import { Link, NavLink } from "react-router-dom";
+import { useState } from "react";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { XP_PER_LEVEL } from "@retainlearn/core";
 import { setColorScheme, useColorScheme } from "#app/colorScheme.ts";
 import type { SchemeChoice } from "#app/colorScheme.ts";
@@ -13,6 +15,7 @@ import { Bar } from "#components/ui/Bar.tsx";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Menu, MenuButton, MenuGroup, MenuLink, MenuRadio, MenuSeparator } from "#components/ui/Menu.tsx";
+import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { SkeletonCircle, SkeletonLine } from "#components/ui/Skeleton.tsx";
 import { useCampus } from "#features/campus/campusApi.ts";
 import useLogout from "#hooks/useLogout.js";
@@ -44,7 +47,8 @@ export function TopBar() {
             ))}
           </ul>
         </nav>
-        <div className="ml-auto flex items-center gap-2">
+        <SubjectSearch />
+        <div className="ml-auto flex items-center gap-2 xl:ml-3">
           {session === "in" ? (
             <>
               <PlayerStatus />
@@ -70,6 +74,29 @@ export function TopBar() {
         </div>
       </div>
     </header>
+  );
+}
+
+// Searching the subjects from anywhere, on wide screens (the prototype's): it opens the subjects page with the search.
+// A real form to /subjects?search=, so it also works before the app's code has loaded.
+function SubjectSearch() {
+  const navigate = useNavigate();
+  const [query, setQuery] = useState("");
+  return (
+    <search className="ml-auto hidden w-64 xl:block">
+      <form
+        action="/subjects"
+        method="get"
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = query.trim();
+          navigate(q ? `/subjects?search=${encodeURIComponent(q)}` : "/subjects");
+          setQuery("");
+        }}
+      >
+        <SearchInput name="search" label="Search subjects" placeholder="Search subjects" value={query} onChange={setQuery} className="[&_input]:h-9" />
+      </form>
+    </search>
   );
 }
 

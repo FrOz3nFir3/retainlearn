@@ -14,7 +14,7 @@ import { IconButton } from "#components/ui/IconButton.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { TabPanel, Tabs, useTabsId } from "#components/ui/Tabs.tsx";
 import type { TabItem } from "#components/ui/Tabs.tsx";
-import { useGetStudySetQuery } from "#features/classroom/classroomApi.ts";
+import { useGetProgressQuery, useGetStudySetQuery } from "#features/classroom/classroomApi.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 import { DetailsDialog } from "./DetailsDialog.tsx";
@@ -36,9 +36,13 @@ export default function Editor() {
   const session = useSession();
   const signedIn = session === "in";
   const set = useGetStudySetQuery(id);
-  // Whether you're one of the set's reviewers: only they may see the list (anyone else is refused).
-  const reviewers = useGetReviewersQuery(id, { skip: !signedIn });
-  const access: Access | null = session === "out" ? "guest" : !signedIn ? null : reviewers.isSuccess ? "editor" : reviewers.isError ? "contributor" : null;
+  // Whether you're one of the set's reviewers, as your progress in it says; only they fetch the list (anyone else is
+  // refused it).
+  const progress = useGetProgressQuery(id, { skip: !signedIn });
+  const reviewer = progress.data ? progress.data.reviewer === true : progress.isError ? false : null;
+  const reviewers = useGetReviewersQuery(id, { skip: reviewer !== true });
+  const access: Access | null =
+    session === "out" ? "guest" : !signedIn || reviewer === null ? null : !reviewer ? "contributor" : reviewers.isSuccess ? "editor" : reviewers.isError ? "contributor" : null;
 
   if (set.isError) {
     return (
@@ -131,7 +135,7 @@ function EditorView({ set, access, reviewers }: { set: StudySetContent; access: 
           {view === "flashcards" && <FlashcardsTab {...props} />}
           {view === "questions" && <QuestionsTab {...props} />}
           {view === "review-queue" && access !== "guest" && <SuggestionsTab setId={set._id} access={access} onNotice={setNotice} />}
-          {view === "reviewers" && <ReviewersTab setId={set._id} reviewers={reviewers} onNotice={setNotice} />}
+          {view === "reviewers" && <ReviewersTab setId={set._id} reviewers={reviewers} author={set.author?.username ?? null} onNotice={setNotice} />}
           {view === "history" && <HistoryTab setId={set._id} />}
         </TabPanel>
       </div>

@@ -7,7 +7,7 @@ import {
   findUserByUsername,
   findUserByEmailOrUsername,
   generateUniqueUsername,
-  getPublicUserByUsername,
+  getPublicProfile,
   searchUsers,
   endAllSessions,
 } from "../../models/users/users.model.js";
@@ -31,7 +31,7 @@ const isProduction = env.NODE_ENV === "production";
 export async function httpGetPublicUserByUsername(req, res) {
   const { username } = req.params;
   try {
-    const user = await getPublicUserByUsername(username);
+    const user = await getPublicProfile(username);
     if (!user) {
       return res.status(404).json({ error: "User not found" });
     }
