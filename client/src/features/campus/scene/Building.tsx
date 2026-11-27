@@ -1,14 +1,17 @@
 // A subject's building, from outside (the prototype's scene/Building.jsx; the view inside comes with the next step):
 // the kit's walls, with a window lit for each share of your mastery, one at a time as it changes; its sign and its
-// pennant in the subject's colour; scaffolding while it has no study sets; a cloud raining on it once it's gone cold.
-// Its label: its name, always, and a status when it needs you (what you missed first, else cooling, cold or new). A tap
-// goes in (onEnter). With reduced motion, the pennant and the rain hold still.
+// pennant in the subject's colour; scaffolding while it has no study sets; a cloud raining on it once it's gone cold;
+// sparkles from its roof when you come back from a class finished here.
+// Its label: its name, always, and a status when it needs you (what you missed first, else cooling, cold or new); it's
+// also the building's link for the keyboard and screen readers (PlaceLink). A tap goes in (onEnter). With reduced
+// motion, the pennant and the rain hold still.
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { KitShell, BASE, STOREY, kitWindows, roofHeight } from "./kit.tsx";
-import { Label } from "./Label.tsx";
+import { subjectPath } from "../subjects.ts";
+import { Label, PlaceLink } from "./Label.tsx";
 import type { CampusBuilding } from "./layout.ts";
 import { COLORS, facingCenter, prefersReducedMotion, roundedRectShape, useLabelTexture } from "./util.ts";
 
@@ -49,11 +52,23 @@ const STATUS: Record<string, { label: string; tag: string }> = {
   empty: { label: "Needs content", tag: "bg-ink/5 text-ink/60" },
 };
 
-export function Building({ b, labels = true, onEnter }: { b: CampusBuilding; labels?: boolean; onEnter: (b: CampusBuilding) => void }) {
+// onEnter: straight in (its label, a link); onTap: a tap on the building itself (on your campus, you walk over first).
+// celebrate: a class here has just finished, so sparkles burst from its roof.
+type BuildingProps = {
+  b: CampusBuilding;
+  labels?: boolean;
+  celebrate?: boolean;
+  onEnter: (b: CampusBuilding) => void;
+  onTap?: (b: CampusBuilding) => void;
+  onFocus?: (at: readonly [number, number]) => void;
+};
+
+export function Building({ b, labels = true, celebrate = false, onEnter, onTap = onEnter, onFocus }: BuildingProps) {
   const { subject } = b;
   const empty = subject.sets === 0;
   const status = empty ? "empty" : subject.status;
   const cold = status === "cold";
+  const tag = subject.missed > 0 ? { label: `${subject.missed} missed`, tag: "bg-bell-wash text-bell-ink" } : STATUS[status];
   const [w, d] = b.size;
   const roofTop = BASE + b.floors * STOREY + roofHeight;
   const rot = facingCenter(b.pos);
@@ -64,7 +79,7 @@ export function Building({ b, labels = true, onEnter }: { b: CampusBuilding; lab
   const tap = (e: ThreeEvent<MouseEvent>) => {
     e.stopPropagation();
     if (e.delta >= 6) return; // a drag of the map, not a tap
-    onEnter(b);
+    onTap(b);
   };
   return (
     <group position={[b.pos[0], 0, b.pos[1]]}>
@@ -84,23 +99,49 @@ export function Building({ b, labels = true, onEnter }: { b: CampusBuilding; lab
         <Pennant color={cold ? COLORS.cold : b.pennant} position={[w / 2 - 0.9, roofTop, -d / 2 + 0.9]} />
         {empty && <Scaffold w={w} d={d} h={b.floors * STOREY} />}
       </group>
-      <Label position={[0, roofTop + 1.4, 0]}>
-        <div className={labels ? "scene-chip opacity-90" : "hidden"} data-rank={labels ? 1 : undefined}>
-          <span className="font-semibold">{b.name}</span>
-          {subject.missed > 0 ? (
-            <span className="scene-chip-tag bg-bell-wash text-bell-ink">{subject.missed} missed</span>
-          ) : (
-            STATUS[status] && <span className={`scene-chip-tag ${STATUS[status].tag}`}>{STATUS[status].label}</span>
-          )}
-        </div>
-      </Label>
+      {labels && (
+        <Label position={[0, roofTop + 1.4, 0]}>
+          {/* Named as it reads, with a comma (the chip's parts are flex items, which would be read with odd spaces). */}
+          <PlaceLink href={subjectPath(b.name)} label={tag ? `${b.name}, ${tag.label}` : b.name} go={() => onEnter(b)} onFocus={() => onFocus?.(b.pos)} className="opacity-90">
+            <span className="font-semibold">{b.name}</span>
+            {tag && <span className={`scene-chip-tag ${tag.tag}`}>{tag.label}</span>}
+          </PlaceLink>
+        </Label>
+      )}
       {cold && (
         <group position={[-Math.sin(rot) * d * 0.25, 0, -Math.cos(rot) * d * 0.25]} scale={0.8}>
           <RainCloud y={(roofTop + 3.6) / 0.8} />
         </group>
       )}
+      {celebrate && <Sparkles y={roofTop} />}
     </group>
   );
+}
+
+// A burst of sparkles from the roof, for a class just finished here: up, out and down, shrinking away in two seconds.
+// Not with reduced motion (the class's end said it all).
+const SPARKLE = new THREE.OctahedronGeometry(0.4);
+const SPARKLE_COLOURS = [COLORS.amber, COLORS.indigo, "#FFFFFF", "#34B27D"].map((color) => new THREE.MeshBasicMaterial({ color }));
+function Sparkles({ y }: { y: number }) {
+  const refs = useRef<(THREE.Mesh | null)[]>([]);
+  const start = useRef<number | null>(null);
+  const [done, setDone] = useState(prefersReducedMotion);
+  const parts = useMemo(() => Array.from({ length: 30 }, () => ({ vx: (Math.random() - 0.5) * 10, vy: 5 + Math.random() * 4, vz: (Math.random() - 0.5) * 10, spin: Math.random() * 6 })), []);
+  useFrame(({ clock }) => {
+    if (done) return;
+    start.current ??= clock.elapsedTime;
+    const t = clock.elapsedTime - start.current;
+    if (t > 2.2) return setDone(true);
+    refs.current.forEach((m, i) => {
+      const p = parts[i];
+      if (!m || !p) return;
+      m.position.set(p.vx * t, y + p.vy * t - 8 * t * t, p.vz * t);
+      m.rotation.set(t * p.spin, t * p.spin, 0);
+      m.scale.setScalar(Math.max(0.001, 1 - t / 2.2));
+    });
+  });
+  if (done) return null;
+  return parts.map((_, i) => <mesh key={i} ref={(m) => void (refs.current[i] = m)} position-y={y} geometry={SPARKLE} material={SPARKLE_COLOURS[i % 4]} />);
 }
 
 function Scaffold({ w, d, h }: { w: number; d: number; h: number }) {
@@ -201,7 +242,8 @@ function RainCloud({ y }: { y: number }) {
 }
 
 // The free plot: where your next subject goes, with the way to add one.
-export function FreePlot({ plot, onAdd }: { plot: { pos: readonly [number, number]; size: readonly [number, number] }; onAdd: () => void }) {
+type FreePlotProps = { plot: { pos: readonly [number, number]; size: readonly [number, number] }; onAdd: () => void; onFocus?: (at: readonly [number, number]) => void };
+export function FreePlot({ plot, onAdd, onFocus }: FreePlotProps) {
   const pad = useMemo(() => roundedRectShape(plot.size[0] + 1.4, plot.size[1] + 1.4, 0.8), [plot]);
   const dashes = useMemo(() => {
     const out: [number, number, number][] = [];
@@ -232,9 +274,9 @@ export function FreePlot({ plot, onAdd }: { plot: { pos: readonly [number, numbe
         </mesh>
       ))}
       <Label position={[0, 1.4, 0]}>
-        <div className="scene-chip scene-chip-ghost" data-rank="0">
+        <PlaceLink href="/subjects" go={onAdd} onFocus={() => onFocus?.(plot.pos)} rank={0} className="scene-chip-ghost">
           Add a subject
-        </div>
+        </PlaceLink>
       </Label>
     </group>
   );

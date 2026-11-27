@@ -64,9 +64,10 @@ function backTo(returnTo: string, signedIn: boolean): string {
   }
 }
 
-type Props = { setId: string; title?: string; result: ClassResult | null; warmAgain?: boolean; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
+// category: the set's subject; back on the 3D campus, its building sparkles for the class just finished.
+type Props = { setId: string; category?: string; title?: string; result: ClassResult | null; warmAgain?: boolean; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
 
-export function Summary({ setId, title = "Class finished", result, warmAgain = false, hero, lines, extra, actions }: Props) {
+export function Summary({ setId, category, title = "Class finished", result, warmAgain = false, hero, lines, extra, actions }: Props) {
   const signedIn = useSignedIn();
   const returnTo = useReturnTo(setId);
   const rows: (readonly [string, ReactNode])[] = [
@@ -115,7 +116,7 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
           </Link>
         )}
         {actions}
-        <Link to={returnTo} className={buttonClass("primary")}>
+        <Link to={returnTo} state={result && signedIn && category && returnTo === "/" ? { celebrate: category } : undefined} className={buttonClass("primary")}>
           Back to {backTo(returnTo, signedIn)}
         </Link>
       </div>

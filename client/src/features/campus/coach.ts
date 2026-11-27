@@ -12,14 +12,17 @@ import { subjectPath } from "./subjects.ts";
 // page or a class (null: "Thanks"). more: a tour line's button, which moves on instead.
 export type CoachLine = { key: string; text: string; act: { label: string; to: string } | null; chip: { label: string; icon: IconName }; more?: string };
 
-// Your coach: a name and the colour of their training top, from your username, so every player has their own and it's
-// the same coach every day (a coach is someone you come to know). Your idea, 2026-11-13.
+// Your coach: a name, a look (which of the 3D campus's characters they are: never the one that's you, 2) and the colour
+// of their training top, from your username, so every player has their own and it's the same coach every day (a coach
+// is someone you come to know). Your idea, 2026-11-13.
 const NAMES = ["Riley", "Sam", "Alex", "Jordan", "Casey", "Morgan", "Robin", "Kai", "Noor", "Priya", "Mateo", "Amara", "Kenji", "Zara", "Leo", "Ines", "Aisha", "Yuki", "Nia", "Omar", "Freya", "Ravi", "Lena", "Tomas"];
+const VARIANTS = [0, 1, 3, 4, 5, 6, 7, 8, 9, 10, 11];
 const TOPS = ["#F59E0B", "#14B8A6", "#F97066", "#8B5CF6", "#84CC16", "#0EA5E9", "#EC4899"];
-export function coachFor(username: string | null | undefined): { name: string; top: string } {
+export type Coach = { name: string; top: string; variant: number };
+export function coachFor(username: string | null | undefined): Coach {
   let h = 7;
   for (const ch of String(username ?? "")) h = (h * 31 + ch.charCodeAt(0)) % 1000003;
-  return { name: NAMES[h % NAMES.length] ?? "Riley", top: TOPS[Math.floor(h / 13) % TOPS.length] ?? "#F59E0B" };
+  return { name: NAMES[h % NAMES.length] ?? "Riley", top: TOPS[Math.floor(h / 13) % TOPS.length] ?? "#F59E0B", variant: VARIANTS[Math.floor(h / 7) % VARIANTS.length] ?? 0 };
 }
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;

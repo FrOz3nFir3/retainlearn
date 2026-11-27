@@ -2,7 +2,7 @@
 // walls, Nature Kit for trees and Mini Characters for people, in public/models (README there). No Draco or Meshopt:
 // their decoders need WebAssembly, which the site's CSP doesn't allow. The people use KHR_mesh_quantization instead,
 // which three reads natively, and textures stay separate files because the CSP also blocks blob: images.
-// The stadium's crowds and team kits come with the stadium.
+// The stadium's crowds come with the stadium; its team kits are the clothes cut here (the coach wears one).
 import { forwardRef, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef } from "react";
 import { useFrame } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
@@ -301,21 +301,132 @@ export function KitShell({ cols, floors, lit, state, style }: { cols: number; fl
 
 // ---------- people ----------
 
+// Which bone moves each vertex most (a mini character's bones: root, torso, head, arm-*, leg-*).
+function dominantBones(geometry: THREE.BufferGeometry, skeleton: THREE.Skeleton): string[] {
+  const si = geometry.getAttribute("skinIndex");
+  const sw = geometry.getAttribute("skinWeight");
+  return Array.from({ length: si.count }, (_, v) => {
+    let best = -1;
+    let bone = 0;
+    for (let c = 0; c < 4; c++) {
+      const w = sw.getComponent(v, c);
+      if (w > best) {
+        best = w;
+        bone = si.getComponent(v, c);
+      }
+    }
+    return skeleton.bones[bone]?.name ?? "";
+  });
+}
+
+// Clothes cut from a character's own body mesh, face by face (the prototype's team kit, which the stadium will dress
+// its players in): the shirt (torso and sleeves), shorts, socks and boots, each pushed out a hair along its normals so
+// it sits on top, keeping the body's skinning, so they move with every animation. Cut once per character.
+// All twelve characters share one skeleton, modelled in a T-pose: arms straight out along x from the shoulder (0.1 from
+// the middle) to the fingertips (0.38), legs straight down from the hip (y 0.176) to the soles. The cuts below are in
+// those units; they fall between the meshes' rings of vertices, and every face goes whole to one part.
+type Part = "shirt" | "shorts" | "socks" | "boots";
+export type Dress = Partial<Record<Part, string>>;
+const SLEEVE = 0.305; // |x|: a sleeve ends by here (each character keeps its own sleeve length)
+const HEM = 0.11; // y: the bottom of the shorts
+const ANKLE = 0.06; // y: the top of the boots
+const PUSH: Record<Part, number> = { shirt: 0.012, shorts: 0.01, socks: 0.008, boots: 0.012 }; // of the body's height
+const CUTS = new WeakMap<THREE.BufferGeometry, Record<Part, THREE.BufferGeometry>>();
+function clothesFor(mesh: THREE.SkinnedMesh): Record<Part, THREE.BufferGeometry> {
+  const g = mesh.geometry;
+  const known = CUTS.get(g);
+  if (known) return known;
+  const bones = dominantBones(g, mesh.skeleton);
+  const pos = g.getAttribute("position");
+  const nrm = g.getAttribute("normal");
+  const skinIndex = g.getAttribute("skinIndex");
+  const skinWeight = g.getAttribute("skinWeight");
+  const index = g.index ? Array.from(g.index.array) : Array.from({ length: pos.count }, (_, i) => i);
+  // The files store positions compressed (KHR_mesh_quantization) and fold the way back into the bones' inverse bind
+  // matrices. The root bone stands at the origin, so its matrix is exactly that way back.
+  const root = mesh.skeleton.bones.findIndex((b) => b.name === "root");
+  const toModel = (root >= 0 ? mesh.skeleton.boneInverses[root] : undefined) ?? new THREE.Matrix4();
+  const p = new THREE.Vector3();
+  const model = Array.from({ length: pos.count }, (_, v) => p.fromBufferAttribute(pos, v).applyMatrix4(toModel).toArray());
+  // Each face's part: by the bone most of its corners follow, and how far along the limb it reaches.
+  const faces: (Part | null)[] = [];
+  for (let t = 0; t < index.length; t += 3) {
+    const [a, b, c] = [index[t]!, index[t + 1]!, index[t + 2]!];
+    const bone = bones[a] === bones[b] || bones[a] === bones[c] ? bones[a]! : bones[b] === bones[c] ? bones[b]! : bones[a]!;
+    const outer = Math.max(...[a, b, c].map((v) => Math.abs(model[v]![0])));
+    const ys = [a, b, c].map((v) => model[v]![1]);
+    let part: Part | null = null;
+    if (bone === "torso") part = "shirt";
+    else if (bone.startsWith("arm")) part = outer <= SLEEVE ? "shirt" : null;
+    else if (bone.startsWith("leg")) part = Math.min(...ys) >= HEM ? "shorts" : Math.max(...ys) <= ANKLE ? "boots" : "socks";
+    faces.push(part);
+  }
+  g.computeBoundingBox();
+  const size = g.boundingBox ? g.boundingBox.max.y - g.boundingBox.min.y : 1;
+  const cut = (part: Part) => {
+    const push = size * PUSH[part];
+    const out = { position: [] as number[], normal: [] as number[], skinIndex: [] as number[], skinWeight: [] as number[] };
+    for (let t = 0; t < index.length; t += 3) {
+      if (faces[t / 3] !== part) continue;
+      for (const v of [index[t]!, index[t + 1]!, index[t + 2]!]) {
+        const n = [nrm.getX(v), nrm.getY(v), nrm.getZ(v)] as const;
+        out.position.push(pos.getX(v) + n[0] * push, pos.getY(v) + n[1] * push, pos.getZ(v) + n[2] * push);
+        out.normal.push(...n);
+        for (let c = 0; c < 4; c++) {
+          out.skinIndex.push(skinIndex.getComponent(v, c));
+          out.skinWeight.push(skinWeight.getComponent(v, c));
+        }
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute("position", new THREE.Float32BufferAttribute(out.position, 3));
+    geo.setAttribute("normal", new THREE.Float32BufferAttribute(out.normal, 3));
+    geo.setAttribute("skinIndex", new THREE.Uint16BufferAttribute(out.skinIndex, 4));
+    geo.setAttribute("skinWeight", new THREE.Float32BufferAttribute(out.skinWeight, 4));
+    return geo;
+  };
+  const clothes = { shirt: cut("shirt"), shorts: cut("shorts"), socks: cut("socks"), boots: cut("boots") };
+  CUTS.set(g, clothes);
+  return clothes;
+}
+
 // One of Kenney's mini characters (variant 0 to 11), animated: idle, walk, sprint, sit, emote-yes, jump and more.
 // Change what they're doing through the ref (play(name, speed, once)); the clip blends over in a moment, and a clip
-// played once holds its last pose. offset: seconds into the first clip, so a crowd doesn't move in step.
+// played once holds its last pose. offset: seconds into the first clip, so a crowd doesn't move in step. dress: clothes
+// in colours of their own (the coach's training top), set once per character.
 export type PersonApi = { play: (name: string, timeScale?: number, once?: boolean) => void };
-type PersonProps = { variant?: number; action?: string; speed?: number; offset?: number; scale?: number };
-export const KitPerson = forwardRef<PersonApi, PersonProps>(function KitPerson({ variant = 0, action = "idle", speed = 1, offset = 0, scale = 3 }, ref) {
+type PersonProps = { variant?: number; action?: string; speed?: number; offset?: number; scale?: number; dress?: Dress };
+export const KitPerson = forwardRef<PersonApi, PersonProps>(function KitPerson({ variant = 0, action = "idle", speed = 1, offset = 0, scale = 3, dress }, ref) {
   const { scene } = useModel(PEOPLE[variant % PEOPLE.length] ?? PEOPLE[0]!);
   const { animations } = useModel(ANIMS);
-  const model = useMemo(() => {
+  const { model, materials } = useMemo(() => {
     const m = cloneSkinned(scene);
+    const bodies: THREE.SkinnedMesh[] = [];
     m.traverse((o) => {
       if (isMesh(o) || isSkinned(o)) o.castShadow = true;
+      if (isSkinned(o) && /body/i.test(o.name)) bodies.push(o);
     });
-    return m;
+    const made: THREE.Material[] = [];
+    for (const body of dress ? bodies : []) {
+      const clothes = clothesFor(body);
+      for (const part of Object.keys(PUSH) as Part[]) {
+        const colour = dress?.[part];
+        if (!colour) continue;
+        const material = new THREE.MeshStandardMaterial({ color: colour, roughness: 0.8 });
+        const layer = new THREE.SkinnedMesh(clothes[part], material);
+        layer.castShadow = true;
+        layer.position.copy(body.position);
+        layer.quaternion.copy(body.quaternion);
+        layer.scale.copy(body.scale);
+        layer.bind(body.skeleton, body.bindMatrix);
+        body.parent?.add(layer);
+        made.push(material);
+      }
+    }
+    return { model: m, materials: made };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- clothes are put on once per character (a new one: a new key)
   }, [scene]);
+  useEffect(() => () => materials.forEach((m) => m.dispose()), [materials]);
   const mixer = useMemo(() => new THREE.AnimationMixer(model), [model]);
   const current = useRef<THREE.AnimationAction | null>(null);
   const api = useMemo<PersonApi>(

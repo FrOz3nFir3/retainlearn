@@ -135,6 +135,7 @@ export function ReviewRun({ set, progress, mode, when, plan, keyRound, start, re
         {result ? (
           <Summary
             setId={set._id}
+            category={set.category}
             warmAgain={wasCold}
             title={mode === "reviewMissed" ? "Gone over" : plan.round ? `Round ${plan.round} reviewed` : "Review done"}
             result={result}

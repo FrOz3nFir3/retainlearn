@@ -8,7 +8,7 @@ const LINK = "rounded hover:text-white focus-visible:outline-2 focus-visible:out
 export function SiteFooter() {
   const signedIn = useSession() === "in";
   return (
-    <footer className="bg-night pb-[env(safe-area-inset-bottom)] text-white/60">
+    <footer className="site-footer bg-night pb-[env(safe-area-inset-bottom)] text-white/60">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-3 border-t border-white/10 px-4 py-6 text-sm sm:px-6">
         <span className="flex items-center gap-2 font-semibold text-white">
           <img src="/images/logo.svg" alt="" width={24} height={23} className="size-6" /> RetainLearn

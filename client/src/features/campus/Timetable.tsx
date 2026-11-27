@@ -2,6 +2,7 @@
 // timetable.ts). Its periods and the last bell are buttons in a row (a toolbar: one tab stop, arrow keys between them;
 // guide: toolbar), each saying what it is; the box under them shows the one pressed, up next to start with. A period's
 // Start opens its class, which comes back here after. The last bell: your streak, and the bonus for finishing them all.
+// A section of the 2D campus, or on the 3D campus a slim bar over the world (look "slim"), its buttons by its heading.
 import { useId, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Link } from "react-router-dom";
@@ -12,7 +13,8 @@ import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
-import { TimetableSection } from "./CampusSkeleton.tsx";
+import { TIMETABLE_LOOK, TimetableSection } from "./CampusSkeleton.tsx";
+import type { TimetableLook } from "./CampusSkeleton.tsx";
 
 const nativeFocusgroup = typeof HTMLElement !== "undefined" && "focusGroup" in HTMLElement.prototype;
 const ORDINAL = ["1st period", "2nd period", "3rd period"];
@@ -40,10 +42,14 @@ function whyText(why: Why): string {
 type Period = Campus["timetable"][number];
 const titleOf = (p: Period) => p.set?.subtopic ?? "Study set";
 
-export function Timetable({ campus }: { campus: Campus }) {
+// onStart: what a period's Start does instead of opening its class at once (the 3D campus walks you to its building
+// first); busy: a Start is under way, so no other.
+type Props = { campus: Campus; look?: TimetableLook; onStart?: (period: Period, to: string) => void; busy?: boolean };
+export function Timetable({ campus, look = "page", onStart, busy = false }: Props) {
   const periods = campus.timetable;
   const { count: streak, keptToday } = campus.player.streak;
   const boxId = useId();
+  const shape = TIMETABLE_LOOK[look];
   const next = periods.findIndex((p) => !p.done);
   const done = periods.filter((p) => p.done).length;
   const allDone = periods.length > 0 && next < 0;
@@ -58,7 +64,7 @@ export function Timetable({ campus }: { campus: Campus }) {
   // No periods: no subject yet, or nothing due in them today (everything reviewed, nothing missed or fading yet).
   if (!periods.length) {
     return (
-      <TimetableSection>
+      <TimetableSection look={look}>
         <p className="rounded-2xl bg-brand/6 p-3 text-sm text-pretty text-ink/65">
           {campus.subjects.length
             ? `Nothing's due today: you're up to date in your subjects. Any class you take ${keptToday ? "today is extra" : "today keeps your streak"}.`
@@ -92,53 +98,72 @@ export function Timetable({ campus }: { campus: Campus }) {
     buttons[to]?.focus();
   };
 
+  // The period buttons: their own row on the page, beside the heading in the slim bar (where a tooltip names each).
+  const toolbar = (
+    <div
+      role="toolbar"
+      aria-label="Today's periods, and the last bell"
+      aria-controls={boxId}
+      {...({ focusgroup: "toolbar wrap" } as Record<string, string>)}
+      onKeyDown={nativeFocusgroup ? undefined : onKey}
+      className={shape.dots}
+    >
+      {dots.map((dot, i) => (
+        <button
+          key={i}
+          type="button"
+          aria-pressed={shown === i}
+          aria-label={dot.label}
+          title={look === "slim" ? dot.label : undefined}
+          tabIndex={nativeFocusgroup ? undefined : i === stop ? 0 : -1}
+          onFocus={() => setTabStop(i)}
+          onClick={() => setPicked({ day, i })}
+          className={cx(
+            "relative grid shrink-0 place-items-center rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+            "aria-pressed:after:absolute aria-pressed:after:-bottom-1.75 aria-pressed:after:left-1/2 aria-pressed:after:h-0.75 aria-pressed:after:w-3.5 aria-pressed:after:-translate-x-1/2 aria-pressed:after:rounded-full aria-pressed:after:bg-brand",
+            shape.dot,
+            dot.tone,
+          )}
+        >
+          <Icon name={dot.icon} className="size-3.5" />
+        </button>
+      ))}
+    </div>
+  );
+
   const p = periods[shown];
   const state = p ? (p.done ? "Done" : shown === next ? "Up next" : "Later today") : null;
   return (
-    <TimetableSection count={`${done} of ${periods.length} done`}>
-      <div
-        role="toolbar"
-        aria-label="Today's periods, and the last bell"
-        aria-controls={boxId}
-        {...({ focusgroup: "toolbar wrap" } as Record<string, string>)}
-        onKeyDown={nativeFocusgroup ? undefined : onKey}
-        className="mb-3 flex items-center gap-1.5 pointer-coarse:gap-2.5"
-      >
-        {dots.map((dot, i) => (
-          <button
-            key={i}
-            type="button"
-            aria-pressed={shown === i}
-            aria-label={dot.label}
-            tabIndex={nativeFocusgroup ? undefined : i === stop ? 0 : -1}
-            onFocus={() => setTabStop(i)}
-            onClick={() => setPicked({ day, i })}
-            className={cx(
-              "relative grid size-7 place-items-center rounded-full transition-colors pointer-coarse:size-10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-              "aria-pressed:after:absolute aria-pressed:after:-bottom-1.75 aria-pressed:after:left-1/2 aria-pressed:after:h-0.75 aria-pressed:after:w-3.5 aria-pressed:after:-translate-x-1/2 aria-pressed:after:rounded-full aria-pressed:after:bg-brand",
-              dot.tone,
-            )}
-          >
-            <Icon name={dot.icon} className="size-3.5" />
-          </button>
-        ))}
-      </div>
-      <div id={boxId} className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand/6 p-3">
+    <TimetableSection look={look} count={`${done} of ${periods.length} done`} dots={look === "slim" ? toolbar : undefined}>
+      {look === "page" && toolbar}
+      <div id={boxId} className={shape.box}>
         {p ? (
           <>
-            <div className="min-w-0 flex-1 basis-48">
+            <div className={shape.text}>
               <p className="text-[11px] font-semibold">
                 <span className={p.done ? "text-mint-ink" : shown === next ? "text-brand" : "text-ink/55"}>{state}</span>
                 <span className="text-ink/45"> · {ordinal(shown)}</span>
               </p>
-              <p className="text-sm leading-snug font-semibold text-pretty">{titleOf(p)}</p>
+              <p className={cx("text-sm leading-snug font-semibold", shape.line)}>{titleOf(p)}</p>
               <p className="flex items-center gap-1 text-xs text-ink/55">
                 <Icon name="clock" className="size-3.5 shrink-0" />
-                {CLASS_KINDS[p.mode].label}, about {MINUTES[p.mode]} min
+                <span className={shape.line}>
+                  {CLASS_KINDS[p.mode].label}, about {MINUTES[p.mode]} min
+                </span>
               </p>
-              <p className="mt-0.5 text-[11px] font-semibold text-bell-ink">Why: {whyText(p.why)}</p>
+              <p className={cx("mt-0.5 text-[11px] font-semibold text-bell-ink", shape.line)}>Why: {whyText(p.why)}</p>
             </div>
-            <Link to={classPath(p.setId, p.mode)} state={{ returnTo: "/" }} className={buttonClass(p.done ? "quiet" : "primary")}>
+            <Link
+              to={classPath(p.setId, p.mode)}
+              state={{ returnTo: "/" }}
+              aria-disabled={busy || undefined}
+              onClick={(e) => {
+                if (!onStart || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: as it is
+                e.preventDefault();
+                if (!busy) onStart(p, classPath(p.setId, p.mode));
+              }}
+              className={cx(buttonClass(p.done ? "quiet" : "primary"), "shrink-0 aria-disabled:cursor-wait aria-disabled:opacity-60")}
+            >
               <Icon name={ICON[p.mode]} className="size-4" />
               {p.done ? "Go again" : "Start"}
             </Link>

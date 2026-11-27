@@ -225,6 +225,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
         {result ? (
           <Summary
             setId={set._id}
+            category={set.category}
             warmAgain={wasCold}
             title={plan.round ? `Round ${plan.round} done` : plan.title ? `${plan.title}: done` : "Quiz finished"}
             result={result}

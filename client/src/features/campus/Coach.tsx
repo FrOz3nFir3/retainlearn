@@ -28,8 +28,10 @@ export function CoachFace({ who, className }: { who: Who; className?: string }) 
   );
 }
 
-// The coach on your campus: who they are, their lines, and the talk (open, which line, and what it does).
-export function useCoach(campus: Campus, username: string | null) {
+// The coach on your campus: who they are, their lines, and the talk (open, which line, and what it does). comes: they
+// have news for you today. On the 2D page they come by themselves, a moment after the page; on the 3D campus they walk
+// over first (walksUp: the scene's coach opens the talk as they arrive, scene/People.tsx).
+export function useCoach(campus: Campus, username: string | null, { walksUp = false } = {}) {
   const who = coachFor(username);
   const lines = coachLines(campus, username);
   const headline = lines[0]?.key;
@@ -59,14 +61,14 @@ export function useCoach(campus: Campus, username: string | null) {
   // Arriving with news, on a day you haven't said Later: the coach comes over, a moment after the page.
   const comes = news && campus.player.coach.quiet !== campus.day && !talk;
   useEffect(() => {
-    if (!comes) return;
+    if (!comes || walksUp) return;
     const timer = setTimeout(open, 600);
     return () => clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per piece of news
-  }, [comes, headline]);
+  }, [comes, headline, walksUp]);
 
   const line = talk ? (lines[talk.index] ?? lines[0]) : null;
-  return { who, lines, line, news, open, done, next };
+  return { who, lines, line, news, comes, open, done, next };
 }
 
 // The card that brings the coach: a "!" when they have news.

@@ -1,7 +1,8 @@
 // The campus's other things (the prototype's scene/Props.jsx and their places from data/campus.js): trees round the
-// plots and a belt of them beyond the road, street lamps that light up after dark, the clock tower (your streak, and
-// the bell once today's timetable is done), your coach's office (your report card) and hills on the horizon. With
-// reduced motion, flags hold still and the bell doesn't swing.
+// plots and a belt of them beyond the road, street lamps that light up after dark, the school bus and its stop, the
+// clock tower (your streak, and the bell once today's timetable is done), the fountain you unlock, your coach's office
+// (your report card) and hills on the horizon. With reduced motion, flags hold still, the bell doesn't swing and the
+// bus waits at its stop.
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import type { ThreeEvent } from "@react-three/fiber";
 import { useFrame } from "@react-three/fiber";
@@ -10,59 +11,13 @@ import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js
 import { pointer } from "./Building.tsx";
 import { onSkyLight } from "./daylight.ts";
 import { KitTrees } from "./kit.tsx";
-import { Label } from "./Label.tsx";
+import { Label, PlaceLink } from "./Label.tsx";
+import { FOUNTAIN, LAMPS, OFFICE, beltSpots, busStop, treeSpots } from "./places.ts";
+import type { XZ } from "./places.ts";
 import { COLORS, prefersReducedMotion, useLabelTexture } from "./util.ts";
 
-type XZ = readonly [number, number];
-const polar = (deg: number, r: number): XZ => [Math.round(Math.cos((deg * Math.PI) / 180) * r * 10) / 10, Math.round(Math.sin((deg * Math.PI) / 180) * r * 10) / 10];
-const BASE_HALF = 42;
-
-// Your coach's office, just off the quad on the left as you come in: door, where you stand to go in; coach, where they
-// wait beside it. Plots never come closer than 21 m from the middle, so it stays clear of any subject added later.
-export const OFFICE = { pos: [-6.4, 15.2] as XZ, rot: Math.PI / 2, door: [-2.6, 15.2] as XZ, coach: [-2.9, 17.6] as XZ };
-const LAMPS = [20, 100, 200, 250, 290, 330].map((deg) => polar(deg, 13.2));
-const TREES: (readonly [number, number, number?])[] = [
-  [5, 5, 0.9], [5, -5, 0.85], [-5, -5, 0.9],
-  [0, -25], [-4, -31, 1.1], [6, -31], [33, -8, 1.1], [-35, -6], [-33, 21, 1.1], [23, 23], [-4, 34],
-  [34, 24, 1.2], [-35, -25, 1.1], [34, -29], [-24, -34, 1.2], [16, 36], [-26, 34], [36, 3, 0.9],
-  [14.9, -4, 0.8], [11, 11, 0.85], [-12.7, 8.9, 0.8], [-15.3, -2.7, 0.85], [3, -15.5, 0.8],
-]; // prettier-ignore
-
-// Trees grow everywhere but near the plots in use; a bigger lot gets trees in its new outer band too.
-function treeSpots(avoid: readonly XZ[], half: number) {
-  const extra: (readonly [number, number, number])[] = [];
-  for (let x = -half + 5; x <= half - 5; x += 9) {
-    for (let z = -half + 5; z <= half - 5; z += 9) {
-      if (Math.max(Math.abs(x), Math.abs(z)) < BASE_HALF + 4) continue;
-      const h = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
-      const f = h - Math.floor(h);
-      if (f < 0.45) continue;
-      extra.push([x + (f - 0.7) * 5, z + (0.7 - f) * 5, 0.85 + f * 0.3]);
-    }
-  }
-  return [...TREES, ...extra].filter(([x, z]) => avoid.every(([ax, az]) => Math.hypot(x - ax, z - az) > 10.5));
-}
-// A belt of trees just outside the road, thick near it and thinning out, so the campus sits in a clearing. The same
-// every visit (each spot's chance comes from where it is).
-function beltSpots(half: number) {
-  const [inner, outer] = [half + 8.5, half + 34];
-  const spots: (readonly [number, number, number])[] = [];
-  for (let x = -outer; x <= outer; x += 6) {
-    for (let z = -outer; z <= outer; z += 6) {
-      const h = Math.sin(x * 12.9898 + z * 78.233) * 43758.5453;
-      const f = h - Math.floor(h);
-      const [px, pz] = [x + (f - 0.5) * 4, z + (((f * 7.13) % 1) - 0.5) * 4];
-      const edge = Math.max(Math.abs(px), Math.abs(pz));
-      if (edge < inner || edge > outer) continue;
-      if (f < ((edge - inner) / (outer - inner)) * 0.75) continue; // fewer further out
-      spots.push([px, pz, 0.9 + f * 0.5]);
-    }
-  }
-  return spots;
-}
-
 export function Trees({ avoid, half }: { avoid: readonly XZ[]; half: number }) {
-  const spots = useMemo(() => [...treeSpots([...avoid, OFFICE.pos], half), ...beltSpots(half)], [avoid, half]);
+  const spots = useMemo(() => [...treeSpots(avoid, half), ...beltSpots(half)], [avoid, half]);
   return (
     <Suspense fallback={null}>
       <KitTrees spots={spots} />
@@ -122,6 +77,148 @@ export function Lamps() {
   );
 }
 
+// The school bus round the campus road (its centre line: curve). Each lap it pulls in at the bus stop and waits,
+// slowing as it comes in and picking up speed as it pulls away; its headlights come on after dark, with the stop's
+// poster. With reduced motion, it waits at the stop.
+const HEADLIGHT = new THREE.MeshStandardMaterial({ color: "#FFF8E6", emissive: "#FFF1C9", emissiveIntensity: 0.15 });
+const LAP = 48; // seconds driving round
+const WAIT = 5; // seconds at the stop
+
+export function Bus({ curve, half }: { curve: THREE.CatmullRomCurve3; half: number }) {
+  const ref = useRef<THREE.Group>(null);
+  const still = useMemo(prefersReducedMotion, []);
+  useEffect(() => onSkyLight((_, lights) => void (HEADLIGHT.emissiveIntensity = 0.15 + lights * 2.4)), []);
+  // Where the stop is round the loop (0 to 1).
+  const stopAt = useMemo(() => {
+    const [sx, sz] = busStop(half).road;
+    let [best, near] = [0, Infinity];
+    for (let i = 0; i < 400; i++) {
+      const p = curve.getPointAt(i / 400);
+      const d = (p.x - sx) ** 2 + (p.z - sz) ** 2;
+      if (d < near) [best, near] = [i / 400, d];
+    }
+    return best;
+  }, [curve, half]);
+  useFrame(({ clock }) => {
+    if (!ref.current) return;
+    const lap = still ? 0 : clock.elapsedTime % (LAP + WAIT);
+    const u = lap < WAIT ? 0 : (lap - WAIT) / LAP;
+    const t = (stopAt + u - (0.9 * Math.sin(2 * Math.PI * u)) / (2 * Math.PI) + 1) % 1; // slow near the stop
+    const p = curve.getPointAt(t);
+    const tan = curve.getTangentAt(t);
+    ref.current.position.set(p.x, 0, p.z);
+    ref.current.rotation.y = Math.atan2(tan.x, tan.z);
+  });
+  return (
+    <group ref={ref}>
+      {[-0.75, 0.75].map((x) => (
+        <mesh key={x} position={[x, 0.78, 3.12]} material={HEADLIGHT}>
+          <boxGeometry args={[0.42, 0.22, 0.04]} />
+        </mesh>
+      ))}
+      <mesh position-y={1.45} castShadow>
+        <boxGeometry args={[2.4, 2.1, 6.2]} />
+        <meshStandardMaterial color="#F6B73C" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 1.95, -0.3]}>
+        <boxGeometry args={[2.45, 0.7, 4.9]} />
+        <meshStandardMaterial color="#2F3466" roughness={0.3} />
+      </mesh>
+      <mesh position={[0, 1.95, 3.11]}>
+        <boxGeometry args={[2, 0.75, 0.04]} />
+        <meshStandardMaterial color="#2F3466" roughness={0.3} />
+      </mesh>
+      <mesh position-y={2.6} castShadow>
+        <boxGeometry args={[2.3, 0.18, 6]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      {[-1, 1].flatMap((sx) =>
+        [-1.9, 1.9].map((z) => (
+          <mesh key={`${sx}${z}`} position={[sx * 1.2, 0.45, z]} rotation-z={Math.PI / 2}>
+            <cylinderGeometry args={[0.45, 0.45, 0.3, 16]} />
+            <meshStandardMaterial color="#2B2D42" />
+          </mesh>
+        )),
+      )}
+    </group>
+  );
+}
+
+// The bus stop, facing the road: a shelter with a bench, a poster that lights up after dark, and the stop's sign.
+export function BusStop({ half }: { half: number }) {
+  const { pos } = busStop(half);
+  return (
+    <group position={[pos[0], 0, pos[1]]}>
+      <mesh position={[0, 1.25, -0.7]} castShadow receiveShadow>
+        <boxGeometry args={[3.6, 2.2, 0.08]} />
+        <meshStandardMaterial color="#DCE1F4" roughness={0.4} />
+      </mesh>
+      <mesh position={[-0.9, 1.45, -0.64]} material={HEADLIGHT}>
+        <planeGeometry args={[1.3, 0.95]} />
+      </mesh>
+      <mesh position={[0, 2.42, -0.1]} castShadow>
+        <boxGeometry args={[4, 0.14, 1.8]} />
+        <meshStandardMaterial color={COLORS.indigo} roughness={0.7} />
+      </mesh>
+      {[-1.85, 1.85].map((x) => (
+        <mesh key={x} position={[x, 1.2, 0.6]} castShadow>
+          <boxGeometry args={[0.1, 2.4, 0.1]} />
+          <meshStandardMaterial color="#5B5F8F" />
+        </mesh>
+      ))}
+      <mesh position={[0.6, 0.5, -0.4]} castShadow>
+        <boxGeometry args={[2.2, 0.12, 0.45]} />
+        <meshStandardMaterial color={COLORS.amber} roughness={0.6} />
+      </mesh>
+      <mesh position={[2.5, 1.4, 0.7]} castShadow>
+        <cylinderGeometry args={[0.05, 0.05, 2.8, 6]} />
+        <meshStandardMaterial color="#5B5F8F" />
+      </mesh>
+      <mesh position={[2.5, 2.85, 0.7]} rotation-x={Math.PI / 2}>
+        <cylinderGeometry args={[0.36, 0.36, 0.06, 20]} />
+        <meshStandardMaterial color={COLORS.amber} />
+      </mesh>
+    </group>
+  );
+}
+
+// The fountain on the quad's lawn: there for good once you've finished a whole day's timetable (the player's unlocks).
+// It springs up as the campus opens, and its water plays; with reduced motion, it's simply there.
+const easeOutBack = (x: number) => 1 + 2.7 * Math.pow(x - 1, 3) + 1.7 * Math.pow(x - 1, 2);
+export function Fountain() {
+  const group = useRef<THREE.Group>(null);
+  const water = useRef<THREE.Mesh>(null);
+  const since = useRef<number | null>(null);
+  const still = useMemo(prefersReducedMotion, []);
+  useFrame(({ clock }) => {
+    if (still || !group.current || !water.current) return;
+    since.current ??= clock.elapsedTime;
+    const t = Math.min(1, (clock.elapsedTime - since.current) / 0.9);
+    group.current.scale.setScalar(Math.max(0.001, easeOutBack(t)));
+    water.current.scale.y = 1 + Math.sin(clock.elapsedTime * 6) * 0.15;
+  });
+  return (
+    <group ref={group} position={[FOUNTAIN[0], 0, FOUNTAIN[1]]} scale={still ? 1 : 0.001}>
+      <mesh position-y={0.35} castShadow receiveShadow>
+        <cylinderGeometry args={[2, 2.2, 0.7, 32]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh position-y={0.71}>
+        <cylinderGeometry args={[1.75, 1.75, 0.04, 32]} />
+        <meshStandardMaterial color="#8FD0F2" />
+      </mesh>
+      <mesh position-y={1.25} castShadow>
+        <cylinderGeometry args={[0.25, 0.35, 1.2, 12]} />
+        <meshStandardMaterial color="#FFFFFF" />
+      </mesh>
+      <mesh ref={water} position-y={2.2}>
+        <coneGeometry args={[0.55, 1.4, 16, 1, true]} />
+        <meshStandardMaterial color="#B5E2F8" transparent opacity={0.85} side={THREE.DoubleSide} />
+      </mesh>
+    </group>
+  );
+}
+
 function ClockFace({ rotation }: { rotation: number }) {
   const hour = useRef<THREE.Group>(null);
   const minute = useRef<THREE.Group>(null);
@@ -159,13 +256,20 @@ function ClockFace({ rotation }: { rotation: number }) {
 }
 
 // Today, in the middle of the campus: four clock faces with your time, its flag amber while your streak is alive, and
-// the bell (the top swings) once today's timetable is done, rung once a day when you come back to see it. A tap says
-// where the bell stands (onTap).
-export function ClockTower({ streak, kept, rung, onTap }: { streak: number; kept: boolean; rung: boolean; onTap: () => void }) {
+// the bell (the top swings) once today's timetable is done, rung once a day when you come back to see it (onRing, as it
+// rings). A tap says where the bell stands (onTap).
+type TowerProps = { streak: number; kept: boolean; rung: boolean; onTap: () => void; onRing?: () => void };
+export function ClockTower({ streak, kept, rung, onTap, onRing }: TowerProps) {
   const top = useRef<THREE.Group>(null);
   const flag = useRef<THREE.Group>(null);
   const still = useMemo(prefersReducedMotion, []);
   const bellAt = useBellAt(rung);
+  useEffect(() => {
+    if (!bellAt || !onRing) return;
+    const timer = setTimeout(onRing, Math.max(0, bellAt - performance.now()));
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, when the bell rings
+  }, [bellAt]);
   const flagShape = useMemo(() => {
     const s = new THREE.Shape();
     s.moveTo(0, 0);
@@ -228,8 +332,8 @@ export function ClockTower({ streak, kept, rung, onTap }: { streak: number; kept
         </group>
       </group>
       <Label position={[0, 17.2, 0]}>
-        {/* Ranked lowest for the declutter: the top bar shows your streak too. */}
-        <div className={`scene-chip ${kept ? "scene-chip-bell" : ""}`} data-rank="0">
+        {/* Ranked lowest for the declutter, and not read out: the top bar shows your streak too. */}
+        <div className={`scene-chip ${kept ? "scene-chip-bell" : ""}`} data-rank="0" aria-hidden="true">
           {streak > 0 ? `${streak}-day streak` : "No streak yet"}
         </div>
       </Label>
@@ -256,7 +360,9 @@ function useBellAt(rung: boolean): number {
 
 // Your coach's office, by the quad: your report card is kept here, and the coach waits by its door between talks. The
 // sign over the door has their name, and the roof is their training top's colour, so it's theirs. A tap opens it.
-export function CoachOffice({ who, onOpen }: { who: { name: string; top: string }; onOpen: () => void }) {
+// onOpen: straight in (its label, a link); onTap: a tap on the office itself (you walk over first).
+type OfficeProps = { who: { name: string; top: string }; onOpen: () => void; onTap?: () => void; onFocus?: (at: readonly [number, number]) => void };
+export function CoachOffice({ who, onOpen, onTap = onOpen, onFocus }: OfficeProps) {
   const sign = useLabelTexture(`COACH ${who.name.toUpperCase()}`, { bg: who.top, fg: COLORS.ink, width: 768, height: 150 });
   const roof = useMemo(() => {
     const s = new THREE.Shape();
@@ -273,7 +379,7 @@ export function CoachOffice({ who, onOpen }: { who: { name: string; top: string 
         rotation-y={OFFICE.rot}
         onClick={(e: ThreeEvent<MouseEvent>) => {
           e.stopPropagation();
-          if (e.delta < 6) onOpen();
+          if (e.delta < 6) onTap();
         }}
         {...pointer}
       >
@@ -316,9 +422,9 @@ export function CoachOffice({ who, onOpen }: { who: { name: string; top: string 
         ))}
       </group>
       <Label position={[0, 6.3, 0]}>
-        <div className="scene-chip" data-rank="1">
+        <PlaceLink href="/report-card" go={onOpen} onFocus={() => onFocus?.(OFFICE.pos)}>
           <span className="font-semibold">Report card</span>
-        </div>
+        </PlaceLink>
       </Label>
     </group>
   );

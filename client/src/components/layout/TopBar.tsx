@@ -1,11 +1,12 @@
 // The app's top bar (the prototype's Hud top bar), on every page but a class: the logo, the main places, and for a
-// signed-in player their streak, level and account menu (profile, theme, sign out); Sign in otherwise; on wide screens a
-// search of the subjects. One compact row,
-// the one bar that stays at the top, sliding away while you scroll down (styles/kit.css; guide:
-// content-first-noise-reduction). On phones the main places are in the tab bar at the bottom (TabBar.tsx).
+// signed-in player their streak, level and account menu (profile, theme, sign out), with on the 3D campus the clock and
+// its sky; Sign in otherwise; on wide screens a search of the subjects. One compact row, the one bar that stays at the
+// top, sliding away while you scroll down (styles/kit.css; guide: content-first-noise-reduction). On phones the main
+// places are in the tab bar at the bottom (TabBar.tsx).
 import { useEffect, useState } from "react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
 import { XP_PER_LEVEL } from "@retainlearn/core";
+import type { Sky } from "@retainlearn/core";
 import { setColorScheme, useColorScheme } from "#app/colorScheme.ts";
 import type { SchemeChoice } from "#app/colorScheme.ts";
 import { useAppSelector } from "#app/hooks.ts";
@@ -17,7 +18,10 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { Menu, MenuButton, MenuGroup, MenuLink, MenuRadio, MenuSeparator } from "#components/ui/Menu.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { SkeletonCircle, SkeletonLine } from "#components/ui/Skeleton.tsx";
-import { useCampus, useSaveSettingsMutation } from "#features/campus/campusApi.ts";
+import { browserTimeZone, useCampus, useSaveSettingsMutation } from "#features/campus/campusApi.ts";
+import { PHASES, phaseOf, useLocalHour } from "#features/campus/daytime.ts";
+import type { Phase } from "#features/campus/daytime.ts";
+import { guessView, shows3d } from "#features/campus/view.ts";
 import useLogout from "#hooks/useLogout.js";
 import { cx } from "#utils/cx.ts";
 import { mainPlaces } from "./navigation.ts";
@@ -51,6 +55,7 @@ export function TopBar() {
         <div className="ml-auto flex items-center gap-2 xl:ml-3">
           {session === "in" ? (
             <>
+              <SkyMenu />
               <PlayerStatus />
               <AccountMenu />
             </>
@@ -133,6 +138,54 @@ const SCHEMES: { value: SchemeChoice; label: string }[] = [
   { value: "light", label: "Light" },
   { value: "dark", label: "Dark" },
 ];
+
+// The time where you are, and the part of the day it gives the 3D campus's sky (the prototype's Display chip): on the
+// campus in 3D only, where the sky shows. Its menu: your time and time zone, then the sky, following your time or
+// always one part of the day, saved to your account (the theme is the account menu's). While the campus loads, its
+// shape, if this browser last showed the campus in 3D, so the bar doesn't move when it arrives.
+function SkyMenu() {
+  const { pathname } = useLocation();
+  const campus = useCampus();
+  const [save] = useSaveSettingsMutation();
+  const hour = useLocalHour();
+  if (pathname !== "/") return null;
+  if (!campus.data) return guessView() ? <SkeletonLine className="h-8 w-14 sm:w-22" /> : null;
+  const { sky, view3d } = campus.data.player.settings;
+  if (!shows3d(view3d)) return null;
+  const fixed = sky in PHASES ? (sky as Phase) : null;
+  const shown = fixed ?? phaseOf(hour);
+  const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+  const pick = (value: Sky) => void save({ sky: value });
+  return (
+    <Menu
+      label={`${time}, ${PHASES[shown].label.toLowerCase()} on your campus: the sky`}
+      triggerClassName="flex h-8 items-center gap-1.5 rounded-xl bg-ink/5 px-2.5 text-sm font-semibold text-ink/75 transition-colors hover:bg-ink/8 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand aria-expanded:bg-ink/10"
+      trigger={
+        <>
+          <Icon name={PHASES[shown].icon} className={cx("size-4", shown === "night" ? "text-brand" : "text-bell")} />
+          <span className="hidden tabular-nums sm:inline">{time}</span>
+          <Icon name="chevronDown" className="-mx-0.5 size-3.5 text-ink/40" />
+        </>
+      }
+    >
+      <p className="px-3 pt-1.5 pb-1 text-xs text-ink/55">
+        Your time: {time} ({browserTimeZone()})
+      </p>
+      <MenuGroup label="Sky">
+        <MenuRadio checked={!fixed} onSelect={() => pick("auto")}>
+          <Icon name={PHASES[phaseOf(hour)].icon} className="size-4 shrink-0 text-ink/55" />
+          Follow my time
+        </MenuRadio>
+        {(Object.keys(PHASES) as Phase[]).map((phase) => (
+          <MenuRadio key={phase} checked={fixed === phase} onSelect={() => pick(phase)}>
+            <Icon name={PHASES[phase].icon} className="size-4 shrink-0 text-ink/55" />
+            Always {PHASES[phase].label.toLowerCase()}
+          </MenuRadio>
+        ))}
+      </MenuGroup>
+    </Menu>
+  );
+}
 
 // The theme for a visitor (the account menu has it for a player): System, Light or Dark, behind a sun or moon.
 function ThemeMenu() {
