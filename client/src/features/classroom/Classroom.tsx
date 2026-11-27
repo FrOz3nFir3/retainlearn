@@ -215,9 +215,13 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
               title="Nothing to study yet"
               body="This set has no flashcards or questions yet."
               action={
-                signedIn && (
+                signedIn ? (
                   <Link to={`${home}/edit`} className={buttonClass("primary")}>
                     Add flashcards
+                  </Link>
+                ) : (
+                  <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("primary")}>
+                    Sign in to add flashcards
                   </Link>
                 )
               }

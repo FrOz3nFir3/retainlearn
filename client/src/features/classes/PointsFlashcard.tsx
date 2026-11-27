@@ -49,7 +49,8 @@ export function PointsFlashcard({ shell, flashcard, last, marks, onMark, onDone,
       points: flashcard.points.map((p) => ({ key: p.key, knew: marks[p.key] === true })),
       known,
       weight: flashcard.points.length,
-      missed: flashcard.points.filter((p) => !marks[p.key]).map((p) => p.label),
+      // Named with its part when it has one ("Hoisting › var"), as the prototype said them.
+      missed: flashcard.points.filter((p) => !marks[p.key]).map((p) => (p.section ? `${p.section.split(/\s[-–—]\s/)[0]} › ${p.label}` : p.label)),
     });
 
   useEffect(() => {

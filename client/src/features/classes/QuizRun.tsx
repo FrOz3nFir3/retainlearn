@@ -230,7 +230,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
             result={result}
             hero={
               <div className="flex flex-col items-center gap-2 rounded-2xl bg-mist px-4 py-4 text-center">
-                {here ? <Stars count={here.stars} className="[&_svg]:size-12 [&_svg]:motion-safe:animate-[kit-land_0.5s_both]" /> : questions.length <= PIPS_UP_TO && <Pips marks={marks} total={questions.length} index={-1} />}
+                {here ? <Stars count={here.stars} landing className="[&_svg]:size-12" /> : questions.length <= PIPS_UP_TO && <Pips marks={marks} total={questions.length} index={-1} />}
                 <p className="text-sm font-semibold">
                   {right} of {marks.length} right{best >= 3 ? `, best run ${best} in a row` : ""}
                 </p>
