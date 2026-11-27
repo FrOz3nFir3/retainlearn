@@ -6,10 +6,11 @@
 // from a finished class, its building sparkles. The clock tower says where the bell stands (a toast). While the world's
 // code and models load, its loading screen. If the world can't start or the GPU gives it up (onBroken), the 2D campus
 // takes over, offering 3D again.
-import { Component, Suspense, lazy, useEffect, useState } from "react";
+import { Component, Suspense, lazy, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { Helmet } from "@dr.pogodin/react-helmet";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { skipToken } from "@reduxjs/toolkit/query";
 import { XP } from "@retainlearn/core";
 import type { Campus } from "@retainlearn/core";
 import { useMyUsername } from "#app/hooks.ts";
@@ -19,9 +20,15 @@ import { CAMPUS_TITLE, HUD_CONTROLS, HUD_LAYER, MapButtons, ViewSwitch, WORLD_LA
 import { CoachTalk, useCoach } from "./Coach.tsx";
 import type { CoachAct } from "./coach.ts";
 import { skyHour, useLocalHour } from "./daytime.ts";
+import { setPath } from "#features/classes/modes.ts";
+import { useReportCard } from "#features/report-card/reportCardApi.ts";
+import { matchesSearch, roomsPage, subjectProgress } from "#features/subjects/subjectProgress.ts";
+import { useGetSubjectQuery } from "#features/subjects/subjectsApi.ts";
+import { useToday } from "./campusApi.ts";
 import { subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
 import type { MapCommand, WorldView } from "./view.ts";
+import type { Inside } from "./scene/Interior.tsx";
 import type { ClassWalk } from "./scene/World.tsx";
 
 const World = lazy(() => import("./scene/World.tsx"));
@@ -60,6 +67,25 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
     if (celebrate) navigate(location.pathname, { replace: true, state: null });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, as the campus opens
   }, []);
+  // Inside a building (its subject's page, or one of its classrooms, open over the world): its rooms, worked out by the
+  // same rules as the subject's page (subjectProgress.ts), the page of them on show (the page's address, or the one a
+  // classroom's set is on), and what a room does: a tap opens its classroom; the "+ New study set" room, the form.
+  const [params] = useSearchParams();
+  const insideOf = view.kind === "building" ? view.category : view.kind === "room" ? category : null;
+  const subject = useGetSubjectQuery(insideOf ?? skipToken);
+  const card = useReportCard(!insideOf);
+  const when = useToday();
+  const inside = useMemo((): Inside | null => {
+    if (!insideOf || !subject.data || subject.data.name !== insideOf) return null;
+    const { rooms } = subjectProgress(subject.data, card.data ?? null, when);
+    const search = view.kind === "building" ? (params.get("search") ?? "").trim() : "";
+    const found = rooms.filter((r) => matchesSearch(r.set, search));
+    const asked = view.kind === "building" ? Number(params.get("page")) || null : null;
+    const page = roomsPage(found, { page: asked, roomId: view.kind === "room" ? view.setId : null, search });
+    const newHref = `${subjectPath(insideOf)}?new=1`;
+    return { page, roomId: view.kind === "room" ? view.setId : null, onOpen: (id) => navigate(setPath(id)), onNew: () => navigate(newHref), newHref };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate is stable
+  }, [insideOf, subject.data, card.data, when, view, params]);
   const [command, setCommand] = useState<MapCommand | null>(null);
   const send = (kind: MapCommand["kind"], value: number) => setCommand((c) => ({ kind, value, n: (c?.n ?? 0) + 1 }));
   const rung = campus.timetable.length > 0 && campus.timetable.every((p) => p.done);
@@ -107,6 +133,7 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
             campus={campus}
             view={view}
             category={category}
+            inside={inside}
             coach={{ who: coach.who, news: coach.news, comes: onCampus && coach.comes, talking: talking, onTalk: coach.open }}
             hour={hour}
             command={command}

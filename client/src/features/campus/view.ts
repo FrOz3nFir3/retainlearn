@@ -103,7 +103,7 @@ export function worldViewOf(pathname: string): WorldView | null {
 // prototype; otherwise its page stays the 2D page). The pages use it to show themselves as panels over the world.
 // category: the building a room is in. kinds: the views built so far.
 export type World = { shown: false } | { shown: true; view: WorldView; campus: Campus; category: string | null };
-const BUILT: readonly WorldView["kind"][] = ["campus"];
+const BUILT: readonly WorldView["kind"][] = ["campus", "building"];
 export function useWorld(): World {
   const { pathname } = useLocation();
   const session = useSession();

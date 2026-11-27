@@ -252,21 +252,29 @@ export const kitWindows = (cols: number, floors: number): number => (cols * 2 + 
 // bay), 78% as wide as a cell so they stay behind the end cells' glass. A flat roof tops every cell, with an air-con
 // unit on the back. lit: how many window cells glow, front first, then the sides, then the back, each from the ground
 // floor up, so the side you see shows your progress first. state: warm, cooling or cold.
+// open: the same building with its front half taken away, for the view inside (Building.tsx puts the classrooms
+// there). Everything else stays as it is outside: the back half, the roof, the lit windows.
 const SIDE_PROUD = CELL * 0.1 + 0.03;
 const BAY = 0.78;
 const SIDE_PIECES = ["building-windows", "building-windows-sills"] as const; // [ground, upper]
+export const OPEN_WALL = 0.3; // opened up, how thick the front half's end walls are
 type Cell = { key: string; piece: string; f: number; front?: boolean; pos: [number, number]; turn: number; scale: number | [number, number, number] };
-export function KitShell({ cols, floors, lit, state, style }: { cols: number; floors: number; lit: number; state: "warm" | "cooling" | "cold"; style: number }) {
+type ShellProps = { cols: number; floors: number; lit: number; state: "warm" | "cooling" | "cold"; style: number; open?: boolean };
+export function KitShell({ cols, floors, lit, state, style, open = false }: ShellProps) {
   const { geo, mats } = useKitPieces();
   const [ground, upper, back] = STYLES[style % STYLES.length] ?? STYLES[0];
   const x = (c: number) => (c - (cols - 1) / 2) * CELL;
+  const half = (cols * CELL) / 2;
   const cells: Cell[] = [];
   const add = (row: number, side?: number) => {
     for (let f = 0; f < floors; f++) {
       if (side) {
         for (const r of [1, 0]) {
-          const pos: [number, number] = [x(side < 0 ? 0 : cols - 1) + side * SIDE_PROUD, (r - 0.5) * CELL];
-          cells.push({ key: `s${side}${f}${r}`, piece: SIDE_PIECES[f === 0 ? 0 : 1], f, pos, turn: (side * Math.PI) / 2, scale: [CELL * BAY, CELL, CELL] });
+          // Opened up, the front half has no end cell for the bay to stand on, so only the part that stands proud of
+          // the wall is kept: the same windows, set shallower.
+          const thin = open && r === 1;
+          const pos: [number, number] = [thin ? side * (half + SIDE_PROUD / 2) : x(side < 0 ? 0 : cols - 1) + side * SIDE_PROUD, (r - 0.5) * CELL];
+          cells.push({ key: `s${side}${f}${r}`, piece: SIDE_PIECES[f === 0 ? 0 : 1], f, pos, turn: (side * Math.PI) / 2, scale: [CELL * BAY, CELL, thin ? SIDE_PROUD : CELL] });
         }
         continue;
       }
@@ -284,10 +292,20 @@ export function KitShell({ cols, floors, lit, state, style }: { cols: number; fl
   const cold = state === "cold";
   const glow = state === "cooling" ? mats.cooling : mats.lit;
   const plain = cold ? mats.cold : mats.base;
+  // Which windows glow is decided on the whole building, so the ones left standing when it's opened match the outside.
+  const shown = cells.map((cell, i) => ({ ...cell, material: i < lit ? (cold ? mats.coldLit : glow) : plain })).filter((cell) => !(open && cell.front));
+  if (open) {
+    // Plain end walls for the front half, where the end cells stood.
+    for (let f = 0; f < floors; f++) {
+      for (const side of [-1, 1]) {
+        shown.push({ key: `w${side}${f}`, piece: "building-block", f, pos: [side * (half - OPEN_WALL / 2), CELL / 2], turn: 0, scale: [OPEN_WALL, CELL, CELL], material: plain });
+      }
+    }
+  }
   return (
     <group>
-      {cells.map(({ key, piece, f, pos, turn, scale }, i) => (
-        <mesh key={key} geometry={geo[piece]} material={i < lit ? (cold ? mats.coldLit : glow) : plain} position={[pos[0], BASE + f * STOREY, pos[1]]} rotation-y={turn} scale={scale} castShadow receiveShadow />
+      {shown.map(({ key, piece, f, pos, turn, scale, material }) => (
+        <mesh key={key} geometry={geo[piece]} material={material} position={[pos[0], BASE + f * STOREY, pos[1]]} rotation-y={turn} scale={scale} castShadow receiveShadow />
       ))}
       {[0, 1].flatMap((row) =>
         Array.from({ length: cols }, (_, c) => (

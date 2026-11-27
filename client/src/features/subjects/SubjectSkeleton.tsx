@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import { subjectName } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { useCampus } from "#features/campus/campusApi.ts";
+import { useWorld } from "#features/campus/view.ts";
 import { cx } from "#utils/cx.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { cardClass } from "#components/ui/Card.tsx";
@@ -26,6 +27,8 @@ export function SubjectSkeleton() {
   const signedIn = session !== "out";
   const campus = useCampus(session !== "in");
   const onCampus = campus.data?.subjects.some((s) => s.category === name) ?? false;
+  const world = useWorld();
+  if (world.shown && world.view.kind === "building") return <LobbySkeleton name={name} />;
   return (
     <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects">
       <Loading label={`Loading ${name}`} className="space-y-5">
@@ -90,6 +93,45 @@ export function SubjectSkeleton() {
               </div>
             ))}
           </div>
+        </div>
+      </Loading>
+    </Page>
+  );
+}
+
+// In 3D, the page is its building's lobby (Subject.tsx): the panel's frame, Up next here and the study sets' heading
+// with the lift's line, as placeholders in their places.
+function LobbySkeleton({ name }: { name: string }) {
+  return (
+    <Page title={name} eyebrow={<SkeletonText className="w-48" />} back="/" panel="lobby">
+      <Loading label={`Loading ${name}`} className="space-y-5">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand/6 p-3">
+          <SkeletonBlock className="size-10 shrink-0 rounded-xl" />
+          <div className="min-w-0 flex-1 basis-48">
+            <p className="text-xs">
+              <SkeletonText className="w-20" />
+            </p>
+            <p className="font-semibold">
+              <SkeletonText className="w-36" />
+            </p>
+            <p className="text-sm">
+              <SkeletonText className="w-24" />
+            </p>
+          </div>
+          <span className={buttonClass("primary")}>Start</span>
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="flex items-baseline gap-1.5 text-sm font-semibold">
+              Study sets
+              <span className="text-xs font-normal">
+                <SkeletonText className="w-4" />
+              </span>
+            </p>
+          </div>
+          <p className="mt-1.5 text-[11px]">
+            <SkeletonText className="w-36" />
+          </p>
         </div>
       </Loading>
     </Page>
