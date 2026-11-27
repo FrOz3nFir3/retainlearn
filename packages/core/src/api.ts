@@ -269,6 +269,8 @@ export type PathPerson = { _id: string; username: string; name: string };
 // GET /api/paths?search=…&subject=…&mine=1&page=…: listed public paths, 12 a page, the most recently changed first.
 // search: those with a word in their title that starts with it, in any case (as subjects); subject: one subject's.
 // mine=1 (signed in): the paths you can edit instead, public or private, listed or not. A page past the last has none.
+// Each with its steps you can study (steps) and their flashcards; you (signed in): whether you follow it and can edit
+// it, how many of its steps you've done, and for its editors how many suggestions wait for them.
 export const PATHS_PER_PAGE = 12;
 export const PathsQuery = z.object({
   search: z.string().trim().max(100).default(""),
@@ -287,6 +289,8 @@ export type PathListing = {
   listed: boolean;
   author: PathPerson | null;
   updatedAt: string;
+  flashcards: number;
+  you: { following: boolean; canEdit: boolean; isAuthor: boolean; done: number; toReview: number } | null;
 };
 export type PathsPage = { paths: PathListing[]; total: number; page: number; pages: number };
 

@@ -27,11 +27,13 @@ import {
   mergeSuggestion,
   pathChanges,
   pathProgress,
+  stepItems,
   testedOutKey,
 } from "@retainlearn/core";
 import type {
   NewPath,
   PathHistoryPage,
+  PathListing,
   PathPerson,
   PathSkill,
   PathStepProgress,
@@ -56,6 +58,7 @@ import {
   isAuthorOf,
   isEditorOf,
   listedNow,
+  openSuggestionCounts,
   openSuggestions,
   pathById,
   pathsPage,
@@ -138,14 +141,35 @@ function checkedSteps(next: PathVersion, sets: Map<string, PathStepSet>, previou
 
 // ---------- The lists, and a path's page ----------
 
-// GET /api/paths?search=…&subject=…&mine=1&page=…
+// GET /api/paths?search=…&subject=…&mine=1&page=…: each path with the steps you can study in it and their flashcards,
+// and signed in, what's yours in it, worked out by the rules its page uses. Three reads for the page: its steps' sets,
+// your progress in them with your player, and its open suggestions.
 export async function getPaths(req: Request, res: Response) {
   const { query } = inputOf<typeof pathsInput>(res);
   const me = viewerOf(req);
   if (query.mine && !me) return res.status(401).json({ error: "Sign in to see the paths you can edit." });
   const { paths, total } = await pathsPage({ search: query.search, subject: query.subject, mine: query.mine ? me : null, page: query.page });
-  if (query.mine) res.set("Cache-Control", "private, no-cache, must-revalidate");
-  res.json({ paths, total, page: query.page, pages: Math.ceil(total / PATHS_PER_PAGE) } satisfies PathsPage);
+  const versions = paths.map((p) => versionOf(p.doc));
+  const sets = await stepSetsOf(versions.flatMap((v) => v.steps.map((s) => s.setId)));
+  const mine = me
+    ? await Promise.all([pathsOf(me), progressInSets(me, [...sets.keys()]), openSuggestionCounts(paths.filter((p) => isEditorOf(p.doc, me)).map((p) => p._id))])
+    : null;
+  // Mastery doesn't change with the day, so any time zone gives the same number of steps done.
+  const when = todayIn("UTC");
+  const listed: PathListing[] = paths.map(({ doc, ...path }, i) => {
+    const version = versions[i] as PathVersion;
+    const studied = version.steps.filter((s) => ["ok", "elsewhere"].includes(checkStep(s, sets.get(s.setId), version.category)));
+    const flashcards = studied.reduce((n, s) => n + stepItems(s, sets.get(s.setId) as PathStepSet).flashcards.length, 0);
+    let you: PathListing["you"] = null;
+    if (me && mine) {
+      const [player, progress, toReview] = mine;
+      const done = pathProgress({ pathId: path._id, category: version.category, steps: studied, sets, progress, testedOut: player.testedOut, when }).done;
+      you = { following: player.active === path._id, canEdit: isEditorOf(doc, me), isAuthor: isAuthorOf(doc, me), done, toReview: toReview.get(path._id) ?? 0 };
+    }
+    return { ...path, steps: studied.length, flashcards, you };
+  });
+  if (me) res.set("Cache-Control", "private, no-cache, must-revalidate");
+  res.json({ paths: listed, total, page: query.page, pages: Math.ceil(total / PATHS_PER_PAGE) } satisfies PathsPage);
 }
 
 function suggestionView(s: PathSuggestionDoc, people: Map<string, PathPerson>, path: PathDoc): PathSuggestion {

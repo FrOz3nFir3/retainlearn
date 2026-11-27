@@ -275,3 +275,16 @@ test("reports: one per person, never your own; enough people take a path out of 
   assert.equal(await inList(), 0);
   assert.equal((await open(id)).status, 200);
 });
+
+test("each listed path with its numbers: the steps you can study and their flashcards; signed in, what's yours in it", async () => {
+  const id = await make(lee, [whole("s1", ids.js), { id: "s2", setId: String(big), flashcardIds: bigFlashcards.slice(0, 3).map(String), title: "" }], { title: "Numbered path" });
+  const card = async (who: Record<string, string> | null) => (await read<PathsPage>(await send("GET", "/api/paths?search=numbered", who))).paths[0];
+  const seen = await card(null);
+  assert.deepEqual([seen?.steps, seen?.flashcards, seen?.you], [2, 5, null]);
+  await read(await send("PUT", `/api/paths/${id}/follow?${tz}`, omar));
+  await read<TestOutResult>(await send("POST", `/api/paths/${id}/steps/s1/test-out?${tz}`, omar, { answers: [{ questionId: jsQuestion, right: true }] }));
+  assert.deepEqual((await card(omar))?.you, { following: true, canEdit: false, isAuthor: false, done: 1, toReview: 0 });
+  const opened = await view(id, nina);
+  await read<PathSuggestion>(await send("PUT", `/api/paths/${id}/suggestions/mine`, nina, { path: content([whole("s1", ids.js)], { title: "Numbered path", description: "Shorter" }), version: opened.version }));
+  assert.deepEqual((await card(lee))?.you, { following: false, canEdit: true, isAuthor: true, done: 0, toReview: 1 });
+});
