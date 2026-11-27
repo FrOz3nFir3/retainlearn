@@ -122,7 +122,8 @@ function UpNext({ next, returnTo }: { next: Next; returnTo: string }) {
   );
 }
 
-// overRoom: in 3D, the classroom is a panel over its room (the side panel), the building opened up behind it.
+// overRoom: in 3D, the classroom is a panel over the world (the side panel): over its room, the building opened up
+// behind it, or over the campus for a subject that isn't on it (no building).
 type ViewProps = { set: StudySetContent; progress: ProgressView | null; when: When; signedIn: boolean; view: StudyView; onView: (view: StudyView) => void; overRoom: boolean };
 
 function ClassroomView({ set, progress, when, signedIn, view: picked, onView, overRoom }: ViewProps) {

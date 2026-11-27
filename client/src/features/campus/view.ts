@@ -99,7 +99,8 @@ export function worldViewOf(pathname: string): WorldView | null {
 }
 
 // This browser's copy of the subjects on your campus (with the last view, above), so a subject's page opened straight
-// from its address (a reload inside a building) shows its 3D frame before the campus's data arrives.
+// from its address (a reload inside a building) shows the right frame before the campus's data arrives: the lobby's for
+// a subject with a building, the list's for one without.
 const SUBJECTS_KEY = "retainlearn:campus-subjects";
 export function keepSubjects(names: readonly string[]): void {
   try {
@@ -118,11 +119,13 @@ export function keptSubjects(): string[] {
   }
 }
 
-// Whether the 3D world shows behind this page, and as what: signed in, the campus in 3D (and not broken), and for a
-// subject or a study set, only when the subject is on your campus (only then does it have a building, as in the
-// prototype; otherwise its page stays the 2D page). The pages use it to show themselves as panels over the world.
-// category: the building a room is in. campus: null while it's this browser's guess, before the campus's data arrives
-// (the subjects list, or a subject's page, opened straight from its address; the campus's own page guesses for itself).
+// Whether the 3D world shows behind this page, and as what: signed in, the campus in 3D (and not broken). The pages use
+// it to show themselves as panels over the world. A subject on your campus opens its building (its page is the lobby,
+// its classrooms panels over their rooms); one off your campus has no building, so its page is a list over the campus,
+// and its classrooms panels over the campus, as in the prototype. category: the subject of the page, or of a room's set
+// (null until the set says, when no building did). campus: null while it's this browser's guess, before the campus's
+// data arrives (a page opened straight from its address; the campus's own page guesses for itself). A study set that
+// didn't load (gone, or a bad address) shows its page alone.
 export type World = { shown: false } | { shown: true; view: WorldView; campus: Campus | null; category: string | null };
 export function useWorld(): World {
   const { pathname, state } = useLocation();
@@ -133,12 +136,10 @@ export function useWorld(): World {
   const isBroken = useBroken();
   const view = worldViewOf(pathname);
   const set = useGetStudySetQuery(view?.kind === "room" && session === "in" ? view.setId : skipToken);
-  if (view && session !== "out" && !campus.data && !campus.isError && !isBroken && webglWorks() && lastView() === true) {
-    if (view.kind === "directory" || (view.kind === "building" && keptSubjects().includes(view.category))) return { shown: true, view, campus: null, category: null };
-  }
-  if (!view || session !== "in" || !campus.data || isBroken || !shows3d(campus.data.player.settings.view3d)) return { shown: false };
+  if (!view || (view.kind === "room" && set.isError)) return { shown: false };
+  if (view.kind !== "campus" && session !== "out" && !campus.data && !campus.isError && !isBroken && webglWorks() && lastView() === true) return { shown: true, view, campus: null, category: null };
+  if (session !== "in" || !campus.data || isBroken || !shows3d(campus.data.player.settings.view3d)) return { shown: false };
   const category = view.kind === "building" ? view.category : view.kind === "room" ? (set.data?.category ?? building) : null;
-  if ((view.kind === "building" || view.kind === "room") && !campus.data.subjects.some((s) => s.category === category)) return { shown: false };
   return { shown: true, view, campus: campus.data, category };
 }
 

@@ -51,7 +51,7 @@ export default function Subject() {
   const campus = useCampus(!signedIn);
   const card = useReportCard(!signedIn);
   const world = useWorld();
-  const lobby = world.shown && world.view.kind === "building";
+  const overWorld = world.shown && world.view.kind === "building";
   const broken = useBroken();
   if (subject.isError) {
     const badName = (subject.error as { status?: unknown }).status === 400;
@@ -61,7 +61,7 @@ export default function Subject() {
   const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError)));
   if (!subject.data || waiting) return <SubjectSkeleton />;
   const onCampus = signedIn && campus.data ? (campus.data.subjects.find((s) => s.category === subject.data?.name) ?? false) : null;
-  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} lobby={lobby} in3d={signedIn && plays3d(campus.data) && !broken} />;
+  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} overWorld={overWorld} in3d={signedIn && plays3d(campus.data) && !broken} />;
 }
 
 function NotASubject() {
@@ -83,10 +83,12 @@ function Failed({ retry }: { retry: () => void }) {
 type Notice = { tone: "done" | "failed"; text: string };
 
 // onCampus: the subject on your campus, false when it isn't there, null when signed out (or the campus didn't load).
-// lobby: in 3D, the subject's page is its building's lobby, a panel over the world with the building opened up behind it
-// (D-20): no cards, as the floors are the list; the lift instead of pages.
-type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; lobby: boolean; in3d: boolean };
-function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewProps) {
+// overWorld: in 3D, the page is a panel over the world (D-20). For a subject on your campus, its building's lobby, the
+// building opened up behind it: no cards, as the floors are the list; the lift instead of pages. For one off your
+// campus (no building), the list: the 2D page's content in a wider panel over the campus, as the prototype's was.
+type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; overWorld: boolean; in3d: boolean };
+function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: ViewProps) {
+  const lobby = overWorld && !!onCampus;
   const when = useToday();
   const [params, setParams] = useSearchParams();
   const search = (params.get("search") ?? "").trim();
@@ -156,7 +158,7 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewPro
       title={subject.name}
       eyebrow={counts}
       back={lobby ? "/" : "/subjects"}
-      panel={lobby ? "lobby" : undefined}
+      panel={overWorld ? (lobby ? "lobby" : "list") : undefined}
       description={`Study ${subject.name} on RetainLearn: ${counts}, reviewed and quizzed until they stick.`}
       noindex={subject.sets.length === 0}
       actions={
@@ -179,7 +181,8 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewPro
         </div>
 
         {signedIn && stats.started > 0 && (
-          <section aria-label={`How you stand in ${subject.name}`} className={lobby ? "max-sm:hidden" : "panel bg-surface p-4"}>
+          // Over the world, the page is a panel already: no card in it (and in the lobby, short on a phone, not there).
+          <section aria-label={`How you stand in ${subject.name}`} className={overWorld ? (lobby ? "max-sm:hidden" : undefined) : "panel bg-surface p-4"}>
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-display text-3xl font-semibold tabular-nums">{pct(stats.mastery)}</span>
               <span className="text-xs text-ink/50">{`mastery, ${plural(stats.started, "set")} started`}</span>
@@ -195,7 +198,7 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewPro
         )}
 
         {next ? (
-          <section aria-label="Up next here" className={cx("flex flex-wrap items-center gap-3", lobby ? "rounded-2xl bg-brand/6 p-3" : "panel bg-surface p-4")}>
+          <section aria-label="Up next here" className={cx("flex flex-wrap items-center gap-3", overWorld ? "rounded-2xl bg-brand/6 p-3" : "panel bg-surface p-4")}>
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
               <Icon name={statusIcon(next.room)} className="size-5" />
             </span>
