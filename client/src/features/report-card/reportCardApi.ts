@@ -17,7 +17,8 @@ export const reportCardApi = classroomApi.enhanceEndpoints({ addTagTypes: ["Repo
       invalidatesTags: ["ReportCard", "Campus"],
       async onQueryStarted({ setId }, { dispatch, queryFulfilled }) {
         const { data } = await queryFulfilled.catch(() => ({ data: null }));
-        if (data) dispatch(classroomApi.util.updateQueryData("getProgress", setId, () => data));
+        // Whether you review the set isn't in the reset's answer: kept from before.
+        if (data) dispatch(classroomApi.util.updateQueryData("getProgress", setId, (old) => ({ ...data, reviewer: data.reviewer ?? old.reviewer })));
       },
     }),
   }),

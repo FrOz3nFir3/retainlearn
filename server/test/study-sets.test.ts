@@ -53,7 +53,15 @@ test("a set's content comes in the new names, for anyone", async () => {
       flashcardId: constCard,
     },
   ]);
-  for (const old of ["main-topic", "review", "quizzes", "logs", "reviewQueue", "author"]) assert.equal(old in set, false, `no ${old}`);
+  for (const old of ["main-topic", "review", "quizzes", "logs", "reviewQueue", "lastUpdatedBy"]) assert.equal(old in set, false, `no ${old}`);
+});
+
+test("a set says who made it, when, and how many review it: people by their public names only", async () => {
+  const set = (await (await t.api(`/api/study-sets/${js}`)).json()) as StudySetContent;
+  assert.deepEqual(set.author, { username: "ada_author", name: "Ada Author" });
+  assert.equal(set.reviewers, 1);
+  assert.ok(set.createdAt && set.updatedAt && Date.parse(set.createdAt) <= Date.parse(set.updatedAt));
+  assert.doesNotMatch(JSON.stringify(set), /password|email|@example/, "no account details");
 });
 
 test("a new account's set reads as listed once its day to be listed has come, as the category pages show it", async () => {
@@ -84,7 +92,13 @@ test("your progress needs you signed in, and starts empty", async () => {
     quiz: { started: 0, finished: 0 },
     classInProgress: null,
     lastAt: null,
+    reviewer: false,
   });
+});
+
+test("your progress says whether you review the set: its author does", async () => {
+  const ada = await t.signIn("ada_author");
+  assert.equal(((await (await t.api(`/api/study-sets/${js}/progress`, { headers: ada })).json()) as ProgressView).reviewer, true);
 });
 
 test("saving a batch applies the rules, changes only what it touched, earns XP, and logs each answer", async () => {

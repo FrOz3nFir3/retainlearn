@@ -2,7 +2,8 @@
 // before the classroom's own code arrives, and the classroom shows it while the set, your progress and your settings
 // load. Built from the classroom's real frame: the heading's placeholders (and Edit's, signed in), how you stand
 // (signed in, or being checked) or a guest's note, Study with what each round shows, Up next, the rounds' heading
-// over rows in a round's shape, the teacher's desk, the noticeboard, and "Report this set".
+// over rows in a round's shape, the teacher's desk, About, the noticeboard, and "Report this set".
+import { Link, useParams } from "react-router-dom";
 import { useSession } from "#app/session.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
@@ -11,6 +12,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { PageSkeleton } from "#components/ui/Page.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { setPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 
 export const STUDY_VIEWS_ITEMS = [
@@ -18,14 +20,32 @@ export const STUDY_VIEWS_ITEMS = [
   { value: "review", label: "Review", icon: "review" },
   { value: "quiz", label: "Quiz", icon: "quiz" },
 ] as const;
+// About's labels (Topic, Subtopic, Description), on the page and in its skeleton.
+export const ABOUT_LABEL = "w-24 shrink-0 text-xs leading-5 text-ink/50";
 export const DESK_ROW = "flex items-center gap-3 px-3.5 py-2.5 text-sm hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand";
+
+// A guest's note at the top of a classroom: they can study, and signing in, before or after a class, saves it
+// (features/classes/guestClasses.ts). The skeleton shows the same note, so nothing moves as the classroom comes.
+export function ClassroomGuestNote({ returnTo }: { returnTo: string }) {
+  return (
+    <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm text-bell-ink">
+      You're studying as a guest.{" "}
+      <Link to="/sign-in" state={{ returnTo }} className="font-semibold underline">
+        Sign in
+      </Link>
+      , before or after a class, and it's saved to your account with its player cards.
+    </p>
+  );
+}
 
 export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
+  const { id = "" } = useParams();
   const desk: [IconName, string][] = [
     ["review", "Flashcards"],
     ["quiz", "Quiz questions"],
     ...(signedIn ? [["inbox", "Review queue"] as [IconName, string]] : []),
+    ["users", "Reviewers"],
     ["clock", "History"],
   ];
   return (
@@ -58,10 +78,7 @@ export function ClassroomSkeleton() {
             </div>
           </div>
         ) : (
-          <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm">
-            <SkeletonText className="w-full" />
-            <SkeletonText className="w-1/2" />
-          </p>
+          <ClassroomGuestNote returnTo={setPath(id)} />
         )}
         <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -102,12 +119,19 @@ export function ClassroomSkeleton() {
           </div>
         </div>
         <div>
-          <p className="mb-2 font-display text-xl font-semibold">Teacher's desk</p>
+          <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <p className="font-display text-xl font-semibold">Teacher's desk</p>
+            {signedIn && (
+              <Chip>
+                <SkeletonText className="w-20" />
+              </Chip>
+            )}
+          </div>
           <div className="divide-y divide-ink/[0.06] overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface">
             {desk.map(([icon, label]) => (
               <div key={label} className={DESK_ROW}>
                 <Icon name={icon} className="size-4 shrink-0 text-ink/50" />
-                <span className="flex-1 font-medium">{signedIn ? label : `See its ${label.toLowerCase()}`}</span>
+                <span className="flex-1 font-medium">{signedIn || label === "Reviewers" ? label : `See its ${label.toLowerCase()}`}</span>
                 <span className="text-xs">
                   <SkeletonText className="w-16" />
                 </span>
@@ -116,6 +140,32 @@ export function ClassroomSkeleton() {
             ))}
           </div>
           <p className="mt-1.5 text-xs text-ink/50">{signedIn ? "The set's reviewers change it directly; anyone else's changes wait for one of them to accept." : "Sign in to suggest changes."}</p>
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="font-display text-xl font-semibold">About</p>
+            {signedIn && (
+              <span className={buttonClass("quiet", "sm")}>
+                <Icon name="edit" className="size-4 shrink-0" />
+                <SkeletonText className="w-20" />
+              </span>
+            )}
+          </div>
+          <div className="rounded-2xl border border-ink/[0.08] bg-surface p-3.5 text-sm">
+            <div className="space-y-2">
+              {["Topic", "Subtopic", "Description"].map((label) => (
+                <div key={label} className="flex gap-2">
+                  <span className={ABOUT_LABEL}>{label}</span>
+                  <span className="min-w-0 flex-1">
+                    <SkeletonText className="w-40" />
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 border-t border-ink/[0.06] pt-2 text-xs">
+              <SkeletonText className="w-64" />
+            </p>
+          </div>
         </div>
         <div>
           <div className="mb-2 flex items-baseline justify-between gap-3">

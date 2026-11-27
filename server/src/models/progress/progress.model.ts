@@ -1,6 +1,7 @@
 // Your progress in study sets (PLAN 14.3b): read when a classroom opens, and saved a few answers at a time while you
 // study (PLAN 14.10).
 import { Types } from "mongoose";
+import Card from "#models/cards/cards.mongo.js";
 import Progress from "#models/progress/progress.mongo.ts";
 import type { ProgressDoc } from "#models/progress/progress.mongo.ts";
 import { applyAnswers, dayKey } from "@retainlearn/core";
@@ -13,10 +14,13 @@ const isDuplicateKey = (error: unknown) => (error as { code?: number } | null)?.
 // The classes that are quizzes: the ones counted in progress.quiz, and cleared by resetQuiz.
 const QUIZ_MODES: readonly ClassMode[] = ["quiz", "retryMissed"];
 
-// Your progress in one set, or an empty one for a set you haven't started.
+// Your progress in one set, or an empty one for a set you haven't started, and whether you review its changes (asked
+// at the same time).
 export async function progressView(userId: string, setId: string): Promise<ProgressView> {
-  return viewOf(setId, await Progress.findOne({ userId: oid(userId), setId: oid(setId) }).lean<ProgressDoc>());
+  const [p, reviewer] = await Promise.all([Progress.findOne({ userId: oid(userId), setId: oid(setId) }).lean<ProgressDoc>(), reviews(userId, setId)]);
+  return { ...viewOf(setId, p), reviewer };
 }
+const reviews = async (userId: string, setId: string): Promise<boolean> => (await Card.exists({ _id: oid(setId), reviewers: oid(userId) })) !== null;
 
 function viewOf(setId: string, p: ProgressDoc | null): ProgressView {
   return {
@@ -46,20 +50,23 @@ export async function setOrder(userId: string, setId: string, order: string[] | 
 // reads again. null when you haven't started the set.
 export async function resetQuiz(userId: string, setId: string): Promise<{ view: ProgressView; category: string | null } | null> {
   const playerCards = { $filter: { input: { $objectToArray: { $ifNull: ["$questions", {}] } }, cond: { $gte: ["$$this.v.level", 1] } } };
-  const p = await Progress.findOneAndUpdate(
-    { userId: oid(userId), setId: oid(setId) },
-    [
-      {
-        $set: {
-          questions: { $arrayToObject: { $map: { input: playerCards, in: { k: "$$this.k", v: { level: "$$this.v.level", refreshedAt: "$$this.v.refreshedAt" } } } } },
-          quiz: { started: 0, finished: 0 },
-          classInProgress: { $cond: [{ $in: ["$classInProgress.mode", QUIZ_MODES] }, null, "$classInProgress"] },
+  const [p, reviewer] = await Promise.all([
+    Progress.findOneAndUpdate(
+      { userId: oid(userId), setId: oid(setId) },
+      [
+        {
+          $set: {
+            questions: { $arrayToObject: { $map: { input: playerCards, in: { k: "$$this.k", v: { level: "$$this.v.level", refreshedAt: "$$this.v.refreshedAt" } } } } },
+            quiz: { started: 0, finished: 0 },
+            classInProgress: { $cond: [{ $in: ["$classInProgress.mode", QUIZ_MODES] }, null, "$classInProgress"] },
+          },
         },
-      },
-    ],
-    { new: true },
-  ).lean<ProgressDoc>();
-  return p ? { view: viewOf(setId, p), category: p.setInfo?.category ?? null } : null;
+      ],
+      { new: true },
+    ).lean<ProgressDoc>(),
+    reviews(userId, setId),
+  ]);
+  return p ? { view: { ...viewOf(setId, p), reviewer }, category: p.setInfo?.category ?? null } : null;
 }
 
 // Your progress across sets, as the campus's rules read it (in one subject, or all of it): one indexed query.
