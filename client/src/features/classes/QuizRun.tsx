@@ -8,7 +8,7 @@
 // retry what you missed, the next round (in the order you study, as the classroom's Up next). And the XP the server
 // counted, the streak and the timetable.
 import { useEffect, useRef, useState } from "react";
-import { answerQuestion, isPlayerCard, nextRound, reviewLoad, roundState, setRounds, studySetStats, upNext, xpForQuestion } from "@retainlearn/core";
+import { answerQuestion, isPlayerCard, nextRound, reviewLoad, roundState, setRounds, studySetStats, testOutPass, upNext, xpForQuestion } from "@retainlearn/core";
 import type { ClassMode, ProgressView, QuestionProgress, StudySetContent, When } from "@retainlearn/core";
 import { Link } from "react-router-dom";
 import { useSignedIn } from "#app/hooks.ts";
@@ -17,6 +17,9 @@ import { Stars } from "#features/classroom/Stars.tsx";
 import { useStudyView } from "#features/classroom/useStudyView.ts";
 import { cx } from "#utils/cx.ts";
 import { Icon } from "#components/ui/Icon.tsx";
+import { toast } from "#components/ui/Toast.tsx";
+import { browserTimeZone } from "#features/campus/campusApi.ts";
+import { useTestOutMutation } from "#features/paths/pathsApi.ts";
 import { RichText } from "#components/ui/RichText.tsx";
 import { textOf } from "#utils/safeHtml.ts";
 import { AnswerOption } from "./AnswerOption.tsx";
@@ -106,9 +109,12 @@ type Props = {
   earlier: readonly Earlier[]; // in a class carried on, the questions answered before you left
   resume: { key: string; seq: number } | null;
   onRestart?: () => void;
+  // Testing out of a path's step (the prototype's skip test): its pass mark in the header, the answers checked by the
+  // server as the class ends (80% right counts the step as done), and the summary says how it went.
+  testOut?: { pathId: string; stepId: string } | null;
 };
 
-export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, resume, onRestart }: Props) {
+export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, resume, onRestart, testOut = null }: Props) {
   const wasCold = useWasCold(set.category);
   const questions = plan.questions;
   const start = earlier.length;
@@ -128,6 +134,9 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
   const [reward, setReward] = useState<Reward | null>(null);
   const [result, setResult] = useState<ClassResult | null>(null);
   const [finishing, setFinishing] = useState(false);
+  const [sendTestOut] = useTestOutMutation();
+  const [passed, setPassed] = useState<boolean | null>(null);
+  const need = testOutPass(questions.length);
   const xp = useRef(0);
   const shownAt = useRef(performance.now());
 
@@ -167,6 +176,15 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
   const finish = async () => {
     setFinishing(true);
     const last = await saver.finish().catch(() => null);
+    if (testOut) {
+      const checked = await sendTestOut({ id: testOut.pathId, stepId: testOut.stepId, tz: when.timeZone ?? browserTimeZone(), answers: answers.map((a) => ({ questionId: a.id, right: a.correct })) })
+        .unwrap()
+        .then((r) => r.passed)
+        .catch(() => null);
+      setPassed(checked);
+      if (checked === null) toast("The test wasn't checked. Check your connection, then take it again.", "bell");
+      else toast(checked ? "Step passed. Next step unlocked" : "Not quite. Study this step first", checked ? "night" : "bell");
+    }
     setResult({
       xp: xp.current,
       streak: last?.finished?.streak,
@@ -227,7 +245,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
             setId={set._id}
             category={set.category}
             warmAgain={wasCold}
-            title={plan.round ? `Round ${plan.round} done` : plan.title ? `${plan.title}: done` : "Quiz finished"}
+            title={testOut ? (passed ? "Step passed" : passed === false ? "Not passed yet" : "Test finished") : plan.round ? `Round ${plan.round} done` : plan.title ? `${plan.title}: done` : "Quiz finished"}
             result={result}
             hero={
               <div className="flex flex-col items-center gap-2 rounded-2xl bg-mist px-4 py-4 text-center">
@@ -237,7 +255,11 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
                 </p>
               </div>
             }
-            lines={[]}
+            lines={
+              testOut
+                ? [["Skip test", passed ? `Passed (${need} needed): this step is done, the next one is open` : passed === false ? `Not yet: ${need} needed. Study it, then try again` : "Not checked"]]
+                : []
+            }
             extra={
               <>
                 {here && plan.round && (
@@ -302,6 +324,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
               </>
             }
             actions={
+              !testOut && (
               <>
                 {behind.length > 0 && (
                   <Link to={`${classPath(set._id, "review")}?ids=${behind.join(",")}`} state={{ returnTo }} className={buttonClass("quiet")}>
@@ -320,6 +343,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
                   </Link>
                 )}
               </>
+              )
             }
           />
         ) : (
@@ -337,7 +361,13 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
       set={set}
       mode={mode}
       problem={problem}
-      progressText={pips ? (plan.title ?? "Quiz") : `${plan.title ? `${plan.title} · ` : ""}Question ${index + 1} of ${questions.length}`}
+      progressText={
+        testOut
+          ? `Skip test, ${need} right to pass${pips ? "" : ` · Question ${index + 1} of ${questions.length}`}`
+          : pips
+            ? (plan.title ?? "Quiz")
+            : `${plan.title ? `${plan.title} · ` : ""}Question ${index + 1} of ${questions.length}`
+      }
       progress={pips ? undefined : marks.length / questions.length}
       track={
         pips && (
