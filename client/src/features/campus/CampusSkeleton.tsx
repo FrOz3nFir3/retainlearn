@@ -124,26 +124,37 @@ export function CampusSkeleton() {
 
 export const CAMPUS_TITLE = "Your campus - RetainLearn";
 
-function Campus3DSkeleton() {
-  // The world's code (and with it its models) starts loading now, beside the campus's own code and data.
-  useEffect(() => void import("./scene/World.tsx"), []);
+// The 3D campus while it loads (also the world's loading screen in the app's frame, WorldHost.tsx). hud: the campus's
+// own HUD and title (not behind another page, which has its own).
+export function Campus3DSkeleton({ hud = true }: { hud?: boolean }) {
+  // The 3D campus's code and the world's (and with it the models) start loading now, beside the campus's data.
+  useEffect(() => {
+    void import("./Campus3D.tsx");
+    void import("./scene/World.tsx");
+  }, []);
   return (
     <div className={WORLD_LAYER}>
-      <Helmet>
-        <title>{CAMPUS_TITLE}</title>
-      </Helmet>
-      <h1 className="sr-only">Your campus</h1>
+      {hud && (
+        <>
+          <Helmet>
+            <title>{CAMPUS_TITLE}</title>
+          </Helmet>
+          <h1 className="sr-only">Your campus</h1>
+        </>
+      )}
       <Loading label="Loading your campus">
         <WorldBackdrop />
-        <div className={HUD_LAYER}>
-          <div className={HUD_CONTROLS} inert>
-            <div className="panel rounded-2xl p-1">
-              <ViewSwitch in3d />
+        {hud && (
+          <div className={HUD_LAYER}>
+            <div className={HUD_CONTROLS} inert>
+              <div className="panel rounded-2xl p-1">
+                <ViewSwitch in3d />
+              </div>
+              <MapButtons />
             </div>
-            <MapButtons />
+            <TimetableSkeleton look="slim" />
           </div>
-          <TimetableSkeleton look="slim" />
-        </div>
+        )}
       </Loading>
     </div>
   );

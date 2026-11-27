@@ -13,6 +13,7 @@ import { useSession, useSessionCheck } from "#app/session.ts";
 import { TabBar } from "#components/layout/TabBar.tsx";
 import { TopBar } from "#components/layout/TopBar.tsx";
 import { Toasts } from "#components/ui/Toast.tsx";
+import { WorldHost } from "#features/campus/WorldHost.tsx";
 import { isClassPath } from "#features/classes/modes.ts";
 // Each screen's skeleton, loaded with the app, so a screen shows it the moment it's opened, before its own code
 // arrives (PLAN 14.15).
@@ -81,6 +82,8 @@ const RootLayout = () => {
           <Outlet />
         </Suspense>
       </main>
+      {/* The 3D world, behind the pages it stands behind (D-20). */}
+      {!inClass && <WorldHost />}
       {!inClass && <SiteFooter />}
       {!inClass && <TabBar />}
       <Toasts />

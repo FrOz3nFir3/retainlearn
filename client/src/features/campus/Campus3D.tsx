@@ -1,7 +1,8 @@
-// The campus in 3D (/, for a signed-in player; Campus.tsx decides when, by view.ts): the world (scene/World.tsx, its own
-// chunk, loaded from here) fills the screen under the bars, with the prototype's HUD over it: the 3D / 2D switch and
-// the map buttons top right, today's timetable as a slim bar, and the coach, who walks over with news and whose talk
-// comes up from the bottom as on the 2D campus. A period's Start walks you to its building, then opens the class; back
+// The campus in 3D, in the app's frame (WorldHost.tsx), for a signed-in player in 3D (view.ts decides): the world
+// (scene/World.tsx, its own chunk, loaded from here) fills the screen under the bars, and stays alive behind the pages
+// that open over it (D-20). On the campus itself, the prototype's HUD over it: the 3D / 2D switch and the map buttons top
+// right, today's timetable as a slim bar, and the coach, who walks over with news and whose talk comes up from the
+// bottom as on the 2D campus. A period's Start walks you to its building, then opens the class; back
 // from a finished class, its building sparkles. The clock tower says where the bell stands (a toast). While the world's
 // code and models load, its loading screen. If the world can't start or the GPU gives it up (onBroken), the 2D campus
 // takes over, offering 3D again.
@@ -20,14 +21,16 @@ import type { CoachAct } from "./coach.ts";
 import { skyHour, useLocalHour } from "./daytime.ts";
 import { subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
-import type { MapCommand } from "./view.ts";
+import type { MapCommand, WorldView } from "./view.ts";
 import type { ClassWalk } from "./scene/World.tsx";
 
 const World = lazy(() => import("./scene/World.tsx"));
 
-type Props = { campus: Campus; onPick: (in3d: boolean) => void; onBroken: () => void };
+// view: what the world stands behind (view.ts); category: the building of a room.
+type Props = { campus: Campus; view: WorldView; category: string | null; onPick: (in3d: boolean) => void; onBroken: () => void };
 
-export default function Campus3D({ campus, onPick, onBroken }: Props) {
+export default function Campus3D({ campus, view, category, onPick, onBroken }: Props) {
+  const onCampus = view.kind === "campus";
   const navigate = useNavigate();
   const coach = useCoach(campus, useMyUsername(), { walksUp: true });
   const hour = skyHour(campus.player.settings.sky, useLocalHour());
@@ -73,21 +76,25 @@ export default function Campus3D({ campus, onPick, onBroken }: Props) {
 
   return (
     <div className={WORLD_LAYER}>
-      <Helmet>
-        <title>{CAMPUS_TITLE}</title>
-      </Helmet>
-      <h1 className="sr-only">Your campus</h1>
-      {/* The HUD first, so the keyboard reaches today's timetable before every place's label (it's drawn on top). */}
-      <div className={HUD_LAYER}>
-        <div className={HUD_CONTROLS}>
-          <div className="panel pointer-events-auto rounded-2xl p-1">
-            <ViewSwitch in3d onPick={onPick} />
+      {onCampus && (
+        <>
+          <Helmet>
+            <title>{CAMPUS_TITLE}</title>
+          </Helmet>
+          <h1 className="sr-only">Your campus</h1>
+          {/* The HUD first, so the keyboard reaches today's timetable before every place's label (it's drawn on top). */}
+          <div className={HUD_LAYER}>
+            <div className={HUD_CONTROLS}>
+              <div className="panel pointer-events-auto rounded-2xl p-1">
+                <ViewSwitch in3d onPick={onPick} />
+              </div>
+              <MapButtons onCommand={send} />
+            </div>
+            {/* It steps aside while the coach talks, in its place (the prototype's). */}
+            {!talking && <Timetable campus={campus} look="slim" onStart={startClass} busy={!!walk} />}
           </div>
-          <MapButtons onCommand={send} />
-        </div>
-        {/* It steps aside while the coach talks, in its place (the prototype's). */}
-        {!talking && <Timetable campus={campus} look="slim" onStart={startClass} busy={!!walk} />}
-      </div>
+        </>
+      )}
       <WorldBoundary onBroken={onBroken}>
         <Suspense
           fallback={
@@ -98,7 +105,9 @@ export default function Campus3D({ campus, onPick, onBroken }: Props) {
         >
           <World
             campus={campus}
-            coach={{ who: coach.who, news: coach.news, comes: coach.comes, talking: talking, onTalk: coach.open }}
+            view={view}
+            category={category}
+            coach={{ who: coach.who, news: coach.news, comes: onCampus && coach.comes, talking: talking, onTalk: coach.open }}
             hour={hour}
             command={command}
             walk={walk}
@@ -112,7 +121,7 @@ export default function Campus3D({ campus, onPick, onBroken }: Props) {
           />
         </Suspense>
       </WorldBoundary>
-      {coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} onGo={coachGo} />}
+      {onCampus && coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} onGo={coachGo} />}
     </div>
   );
 }

@@ -14,7 +14,7 @@ import { MapControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { Campus } from "@retainlearn/core";
 import type { Coach as CoachLook } from "../coach.ts";
-import type { MapCommand } from "../view.ts";
+import type { MapCommand, WorldView } from "../view.ts";
 import { Building, FreePlot } from "./Building.tsx";
 import { preloadKit } from "./kit.tsx";
 import { labelLayer } from "./labelLayer.ts";
@@ -37,6 +37,10 @@ export type ClassWalk = { category: string; then: () => void; n: number };
 
 export type WorldProps = {
   campus: Campus;
+  // What the world stands behind (view.ts): the campus, the subjects list, a subject's building or a set's room;
+  // category: the building a room is in.
+  view: WorldView;
+  category: string | null;
   coach: CoachState;
   hour: number;
   command: MapCommand | null;
@@ -299,6 +303,13 @@ export default function World({ campus, coach, hour, command, walk, celebrate, o
   const narrow = isNarrow();
   const g = grow(layout.half);
   const root = useRef<HTMLDivElement>(null);
+  // The GPU giving the canvas up while the world is open; not the canvas let go as the world closes (three.js gives up
+  // its own context then, which raises the same event).
+  const open = useRef(true);
+  useLayoutEffect(() => {
+    open.current = true;
+    return () => void (open.current = false);
+  }, []);
   const [look, setLook] = useState<Look | null>(null);
   const lookAt = (at: readonly [number, number], distance = 64, exact = false) => setLook({ at, distance, exact, n: performance.now() });
   const road = useMemo(() => roadLine(layout.half), [layout.half]);
@@ -350,7 +361,7 @@ export default function World({ campus, coach, hour, command, walk, celebrate, o
         camera={{ fov: 30, position: HOME_TARGET.clone().add(homeOffset(layout.half)).toArray(), near: 1, far: 700 * g }}
         onPointerMissed={() => (document.body.style.cursor = "")}
         onCreated={({ gl, scene, camera }) => {
-          gl.domElement.addEventListener("webglcontextlost", onLost, { once: true });
+          gl.domElement.addEventListener("webglcontextlost", () => open.current && onLost(), { once: true });
           // In development only: the browser checks find things on screen and read draw calls.
           if (import.meta.env.DEV) Object.assign(window, { __gl: gl, __scene: scene, __camera: camera });
         }}

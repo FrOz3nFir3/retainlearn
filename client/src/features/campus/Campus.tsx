@@ -1,9 +1,9 @@
-// The campus (/), for a signed-in player: in 3D (Campus3D.tsx) or as the 2D page, by your pick on its switch or, until
-// you pick, what the device suits (view.ts). The 2D page (the prototype's World2D): your coach (Coach.tsx), today's
-// timetable, then each subject you study as a card (how warm it is, what you missed, what's fading, your mastery), your
-// report card, and a way to add a subject. While the session is checked or the campus loads, its skeleton. The stadium
-// and paths join it with their features.
-import { useEffect, useState } from "react";
+// The campus (/), for a signed-in player: in 3D (drawn by the app's frame, WorldHost.tsx) or as the 2D page, by your pick
+// on its switch or, until you pick, what the device suits (view.ts). The 2D page (the prototype's World2D): your coach
+// (Coach.tsx), today's timetable, then each subject you study as a card (how warm it is, what you missed, what's fading,
+// your mastery), your report card, and a way to add a subject. While the session is checked or the campus loads, its
+// skeleton. The stadium and paths join it with their features.
+import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import type { Campus as CampusData, CampusSubject } from "@retainlearn/core";
 import { useMyUsername } from "#app/hooks.ts";
@@ -16,12 +16,11 @@ import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { useCampus, useSaveSettingsMutation } from "./campusApi.ts";
-import Campus3D from "./Campus3D.tsx";
 import { CampusSkeleton, SUBJECTS_GRID, SUBJECTS_HEADING, ViewSwitch, dayName } from "./CampusSkeleton.tsx";
 import { CoachCard, CoachTalk, useCoach } from "./Coach.tsx";
 import { SUBJECT_STATUS, pennantOf, subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
-import { keepView, shows3d, webglWorks } from "./view.ts";
+import { keepView, setBroken, shows3d, useBroken, useWorld, webglWorks } from "./view.ts";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -30,19 +29,21 @@ export default function Campus() {
   const session = useSession();
   const campus = useCampus(session !== "in");
   const [save] = useSaveSettingsMutation();
-  // 3D that didn't start, or stopped, on this device: the 2D page until you try 3D again.
-  const [broken, setBroken] = useState(false);
+  // 3D that didn't start, or stopped, on this device: the 2D page until you try 3D again (view.ts).
+  const broken = useBroken();
+  const world = useWorld();
   const want3d = !!campus.data && shows3d(campus.data.player.settings.view3d);
   useEffect(() => {
     if (campus.data) keepView(want3d);
   }, [campus.data, want3d]);
   if (campus.isError) return <Failed retry={() => void campus.refetch()} />;
   if (!campus.data) return <CampusSkeleton />;
+  // In 3D, the app's frame draws the campus (WorldHost.tsx), and this page leaves the screen to it.
+  if (world.shown) return null;
   const pick = (in3d: boolean) => {
     setBroken(false);
     void save({ view3d: in3d });
   };
-  if (want3d && !broken) return <Campus3D campus={campus.data} onPick={pick} onBroken={() => setBroken(true)} />;
   return <CampusView campus={campus.data} onPick={pick} broken={broken} />;
 }
 
