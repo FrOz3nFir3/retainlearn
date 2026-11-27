@@ -92,7 +92,7 @@ function UpNext({ next, returnTo }: { next: Next; returnTo: string }) {
     <Link
       to={next.to}
       state={{ returnTo }}
-      className={cx(buttonClass("primary"), "w-full !justify-start gap-3 !px-4 !py-3 text-left")}
+      className={cx(buttonClass("primary"), "w-full justify-start! gap-3 px-4! py-3! text-left")}
       aria-label={`Up next: ${next.label}, ${next.steps ? next.steps.map((s) => `${s.text} ${s.state === "done" ? "done" : s.state === "now" ? "now" : "after"}`).join(", ") : next.note}`}
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15">

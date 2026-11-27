@@ -22,7 +22,7 @@ import { Segmented } from "#components/ui/Segmented.tsx";
 import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
 import { ROOMS_PER_FLOOR, classFloors } from "#features/campus/scene/layout.ts";
 import { SET_STATUS_TONE, subjectPath } from "#features/campus/subjects.ts";
-import { useWorld } from "#features/campus/view.ts";
+import { plays3d, useBroken, useWorld } from "#features/campus/view.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { useNextClass } from "#features/classroom/useNextClass.ts";
 import { cx } from "#utils/cx.ts";
@@ -33,7 +33,7 @@ import { SETS_PER_PAGE, alsoNeedsAttention, matchesSearch, ordered, roomsPage, s
 import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf } from "#api/problem.ts";
 import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
-import { ADD_ON_PHONE, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
+import { ADD_ON_PHONE, OffCampusNote, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
 
 const FLOORS_PER_PAGE = SETS_PER_PAGE / ROOMS_PER_FLOOR; // the lift: page 2 is floors 4 to 6
 const pct = (x: number) => `${Math.round(x * 100)}%`;
@@ -52,6 +52,7 @@ export default function Subject() {
   const card = useReportCard(!signedIn);
   const world = useWorld();
   const lobby = world.shown && world.view.kind === "building";
+  const broken = useBroken();
   if (subject.isError) {
     const badName = (subject.error as { status?: unknown }).status === 400;
     return badName ? <NotASubject /> : <Failed retry={() => void subject.refetch()} />;
@@ -60,7 +61,7 @@ export default function Subject() {
   const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError)));
   if (!subject.data || waiting) return <SubjectSkeleton />;
   const onCampus = signedIn && campus.data ? (campus.data.subjects.find((s) => s.category === subject.data?.name) ?? false) : null;
-  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} lobby={lobby} />;
+  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} lobby={lobby} in3d={signedIn && plays3d(campus.data) && !broken} />;
 }
 
 function NotASubject() {
@@ -84,8 +85,8 @@ type Notice = { tone: "done" | "failed"; text: string };
 // onCampus: the subject on your campus, false when it isn't there, null when signed out (or the campus didn't load).
 // lobby: in 3D, the subject's page is its building's lobby, a panel over the world with the building opened up behind it
 // (D-20): no cards, as the floors are the list; the lift instead of pages.
-type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; lobby: boolean };
-function SubjectView({ subject, card, onCampus, signedIn, lobby }: ViewProps) {
+type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; lobby: boolean; in3d: boolean };
+function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewProps) {
   const when = useToday();
   const [params, setParams] = useSearchParams();
   const search = (params.get("search") ?? "").trim();
@@ -167,6 +168,7 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby }: ViewProps) {
       }
     >
       <div className="space-y-5">
+        {onCampus === false && in3d && <OffCampusNote />}
         {onCampus === false && (
           <Button tone="primary" icon="plus" disabled={adding.isLoading} onClick={addToCampus} className={ADD_ON_PHONE}>
             Add to my campus
@@ -207,7 +209,7 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby }: ViewProps) {
               {classes.opening === next.room.set._id ? "Opening…" : "Start"}
             </Button>
             {attention.length > 0 && (
-              <div className="hidden w-full border-t border-ink/[0.06] pt-3 sm:block">
+              <div className="hidden w-full border-t border-ink/6 pt-3 sm:block">
                 <h3 className="mb-1 text-[11px] font-semibold text-ink/50">Also needs attention</h3>
                 <ul>
                   {attention.map((r) => (
@@ -219,9 +221,9 @@ function SubjectView({ subject, card, onCampus, signedIn, lobby }: ViewProps) {
                         onClick={() => void classes.open(r.set._id)}
                         onPointerEnter={() => classes.prefetch(r.set._id)}
                         onFocus={() => classes.prefetch(r.set._id)}
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
+                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-ink/3 focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
                       >
-                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/[0.08] text-brand">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/8 text-brand">
                           <Icon name={statusIcon(r)} className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.set.subtopic}</span>
@@ -412,7 +414,7 @@ function RoomCard({ room, signedIn, classes }: { room: Room; signedIn: boolean; 
             onClick={() => void classes.open(set._id)}
             onPointerEnter={() => classes.prefetch(set._id)}
             onFocus={() => classes.prefetch(set._id)}
-            className="relative z-1 w-full !justify-start"
+            className="relative z-1 w-full justify-start!"
           >
             {classes.opening === set._id ? "Opening…" : stats.started ? "Next class" : "Start"}
           </Button>

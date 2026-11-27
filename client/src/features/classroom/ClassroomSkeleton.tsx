@@ -91,7 +91,7 @@ export function ClassroomSkeleton() {
               <Segmented label="What each round shows" items={STUDY_VIEWS_ITEMS} value="both" onChange={() => {}} />
             </div>
           </div>
-          <div className={cx(buttonClass("primary"), "w-full !justify-start gap-3 !px-4 !py-3")}>
+          <div className={cx(buttonClass("primary"), "w-full justify-start! gap-3 px-4! py-3!")}>
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15" />
             <span className="min-w-0 flex-1">
               <span className="block text-[11px] font-semibold text-white/70">Up next</span>

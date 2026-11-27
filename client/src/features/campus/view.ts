@@ -98,11 +98,32 @@ export function worldViewOf(pathname: string): WorldView | null {
   return room ? { kind: "room", setId: room } : null;
 }
 
+// This browser's copy of the subjects on your campus (with the last view, above), so a subject's page opened straight
+// from its address (a reload inside a building) shows its 3D frame before the campus's data arrives.
+const SUBJECTS_KEY = "retainlearn:campus-subjects";
+export function keepSubjects(names: readonly string[]): void {
+  try {
+    const value = JSON.stringify(names.toSorted());
+    if (localStorage.getItem(SUBJECTS_KEY) !== value) localStorage.setItem(SUBJECTS_KEY, value);
+  } catch {
+    // Not kept: such a page shows its 2D skeleton first.
+  }
+}
+export function keptSubjects(): string[] {
+  try {
+    const value: unknown = JSON.parse(localStorage.getItem(SUBJECTS_KEY) ?? "[]");
+    return Array.isArray(value) ? value.filter((name): name is string => typeof name === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
 // Whether the 3D world shows behind this page, and as what: signed in, the campus in 3D (and not broken), and for a
 // subject or a study set, only when the subject is on your campus (only then does it have a building, as in the
 // prototype; otherwise its page stays the 2D page). The pages use it to show themselves as panels over the world.
-// category: the building a room is in.
-export type World = { shown: false } | { shown: true; view: WorldView; campus: Campus; category: string | null };
+// category: the building a room is in. campus: null while it's this browser's guess, before the campus's data arrives
+// (the subjects list, or a subject's page, opened straight from its address; the campus's own page guesses for itself).
+export type World = { shown: false } | { shown: true; view: WorldView; campus: Campus | null; category: string | null };
 export function useWorld(): World {
   const { pathname, state } = useLocation();
   // A room opened from its building says which (the set itself says, once it's loaded).
@@ -112,8 +133,25 @@ export function useWorld(): World {
   const isBroken = useBroken();
   const view = worldViewOf(pathname);
   const set = useGetStudySetQuery(view?.kind === "room" && session === "in" ? view.setId : skipToken);
+  if (view && session !== "out" && !campus.data && !campus.isError && !isBroken && webglWorks() && lastView() === true) {
+    if (view.kind === "directory" || (view.kind === "building" && keptSubjects().includes(view.category))) return { shown: true, view, campus: null, category: null };
+  }
   if (!view || session !== "in" || !campus.data || isBroken || !shows3d(campus.data.player.settings.view3d)) return { shown: false };
   const category = view.kind === "building" ? view.category : view.kind === "room" ? (set.data?.category ?? building) : null;
   if ((view.kind === "building" || view.kind === "room") && !campus.data.subjects.some((s) => s.category === category)) return { shown: false };
   return { shown: true, view, campus: campus.data, category };
 }
+
+// Signing out: this browser's copies (the last view, your campus's subjects) go, so a visitor, or the next player on
+// this browser, isn't shown your campus's frame while their session is checked.
+export function forgetView(): void {
+  try {
+    localStorage.removeItem(KEY);
+    localStorage.removeItem(SUBJECTS_KEY);
+  } catch {
+    // Nothing kept.
+  }
+}
+
+// Whether you see your campus in 3D: from its data, or before it arrives, from this browser's copy (shown here before).
+export const plays3d = (campus: Campus | undefined): boolean => (campus ? shows3d(campus.player.settings.view3d) : webglWorks() && lastView() === true);

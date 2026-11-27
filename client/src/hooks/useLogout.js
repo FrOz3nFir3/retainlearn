@@ -3,6 +3,7 @@ import { useDispatch } from "react-redux";
 import { initialUser } from "../features/authentication/state/authSlice";
 import { googleLogout } from "@react-oauth/google";
 import { setSessionStatus } from "../utils/session";
+import { forgetView } from "#features/campus/view.ts";
 
 const useLogout = () => {
   const [logoutUser] = usePostLogoutUserMutation();
@@ -18,6 +19,8 @@ const useLogout = () => {
       dispatch(apiSlice.util.resetApiState());
       dispatch(initialUser({ user: null, csrfToken: null }));
       setSessionStatus();
+      // This browser's copies of how your campus showed (view.ts) aren't for whoever signs in next.
+      forgetView();
       if (callback && typeof callback === "function") {
         callback(false);
       }
