@@ -7,6 +7,7 @@ import { useParams } from "react-router-dom";
 import { subjectName } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { useCampus } from "#features/campus/campusApi.ts";
+import { keptSubjects, plays3d, useBroken, useWorld } from "#features/campus/view.ts";
 import { cx } from "#utils/cx.ts";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { cardClass } from "#components/ui/Card.tsx";
@@ -19,16 +20,26 @@ export const SETS_HEADING = "flex items-baseline gap-2 font-display text-xl font
 export const SETS_GRID = "grid grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-3";
 // "Add to my campus" on a phone: the whole width, under the title (beside it on wider screens).
 export const ADD_ON_PHONE = "w-full sm:hidden";
+// In 3D, the note on a subject off your campus: it has no building, so its page is the list (the prototype's note). The
+// page and its skeleton both show it.
+export function OffCampusNote() {
+  return <p className="text-xs text-pretty text-ink/50">This subject isn't on your campus yet, so it shows as a list. Add it to see its building.</p>;
+}
 
 export function SubjectSkeleton() {
   const name = subjectName(useParams().name ?? "");
   const session = useSession();
   const signedIn = session !== "out";
   const campus = useCampus(session !== "in");
-  const onCampus = campus.data?.subjects.some((s) => s.category === name) ?? false;
+  // Before your campus loads (a page opened straight from its address), this browser's copy of its subjects says.
+  const onCampus = campus.data ? campus.data.subjects.some((s) => s.category === name) : keptSubjects().includes(name);
+  const world = useWorld();
+  const broken = useBroken();
+  if (world.shown && world.view.kind === "building") return <LobbySkeleton name={name} />;
   return (
     <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects">
       <Loading label={`Loading ${name}`} className="space-y-5">
+        {signedIn && !onCampus && plays3d(campus.data) && !broken && <OffCampusNote />}
         {signedIn && !onCampus && (
           <span className={cx(buttonClass("primary"), ADD_ON_PHONE)}>
             <Icon name="plus" className="size-4 shrink-0" />
@@ -82,7 +93,7 @@ export function SubjectSkeleton() {
                 {/* Signed in, each set's next class, one tap away. */}
                 {signedIn && (
                   <div className="mt-auto pt-3">
-                    <span className={cx(buttonClass("quiet", "sm"), "w-full !justify-start")}>
+                    <span className={cx(buttonClass("quiet", "sm"), "w-full justify-start!")}>
                       <SkeletonText className="w-20" />
                     </span>
                   </div>
@@ -90,6 +101,45 @@ export function SubjectSkeleton() {
               </div>
             ))}
           </div>
+        </div>
+      </Loading>
+    </Page>
+  );
+}
+
+// In 3D, the page is its building's lobby (Subject.tsx): the panel's frame, Up next here and the study sets' heading
+// with the lift's line, as placeholders in their places.
+function LobbySkeleton({ name }: { name: string }) {
+  return (
+    <Page title={name} eyebrow={<SkeletonText className="w-48" />} back="/" panel="lobby">
+      <Loading label={`Loading ${name}`} className="space-y-5">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl bg-brand/6 p-3">
+          <SkeletonBlock className="size-10 shrink-0 rounded-xl" />
+          <div className="min-w-0 flex-1 basis-48">
+            <p className="text-xs">
+              <SkeletonText className="w-20" />
+            </p>
+            <p className="font-semibold">
+              <SkeletonText className="w-36" />
+            </p>
+            <p className="text-sm">
+              <SkeletonText className="w-24" />
+            </p>
+          </div>
+          <span className={buttonClass("primary")}>Start</span>
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="flex items-baseline gap-1.5 text-sm font-semibold">
+              Study sets
+              <span className="text-xs font-normal">
+                <SkeletonText className="w-4" />
+              </span>
+            </p>
+          </div>
+          <p className="mt-1.5 text-[11px]">
+            <SkeletonText className="w-36" />
+          </p>
         </div>
       </Loading>
     </Page>

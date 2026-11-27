@@ -12,6 +12,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { PageSkeleton } from "#components/ui/Page.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { useWorld } from "#features/campus/view.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 
@@ -41,6 +42,8 @@ export function ClassroomGuestNote({ returnTo }: { returnTo: string }) {
 export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
   const { id = "" } = useParams();
+  // In 3D, over its room (a panel), when the world can tell its building: from the set, or from the room it was opened in.
+  const world = useWorld();
   const desk: [IconName, string][] = [
     ["review", "Flashcards"],
     ["quiz", "Quiz questions"],
@@ -51,6 +54,7 @@ export function ClassroomSkeleton() {
   return (
     <PageSkeleton
       label="Loading the classroom"
+      panel={world.shown && world.view.kind === "room" ? "side" : undefined}
       width="max-w-3xl"
       actions={
         signedIn && (
@@ -87,7 +91,7 @@ export function ClassroomSkeleton() {
               <Segmented label="What each round shows" items={STUDY_VIEWS_ITEMS} value="both" onChange={() => {}} />
             </div>
           </div>
-          <div className={cx(buttonClass("primary"), "w-full !justify-start gap-3 !px-4 !py-3")}>
+          <div className={cx(buttonClass("primary"), "w-full justify-start! gap-3 px-4! py-3!")}>
             <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15" />
             <span className="min-w-0 flex-1">
               <span className="block text-[11px] font-semibold text-white/70">Up next</span>

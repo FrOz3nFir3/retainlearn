@@ -166,5 +166,5 @@ test("a class left halfway today comes with its set's subtopic and how far it go
   });
   assert.equal(res.status, 200);
   const left = (await campus(lee)).player.classLeft;
-  assert.deepEqual({ key: left?.key, mode: left?.mode, subtopic: left?.subtopic, index: left?.index, of: left?.of }, { key, mode: "quiz", subtopic: "Fundamentals", index: 1, of: 3 });
+  assert.deepEqual({ key: left?.key, mode: left?.mode, category: left?.category, subtopic: left?.subtopic, index: left?.index, of: left?.of }, { key, mode: "quiz", category: "Programming", subtopic: "Fundamentals", index: 1, of: 3 });
 });

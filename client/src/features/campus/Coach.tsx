@@ -15,7 +15,7 @@ import { cx } from "#utils/cx.ts";
 import { useSaveCoachMutation } from "./campusApi.ts";
 import { COACH_CARD } from "./CampusSkeleton.tsx";
 import { coachFor, coachLines, isNews } from "./coach.ts";
-import type { CoachLine } from "./coach.ts";
+import type { CoachAct, CoachLine } from "./coach.ts";
 
 type Who = { name: string; top: string };
 
@@ -92,14 +92,16 @@ export function CoachCard({ who, news, onTalk }: { who: Who; news: boolean; onTa
 
 const same = (a: CoachLine["act"], b: CoachLine["act"]) => !!a && !!b && a.to === b.to;
 
-// The speech box: the line, its options, Later, and the way forward.
-export function CoachTalk({ who, line, lines, onNext, onDone }: { who: Who; line: CoachLine; lines: CoachLine[]; onNext: () => void; onDone: (later?: boolean) => void }) {
+// The speech box: the line, its options, Later, and the way forward. onGo: what an option does instead of opening its
+// page at once, when it takes it on (the 3D campus walks you to a class's building first).
+type TalkProps = { who: Who; line: CoachLine; lines: CoachLine[]; onNext: () => void; onDone: (later?: boolean) => void; onGo?: (act: CoachAct) => boolean };
+export function CoachTalk({ who, line, lines, onNext, onDone, onGo }: TalkProps) {
   const navigate = useNavigate();
   const typed = useTyped(line.text, line.key);
   const also = line.more ? [] : lines.filter((l) => l !== line && l.act && !l.more && !same(l.act, line.act)).slice(0, 3);
-  const go = (to: string) => {
+  const go = (act: CoachAct) => {
     onDone();
-    navigate(to, { state: { returnTo: "/" } });
+    if (!onGo?.(act)) navigate(act.to, { state: { returnTo: "/" } });
   };
   return (
     <Dialog
@@ -113,7 +115,7 @@ export function CoachTalk({ who, line, lines, onNext, onDone }: { who: Who; line
             <div role="group" aria-label="Also" className="mr-auto flex w-full min-w-0 flex-wrap items-center gap-1.5 sm:w-auto sm:flex-1">
               <span className="text-[11px] font-semibold text-ink/45">Also</span>
               {also.map((l) => (
-                <Button key={l.key} size="sm" icon={l.chip.icon} className="!rounded-full" title={l.text} onClick={() => l.act && go(l.act.to)}>
+                <Button key={l.key} size="sm" icon={l.chip.icon} className="!rounded-full" title={l.text} onClick={() => l.act && go(l.act)}>
                   {l.chip.label}
                 </Button>
               ))}
@@ -128,7 +130,7 @@ export function CoachTalk({ who, line, lines, onNext, onDone }: { who: Who; line
               {line.more}
             </Button>
           ) : line.act ? (
-            <Button tone="primary" icon={line.chip.icon} data-autofocus onClick={() => line.act && go(line.act.to)}>
+            <Button tone="primary" icon={line.chip.icon} data-autofocus onClick={() => line.act && go(line.act)}>
               {line.act.label}
             </Button>
           ) : (

@@ -94,3 +94,66 @@ export function useLabelTexture(text: string, { bg = COLORS.ink as string, fg = 
   }, [text, bg, fg, width, height]);
   return texture;
 }
+
+// Words broken into lines no wider than max, at this context's font.
+function wrap(ctx: CanvasRenderingContext2D, words: readonly string[], max: number): string[] {
+  const lines: string[] = [];
+  let line = "";
+  for (const word of words) {
+    const next = line ? `${line} ${word}` : word;
+    if (!line || ctx.measureText(next).width <= max) line = next;
+    else {
+      lines.push(line);
+      line = word;
+    }
+  }
+  if (line) lines.push(line);
+  return lines;
+}
+
+// A classroom's whiteboard with the study set's name on it: up to two lines, as large as fits, and a stroke in the
+// subject's colour underneath. 512 x 200, so the board is 2.56 times as wide as it is tall.
+export const BOARD_ASPECT = 2.56;
+export function useBoardTexture(text: string, accent: string = COLORS.indigo): THREE.CanvasTexture | null {
+  const [texture, setTexture] = useState<THREE.CanvasTexture | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    let tex: THREE.CanvasTexture | undefined;
+    const draw = () => {
+      if (cancelled) return;
+      const canvas = Object.assign(document.createElement("canvas"), { width: 512, height: 200 });
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
+      ctx.fillStyle = "#FCFCFF";
+      ctx.fillRect(0, 0, 512, 200);
+      const words = text.split(/\s+/).filter(Boolean);
+      let size = 60;
+      let lines: string[] = [];
+      for (; size >= 24; size -= 4) {
+        ctx.font = `700 ${size}px ${FONT}`;
+        lines = wrap(ctx, words, 460);
+        if (lines.length <= 2) break;
+      }
+      if (lines.length > 2) lines = [lines[0] ?? "", `${lines[1] ?? ""}…`];
+      ctx.fillStyle = COLORS.ink;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      const lineHeight = size * 1.12;
+      lines.forEach((l, i) => ctx.fillText(l, 256, 88 + (i - (lines.length - 1) / 2) * lineHeight, 480));
+      ctx.fillStyle = accent;
+      ctx.beginPath();
+      ctx.roundRect(196, 160, 120, 10, 5);
+      ctx.fill();
+      tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = 4;
+      setTexture(tex);
+    };
+    document.fonts.load(`700 60px ${FONT}`).then(draw, draw);
+    return () => {
+      cancelled = true;
+      tex?.dispose();
+    };
+  }, [text, accent]);
+  return texture;
+}

@@ -23,6 +23,7 @@ import { RichText } from "#components/ui/RichText.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
+import { useWorld } from "#features/campus/view.ts";
 import { setPath, stepPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetHistoryInfiniteQuery, useGetSuggestionsQuery } from "#features/editor/editorApi.ts";
@@ -50,6 +51,7 @@ export default function Classroom() {
   const set = useGetStudySetQuery(id);
   const progress = useGetProgressQuery(id, { skip: !signedIn });
   const study = useStudyView(signedIn);
+  const world = useWorld();
   const when = useToday();
   if (set.isError) {
     return (
@@ -59,7 +61,9 @@ export default function Classroom() {
     );
   }
   if (!set.data || session === "checking" || (signedIn && progress.isLoading) || study.loading) return <ClassroomSkeleton />;
-  return <ClassroomView set={set.data} progress={progress.data ?? null} when={when} signedIn={signedIn} view={study.view} onView={study.setView} />;
+  // In 3D, a classroom whose subject is on your campus is a panel over its room, in its building (D-20).
+  const overRoom = world.shown && world.view.kind === "room";
+  return <ClassroomView set={set.data} progress={progress.data ?? null} when={when} signedIn={signedIn} view={study.view} onView={study.setView} overRoom={overRoom} />;
 }
 
 // A way into a class, as a row: what it is, why, and Start. returnTo: where the class goes back to (the classroom).
@@ -88,7 +92,7 @@ function UpNext({ next, returnTo }: { next: Next; returnTo: string }) {
     <Link
       to={next.to}
       state={{ returnTo }}
-      className={cx(buttonClass("primary"), "w-full !justify-start gap-3 !px-4 !py-3 text-left")}
+      className={cx(buttonClass("primary"), "w-full justify-start! gap-3 px-4! py-3! text-left")}
       aria-label={`Up next: ${next.label}, ${next.steps ? next.steps.map((s) => `${s.text} ${s.state === "done" ? "done" : s.state === "now" ? "now" : "after"}`).join(", ") : next.note}`}
     >
       <span className="grid size-9 shrink-0 place-items-center rounded-xl bg-white/15">
@@ -118,9 +122,10 @@ function UpNext({ next, returnTo }: { next: Next; returnTo: string }) {
   );
 }
 
-type ViewProps = { set: StudySetContent; progress: ProgressView | null; when: When; signedIn: boolean; view: StudyView; onView: (view: StudyView) => void };
+// overRoom: in 3D, the classroom is a panel over its room (the side panel), the building opened up behind it.
+type ViewProps = { set: StudySetContent; progress: ProgressView | null; when: When; signedIn: boolean; view: StudyView; onView: (view: StudyView) => void; overRoom: boolean };
 
-function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: ViewProps) {
+function ClassroomView({ set, progress, when, signedIn, view: picked, onView, overRoom }: ViewProps) {
   const order = progress?.order ?? null;
   const rounds: SetRound[] = useMemo(() => setRounds(set, order, (f) => reviewLoad(recallPoints(f.answer).length)), [set, order]);
   const states = rounds.map((r) => roundState(r, progress, when));
@@ -173,6 +178,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
       description={textOf(set.description) || `Study ${set.topic}: ${set.subtopic}, in ${set.category}, with flashcards and quizzes.`}
       noindex={!set.listed}
       width="max-w-3xl"
+      panel={overRoom ? "side" : undefined}
       actions={
         signedIn && (
           <Link to={`${home}/edit`} className={buttonClass("quiet", "sm")}>

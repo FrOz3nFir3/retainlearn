@@ -21,6 +21,7 @@ import { pennantOf, subjectPath } from "#features/campus/subjects.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
 import { problemOf } from "#api/problem.ts";
+import { useWorld } from "#features/campus/view.ts";
 import { useAddSubjectMutation, useGetSubjectsQuery } from "./subjectsApi.ts";
 import { DIRECTORY_DESCRIPTION, DIRECTORY_TITLE, DirectorySkeleton, LIST_HEADING, SEARCH_BOX, SUBJECTS_GRID, TOOLBAR } from "./SubjectsSkeleton.tsx";
 
@@ -48,6 +49,9 @@ export default function Subjects() {
   const list = useGetSubjectsQuery({ search, page });
   const session = useSession();
   const signedIn = session === "in";
+  // In 3D, the subjects list is a panel over the campus (D-20), the prototype's directory.
+  const world = useWorld();
+  const overWorld = world.shown && world.view.kind === "directory";
   const campus = useCampus(!signedIn);
   const when = useToday();
   const [addSubject] = useAddSubjectMutation();
@@ -88,7 +92,7 @@ export default function Subjects() {
 
   const data = list.data;
   return (
-    <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={false} description={DIRECTORY_DESCRIPTION}>
+    <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={overWorld ? "/" : false} description={DIRECTORY_DESCRIPTION} panel={overWorld ? "side" : undefined}>
       <div className={TOOLBAR}>
         <search className={SEARCH_BOX}>
           <form

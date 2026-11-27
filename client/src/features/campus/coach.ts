@@ -9,8 +9,10 @@ import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
 import { subjectPath } from "./subjects.ts";
 
 // key: what the line is about, so the coach comes over only with something you haven't heard. act: its button, a
-// page or a class (null: "Thanks"). more: a tour line's button, which moves on instead.
-export type CoachLine = { key: string; text: string; act: { label: string; to: string } | null; chip: { label: string; icon: IconName }; more?: string };
+// page or a class (null: "Thanks"); a class's subject (category), so the 3D campus can walk you to its building first.
+// more: a tour line's button, which moves on instead.
+export type CoachAct = { label: string; to: string; category?: string };
+export type CoachLine = { key: string; text: string; act: CoachAct | null; chip: { label: string; icon: IconName }; more?: string };
 
 // Your coach: a name, a look (which of the 3D campus's characters they are: never the one that's you, 2) and the colour
 // of their training top, from your username, so every player has their own and it's the same coach every day (a coach
@@ -72,7 +74,7 @@ export function coachLines(campus: Campus, username: string | null | undefined):
     ? {
         key: `period:${nextIndex}:${nextPeriod.setId}:${nextPeriod.mode}`,
         text: `${nextIndex === 0 ? "First up today" : "Next on your timetable"}: ${nextPeriod.set?.subtopic ?? "a study set"}, in ${nextPeriod.set?.category ?? "your subjects"}. ${whySaid(nextPeriod.why, nextPeriod.set?.category)} ${CLASS_KINDS[nextPeriod.mode].label}, about ${MINUTES[nextPeriod.mode]} minutes.`,
-        act: { label: "Let's go", to: classPath(nextPeriod.setId, nextPeriod.mode) },
+        act: { label: "Let's go", to: classPath(nextPeriod.setId, nextPeriod.mode), category: nextPeriod.set?.category },
         chip: { label: `Next: ${nextPeriod.set?.subtopic ?? "a class"}`, icon: ICON[nextPeriod.mode] },
       }
     : null;
@@ -100,7 +102,7 @@ export function coachLines(campus: Campus, username: string | null | undefined):
       lines.push({
         key: `left:${left.key}`,
         text: `You left ${left.subtopic ?? "a class"} halfway, at ${where}. Pick it up where you were?`,
-        act: { label: "Carry on", to },
+        act: { label: "Carry on", to, category: left.category ?? undefined },
         chip: { label: `Carry on: ${left.subtopic ?? "your class"}`, icon: ICON[left.mode] },
       });
     }

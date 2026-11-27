@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ReportCard, ReportCardSet, Subject } from "@retainlearn/core";
-import { alsoNeedsAttention, matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
+import { SETS_PER_PAGE, alsoNeedsAttention, matchesSearch, ordered, roomsPage, subjectProgress, upNextHere } from "./subjectProgress.ts";
 
 const when = { today: "2026-11-24", timeZone: "UTC" };
 const subject: Subject = {
@@ -95,4 +95,16 @@ test("also needing attention: the other sets with something missed, fading or ha
   );
   assert.deepEqual(alsoNeedsAttention(rooms, next, 1).map((r) => r.set._id), ["css"], "up to the most asked for");
   assert.deepEqual(alsoNeedsAttention(subjectProgress(subject, null, when).rooms, null), [], "signed out: none");
+});
+
+test("9 sets a page, the list's and the building's floors alike: the page asked for, or the one a set is on", () => {
+  const many: Subject = { name: "Big", sets: Array.from({ length: 20 }, (_, i) => ({ _id: `s${i}`, topic: "T", subtopic: `Set ${i}`, flashcards: 2, questions: 0 })) };
+  const { rooms } = subjectProgress(many, null, when);
+  assert.equal(SETS_PER_PAGE, 9);
+  const first = roomsPage(rooms, { page: null });
+  assert.deepEqual([first.page, first.pages, first.items.length, first.newRoom], [1, 3, 9, false], "a full page has no room for a new set");
+  assert.equal(roomsPage(rooms, { page: null, roomId: "s12" }).page, 2, "a classroom's floor: the page its set is on");
+  const last = roomsPage(rooms, { page: 9 });
+  assert.deepEqual([last.page, last.items.length, last.newRoom], [3, 2, true], "a page past the last is the last, where a new set has its room");
+  assert.equal(roomsPage(rooms.slice(0, 2), { page: null, search: "Set" }).newRoom, false, "not while searching");
 });

@@ -13,26 +13,29 @@ import { cardClass, cardLinkClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
+import { IconButton } from "#components/ui/IconButton.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Pager, usePageHeading } from "#components/ui/Pager.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
+import { ROOMS_PER_FLOOR, classFloors } from "#features/campus/scene/layout.ts";
 import { SET_STATUS_TONE, subjectPath } from "#features/campus/subjects.ts";
+import { plays3d, useBroken, useWorld } from "#features/campus/view.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { useNextClass } from "#features/classroom/useNextClass.ts";
 import { cx } from "#utils/cx.ts";
 import { useReportCard } from "#features/report-card/reportCardApi.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { NewStudySet } from "./NewStudySet.tsx";
-import { alsoNeedsAttention, matchesSearch, ordered, subjectProgress, upNextHere } from "./subjectProgress.ts";
+import { SETS_PER_PAGE, alsoNeedsAttention, matchesSearch, ordered, roomsPage, subjectProgress, upNextHere } from "./subjectProgress.ts";
 import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf } from "#api/problem.ts";
 import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
-import { ADD_ON_PHONE, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
+import { ADD_ON_PHONE, OffCampusNote, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
 
-const SETS_PER_PAGE = 12;
+const FLOORS_PER_PAGE = SETS_PER_PAGE / ROOMS_PER_FLOOR; // the lift: page 2 is floors 4 to 6
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
 const ORDERS = [
@@ -47,6 +50,9 @@ export default function Subject() {
   const signedIn = session === "in";
   const campus = useCampus(!signedIn);
   const card = useReportCard(!signedIn);
+  const world = useWorld();
+  const lobby = world.shown && world.view.kind === "building";
+  const broken = useBroken();
   if (subject.isError) {
     const badName = (subject.error as { status?: unknown }).status === 400;
     return badName ? <NotASubject /> : <Failed retry={() => void subject.refetch()} />;
@@ -55,7 +61,7 @@ export default function Subject() {
   const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError)));
   if (!subject.data || waiting) return <SubjectSkeleton />;
   const onCampus = signedIn && campus.data ? (campus.data.subjects.find((s) => s.category === subject.data?.name) ?? false) : null;
-  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} />;
+  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} lobby={lobby} in3d={signedIn && plays3d(campus.data) && !broken} />;
 }
 
 function NotASubject() {
@@ -77,11 +83,15 @@ function Failed({ retry }: { retry: () => void }) {
 type Notice = { tone: "done" | "failed"; text: string };
 
 // onCampus: the subject on your campus, false when it isn't there, null when signed out (or the campus didn't load).
-function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean }) {
+// lobby: in 3D, the subject's page is its building's lobby, a panel over the world with the building opened up behind it
+// (D-20): no cards, as the floors are the list; the lift instead of pages.
+type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; lobby: boolean; in3d: boolean };
+function SubjectView({ subject, card, onCampus, signedIn, lobby, in3d }: ViewProps) {
   const when = useToday();
   const [params, setParams] = useSearchParams();
   const search = (params.get("search") ?? "").trim();
-  const order: Order = signedIn && params.get("order") === "attention" ? "attention" : "building";
+  // The lobby keeps the building's order: the floors don't reshuffle, so rooms stay where you left them.
+  const order: Order = signedIn && !lobby && params.get("order") === "attention" ? "attention" : "building";
   const { rooms, stats } = useMemo(() => subjectProgress(subject, card, when), [subject, card, when]);
   const next = signedIn ? upNextHere(rooms) : null;
   const attention = signedIn ? alsoNeedsAttention(rooms, next?.room ?? null) : [];
@@ -93,11 +103,18 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per set, not per render
   }, [nextId]);
   const found = useMemo(() => ordered(rooms, order).filter((r) => matchesSearch(r.set, search)), [rooms, order, search]);
-  const pages = Math.max(1, Math.ceil(found.length / SETS_PER_PAGE));
-  const page = Math.min(pages, Math.max(1, Math.floor(Number(params.get("page"))) || 1));
-  const shown = found.slice((page - 1) * SETS_PER_PAGE, page * SETS_PER_PAGE);
+  const { items: shown, page, pages, newRoom } = roomsPage(found, { page: Number(params.get("page")) || null, search });
   const heading = usePageHeading(page);
   const [newOpen, setNewOpen] = useState(false);
+  // The building's "+ New study set" room links here with ?new=1: the form opens, and the address loses the flag.
+  useEffect(() => {
+    if (!params.has("new")) return;
+    if (signedIn) setNewOpen(true);
+    const rest = new URLSearchParams(params);
+    rest.delete("new");
+    setParams(rest, { replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- when the flag arrives
+  }, [params.has("new")]);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [addSubject, adding] = useAddSubjectMutation();
   const [removeSubject, removing] = useRemoveSubjectMutation();
@@ -138,7 +155,8 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
     <Page
       title={subject.name}
       eyebrow={counts}
-      back="/subjects"
+      back={lobby ? "/" : "/subjects"}
+      panel={lobby ? "lobby" : undefined}
       description={`Study ${subject.name} on RetainLearn: ${counts}, reviewed and quizzed until they stick.`}
       noindex={subject.sets.length === 0}
       actions={
@@ -150,6 +168,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
       }
     >
       <div className="space-y-5">
+        {onCampus === false && in3d && <OffCampusNote />}
         {onCampus === false && (
           <Button tone="primary" icon="plus" disabled={adding.isLoading} onClick={addToCampus} className={ADD_ON_PHONE}>
             Add to my campus
@@ -160,7 +179,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
         </div>
 
         {signedIn && stats.started > 0 && (
-          <section aria-label={`How you stand in ${subject.name}`} className="panel bg-surface p-4">
+          <section aria-label={`How you stand in ${subject.name}`} className={lobby ? "max-sm:hidden" : "panel bg-surface p-4"}>
             <div className="flex items-baseline justify-between gap-3">
               <span className="font-display text-3xl font-semibold tabular-nums">{pct(stats.mastery)}</span>
               <span className="text-xs text-ink/50">{`mastery, ${plural(stats.started, "set")} started`}</span>
@@ -176,7 +195,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
         )}
 
         {next ? (
-          <section aria-label="Up next here" className="panel flex flex-wrap items-center gap-3 bg-surface p-4">
+          <section aria-label="Up next here" className={cx("flex flex-wrap items-center gap-3", lobby ? "rounded-2xl bg-brand/6 p-3" : "panel bg-surface p-4")}>
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
               <Icon name={statusIcon(next.room)} className="size-5" />
             </span>
@@ -190,7 +209,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
               {classes.opening === next.room.set._id ? "Opening…" : "Start"}
             </Button>
             {attention.length > 0 && (
-              <div className="hidden w-full border-t border-ink/[0.06] pt-3 sm:block">
+              <div className="hidden w-full border-t border-ink/6 pt-3 sm:block">
                 <h3 className="mb-1 text-[11px] font-semibold text-ink/50">Also needs attention</h3>
                 <ul>
                   {attention.map((r) => (
@@ -202,9 +221,9 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
                         onClick={() => void classes.open(r.set._id)}
                         onPointerEnter={() => classes.prefetch(r.set._id)}
                         onFocus={() => classes.prefetch(r.set._id)}
-                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
+                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-ink/3 focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
                       >
-                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/[0.08] text-brand">
+                        <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/8 text-brand">
                           <Icon name={statusIcon(r)} className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.set.subtopic}</span>
@@ -227,76 +246,121 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
           )
         )}
 
-        <section aria-labelledby="sets-title">
-          <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-            <h2 id="sets-title" ref={heading} tabIndex={-1} className={SETS_HEADING}>
-              {search ? `Study sets matching “${search}”` : "Study sets"}
-              <span className="text-sm font-normal text-ink/50 tabular-nums">{found.length.toLocaleString("en")}</span>
-            </h2>
-            {signedIn ? (
-              <Button icon="plus" onClick={() => setNewOpen(true)}>
-                New study set
-              </Button>
-            ) : (
-              <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("quiet")}>
-                Sign in to add a study set
-              </Link>
-            )}
-          </div>
-          {(rooms.length > SETS_PER_PAGE || search || (signedIn && rooms.length > 1)) && (
-            <div className="mb-3 flex flex-wrap items-center gap-3">
-              {(rooms.length > SETS_PER_PAGE || search) && (
-                <search className="min-w-0 flex-1 basis-56">
+        {lobby ? (
+          // The lobby: no cards (the floors are the list), the search once there's more than a page, and the lift.
+          <section aria-labelledby="sets-title">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h2 id="sets-title" ref={heading} tabIndex={-1} className="flex items-baseline gap-1.5 text-sm font-semibold outline-none">
+                {search ? `Study sets matching “${search}”` : "Study sets"}
+                <span className="text-xs font-normal text-ink/50 tabular-nums">{found.length.toLocaleString("en")}</span>
+              </h2>
+              {/* Not while the building has its own "+ New study set" room on show. */}
+              {!newRoom && (
+                <Button size="sm" icon="plus" onClick={() => setNewOpen(true)}>
+                  New study set
+                </Button>
+              )}
+            </div>
+            {(rooms.length > SETS_PER_PAGE || search) && (
+              <div className="flex items-center gap-2">
+                <search className="min-w-0 flex-1">
                   <form action={home} method="get" onSubmit={(e) => e.preventDefault()}>
                     <SearchInput
                       name="search"
                       label={`Search ${subject.name}'s study sets`}
-                      placeholder="Search these study sets"
+                      placeholder="Search this building"
                       value={params.get("search") ?? ""}
                       onChange={(value) => setParams(paramsWith({ search: value, page: 1 }), { replace: true })}
                     />
                   </form>
                 </search>
-              )}
-              {signedIn && rooms.length > 1 && (
-                <Segmented label="Order of the study sets" items={ORDERS} value={order} onChange={(value) => setParams(paramsWith({ order: value, page: 1 }), { replace: true })} />
+                {pages > 1 && (
+                  <div role="group" aria-label="Lift" className="flex shrink-0 items-center rounded-xl border border-ink/10 bg-surface">
+                    <IconButton icon="chevronUp" size="sm" label="Up a page of floors" disabled={page >= pages} onClick={() => setParams(paramsWith({ page: page + 1 }))} />
+                    <IconButton icon="chevronDown" size="sm" label="Down a page of floors" disabled={page <= 1} onClick={() => setParams(paramsWith({ page: page - 1 }))} />
+                  </div>
+                )}
+              </div>
+            )}
+            <p role="status" className="sr-only">
+              {search ? `${plural(found.length, "study set")} found` : ""}
+            </p>
+            <p className="mt-1.5 text-[11px] text-ink/50">
+              {pages > 1 ? `Floors ${(page - 1) * FLOORS_PER_PAGE + 1}–${(page - 1) * FLOORS_PER_PAGE + classFloors(shown.length + (newRoom ? 1 : 0))}. The lift shows the next ${SETS_PER_PAGE} study sets.` : "Tap a classroom to open it."}
+            </p>
+          </section>
+        ) : (
+          <section aria-labelledby="sets-title">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <h2 id="sets-title" ref={heading} tabIndex={-1} className={SETS_HEADING}>
+                {search ? `Study sets matching “${search}”` : "Study sets"}
+                <span className="text-sm font-normal text-ink/50 tabular-nums">{found.length.toLocaleString("en")}</span>
+              </h2>
+              {signedIn ? (
+                <Button icon="plus" onClick={() => setNewOpen(true)}>
+                  New study set
+                </Button>
+              ) : (
+                <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("quiet")}>
+                  Sign in to add a study set
+                </Link>
               )}
             </div>
-          )}
-          <p role="status" className="sr-only">
-            {search ? `${plural(found.length, "study set")} found` : ""}
-          </p>
+            {(rooms.length > SETS_PER_PAGE || search || (signedIn && rooms.length > 1)) && (
+              <div className="mb-3 flex flex-wrap items-center gap-3">
+                {(rooms.length > SETS_PER_PAGE || search) && (
+                  <search className="min-w-0 flex-1 basis-56">
+                    <form action={home} method="get" onSubmit={(e) => e.preventDefault()}>
+                      <SearchInput
+                        name="search"
+                        label={`Search ${subject.name}'s study sets`}
+                        placeholder="Search these study sets"
+                        value={params.get("search") ?? ""}
+                        onChange={(value) => setParams(paramsWith({ search: value, page: 1 }), { replace: true })}
+                      />
+                    </form>
+                  </search>
+                )}
+                {signedIn && rooms.length > 1 && (
+                  <Segmented label="Order of the study sets" items={ORDERS} value={order} onChange={(value) => setParams(paramsWith({ order: value, page: 1 }), { replace: true })} />
+                )}
+              </div>
+            )}
+            <p role="status" className="sr-only">
+              {search ? `${plural(found.length, "study set")} found` : ""}
+            </p>
 
-          {rooms.length === 0 ? (
-            <Empty
-              icon="layers"
-              title={`No study sets in ${subject.name} yet`}
-              body="Make the first: give it a topic and the part of it it covers, then add its flashcards."
-              action={
-                signedIn ? (
-                  <Button tone="primary" icon="plus" onClick={() => setNewOpen(true)}>
-                    New study set
-                  </Button>
-                ) : (
-                  <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("primary")}>
-                    Sign in to make one
-                  </Link>
-                )
-              }
-            />
-          ) : shown.length === 0 ? (
-            <Empty icon="search" title={`Nothing matches “${search}”`} body="Try a different word, or clear the search." />
-          ) : (
-            <ul className={SETS_GRID}>
-              {shown.map((room) => (
-                <li key={room.set._id}>
-                  <RoomCard room={room} signedIn={signedIn} classes={classes} />
-                </li>
-              ))}
-            </ul>
-          )}
-          <Pager page={page} pages={pages} href={hrefFor} label={`Pages of ${subject.name}'s study sets`} />
-        </section>
+            {rooms.length === 0 ? (
+              <Empty
+                icon="layers"
+                title={`No study sets in ${subject.name} yet`}
+                body="Make the first: give it a topic and the part of it it covers, then add its flashcards."
+                action={
+                  signedIn ? (
+                    <Button tone="primary" icon="plus" onClick={() => setNewOpen(true)}>
+                      New study set
+                    </Button>
+                  ) : (
+                    <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("primary")}>
+                      Sign in to make one
+                    </Link>
+                  )
+                }
+              />
+            ) : shown.length === 0 ? (
+              <Empty icon="search" title={`Nothing matches “${search}”`} body="Try a different word, or clear the search." />
+            ) : (
+              <ul className={SETS_GRID}>
+                {shown.map((room) => (
+                  <li key={room.set._id}>
+                    <RoomCard room={room} signedIn={signedIn} classes={classes} />
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Pager page={page} pages={pages} href={hrefFor} label={`Pages of ${subject.name}'s study sets`} />
+          </section>
+        )}
 
         {onCampus && onCampus.started === 0 && (
           <div className="flex justify-center border-t border-ink/7 pt-5">
@@ -350,7 +414,7 @@ function RoomCard({ room, signedIn, classes }: { room: Room; signedIn: boolean; 
             onClick={() => void classes.open(set._id)}
             onPointerEnter={() => classes.prefetch(set._id)}
             onFocus={() => classes.prefetch(set._id)}
-            className="relative z-1 w-full !justify-start"
+            className="relative z-1 w-full justify-start!"
           >
             {classes.opening === set._id ? "Opening…" : stats.started ? "Next class" : "Start"}
           </Button>

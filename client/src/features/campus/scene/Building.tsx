@@ -1,4 +1,4 @@
-// A subject's building, from outside (the prototype's scene/Building.jsx; the view inside comes with the next step):
+// A subject's building (the prototype's scene/Building.jsx), from outside, or opened up while you're in it (Interior.tsx):
 // the kit's walls, with a window lit for each share of your mastery, one at a time as it changes; its sign and its
 // pennant in the subject's colour; scaffolding while it has no study sets; a cloud raining on it once it's gone cold;
 // sparkles from its roof when you come back from a class finished here.
@@ -11,6 +11,8 @@ import { useFrame } from "@react-three/fiber";
 import * as THREE from "three";
 import { KitShell, BASE, STOREY, kitWindows, roofHeight } from "./kit.tsx";
 import { subjectPath } from "../subjects.ts";
+import { Interior } from "./Interior.tsx";
+import type { Inside } from "./Interior.tsx";
 import { Label, PlaceLink } from "./Label.tsx";
 import type { CampusBuilding } from "./layout.ts";
 import { COLORS, facingCenter, prefersReducedMotion, roundedRectShape, useLabelTexture } from "./util.ts";
@@ -53,17 +55,19 @@ const STATUS: Record<string, { label: string; tag: string }> = {
 };
 
 // onEnter: straight in (its label, a link); onTap: a tap on the building itself (on your campus, you walk over first).
-// celebrate: a class here has just finished, so sparkles burst from its roof.
+// celebrate: a class here has just finished, so sparkles burst from its roof. inside: you're in it (its subject's page
+// is open over the world): the building opens up to show its classrooms (Interior.tsx).
 type BuildingProps = {
   b: CampusBuilding;
   labels?: boolean;
   celebrate?: boolean;
+  inside?: Inside | null;
   onEnter: (b: CampusBuilding) => void;
   onTap?: (b: CampusBuilding) => void;
   onFocus?: (at: readonly [number, number]) => void;
 };
 
-export function Building({ b, labels = true, celebrate = false, onEnter, onTap = onEnter, onFocus }: BuildingProps) {
+export function Building({ b, labels = true, celebrate = false, inside = null, onEnter, onTap = onEnter, onFocus }: BuildingProps) {
   const { subject } = b;
   const empty = subject.sets === 0;
   const status = empty ? "empty" : subject.status;
@@ -81,6 +85,13 @@ export function Building({ b, labels = true, celebrate = false, onEnter, onTap =
     if (e.delta >= 6) return; // a drag of the map, not a tap
     onTap(b);
   };
+  const state = cold ? "cold" : status === "cooling" ? "cooling" : "warm";
+  if (inside) {
+    // People studying in the lobby: busier the more alive the subject is for you.
+    const lobby = empty ? 0 : status === "cold" ? 1 : status === "cooling" ? 2 : 3;
+    const pennant = (top: number) => <Pennant color={cold ? COLORS.cold : b.pennant} position={[w / 2 - 0.9, top, -d / 2 + 0.9]} />;
+    return <Interior b={b} rot={rot} shell={{ cols: b.cells[0], lit, state, style }} lobby={lobby} sign={sign} inside={inside} pennant={pennant} />;
+  }
   return (
     <group position={[b.pos[0], 0, b.pos[1]]}>
       <group rotation-y={rot} onClick={tap} {...pointer}>
@@ -88,7 +99,7 @@ export function Building({ b, labels = true, celebrate = false, onEnter, onTap =
           <boxGeometry args={[w + 1.4, BASE, d + 1.4]} />
         </mesh>
         <Suspense fallback={null}>
-          <KitShell cols={b.cells[0]} floors={b.floors} lit={lit} state={cold ? "cold" : status === "cooling" ? "cooling" : "warm"} style={style} />
+          <KitShell cols={b.cells[0]} floors={b.floors} lit={lit} state={state} style={style} />
         </Suspense>
         {sign && (
           <mesh position={[0, BASE + 2.92, d / 2 + 0.22]}>

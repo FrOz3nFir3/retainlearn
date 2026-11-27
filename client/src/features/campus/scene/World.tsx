@@ -14,9 +14,11 @@ import { MapControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { Campus } from "@retainlearn/core";
 import type { Coach as CoachLook } from "../coach.ts";
-import type { MapCommand } from "../view.ts";
+import type { MapCommand, WorldView } from "../view.ts";
 import { Building, FreePlot } from "./Building.tsx";
-import { preloadKit } from "./kit.tsx";
+import { floorsInside } from "./Interior.tsx";
+import type { Inside } from "./Interior.tsx";
+import { STOREY, preloadKit } from "./kit.tsx";
 import { labelLayer } from "./labelLayer.ts";
 import { layoutCampus, occupiedPoints, slug } from "./layout.ts";
 import type { CampusBuilding } from "./layout.ts";
@@ -26,7 +28,7 @@ import type { Door } from "./People.tsx";
 import { OFFICE } from "./places.ts";
 import { Bus, BusStop, ClockTower, CoachOffice, Fountain, Hills, Lamps, Trees } from "./Props.tsx";
 import { Sky } from "./Sky.tsx";
-import { COLORS, doorPoint, prefersReducedMotion, roundedRectShape } from "./util.ts";
+import { COLORS, doorPoint, facingCenter, prefersReducedMotion, roundedRectShape } from "./util.ts";
 import { you, walkTo } from "./you.ts";
 
 // The coach, as the HUD has them (Coach.tsx's useCoach): who they are, whether they have news and are coming over
@@ -37,6 +39,12 @@ export type ClassWalk = { category: string; then: () => void; n: number };
 
 export type WorldProps = {
   campus: Campus;
+  // What the world stands behind (view.ts): the campus, the subjects list, a subject's building or a set's room;
+  // category: the building a room is in.
+  view: WorldView;
+  category: string | null;
+  // Inside a building: the page of its classrooms on show, and what its rooms do (Interior.tsx).
+  inside: Inside | null;
   coach: CoachState;
   hour: number;
   command: MapCommand | null;
@@ -188,12 +196,49 @@ function keepInView(camera: THREE.Camera, target: THREE.Vector3, dt: number) {
 // at most that far away). While you walk it keeps you on screen. A drag of your own cancels all that. The point it
 // looks at stays on the lot.
 // exact: at that distance (the coach's close-up, and your view back after it), else at most that far (a focused label).
+// Inside a building (shot), the camera frames its cutaway, and back out on the campus it steps back from that building.
 export type Look = { at: readonly [number, number]; distance: number; exact?: boolean; n: number };
-function CameraRig({ half, command, look }: { half: number; command: MapCommand | null; look: Look | null }) {
+type Shot = { b: CampusBuilding; floors: number; roomOpen: boolean };
+// Framing for the cutaway: in front of the building, low and nearly level (so each floor's slab doesn't hide the boards
+// on the back walls below it), a little to one side so the panels don't cover it. Wide screens: the lobby panel is on
+// the left (the building right of centre); a classroom's panel is on the right (the building left of centre). Phones:
+// the lobby sits on top, so the aim is above the building (it lands below the lobby); a classroom's sheet comes up from
+// the bottom, so the aim is below it (it lands in the band above the sheet).
+function interiorGoal({ b, floors, roomOpen }: Shot) {
+  const rot = facingCenter(b.pos);
+  const n = new THREE.Vector3(Math.sin(rot), 0, Math.cos(rot));
+  const right = new THREE.Vector3(n.z, 0, -n.x);
+  const narrow = isNarrow();
+  const H = floors * STOREY + 0.3;
+  const target = new THREE.Vector3(b.pos[0], H / 2 + (narrow ? (roomOpen ? -6.5 : 4.5) : 0.2), b.pos[1]).add(right.multiplyScalar(narrow ? 0 : roomOpen ? 4.6 : -3.4));
+  const dist = 20 + b.size[0] * 1.15 + floors * 2.4 + (narrow ? 30 : 0);
+  return { target, position: target.clone().add(n.multiplyScalar(dist)).add(new THREE.Vector3(0, 2.5 + floors * 0.7, 0)) };
+}
+function CameraRig({ half, command, look, shot }: { half: number; command: MapCommand | null; look: Look | null; shot: Shot | null }) {
   const controls = useThree((s) => s.controls) as unknown as { target: THREE.Vector3; update: () => void; addEventListener: (t: string, f: () => void) => void; removeEventListener: (t: string, f: () => void) => void } | null;
   const camera = useThree((s) => s.camera);
   const goal = useRef<{ target: THREE.Vector3; position: THREE.Vector3 } | null>(null);
   const instant = useMemo(prefersReducedMotion, []);
+
+  // Into a building (or a room in it, or another page of its floors), and back out of it.
+  const lastInside = useRef<CampusBuilding | null>(null);
+  const shotKey = shot ? `${shot.b.id}:${shot.floors}:${shot.roomOpen}` : null;
+  useEffect(() => {
+    if (!controls) return;
+    if (shot) {
+      goal.current = interiorGoal(shot);
+      lastInside.current = shot.b;
+      return;
+    }
+    const was = lastInside.current;
+    if (!was) return;
+    lastInside.current = null;
+    const target = new THREE.Vector3(was.pos[0], 0, was.pos[1]);
+    const offset = camera.position.clone().sub(controls.target);
+    offset.y = Math.max(offset.y, offset.length() * 0.62);
+    goal.current = { target, position: target.clone().add(offset.setLength(64)) };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- by the shot's key, not each render's object
+  }, [shotKey, controls]);
 
   useEffect(() => {
     if (!controls) return;
@@ -290,15 +335,33 @@ function useVisible(): boolean {
   return visible;
 }
 
-export default function World({ campus, coach, hour, command, walk, celebrate, onEnter, onAddSubject, onReportCard, onTower, onRing, onLost }: WorldProps) {
+export default function World({ campus, view, category, inside, coach, hour, command, walk, celebrate, onEnter, onAddSubject, onReportCard, onTower, onRing, onLost }: WorldProps) {
   const layout = useMemo(() => layoutCampus(campus.subjects), [campus.subjects]);
-  const avoid = useMemo(() => occupiedPoints(layout), [layout]);
+  const onCampus = view.kind === "campus";
+  // The building you're in, behind its subject's page or one of its classrooms, and the camera's shot of it.
+  const insideId = inside ? slug(view.kind === "building" ? view.category : (category ?? "")) : null;
+  const insideOf = layout.buildings.find((b) => b.id === insideId) ?? null;
+  const shot = insideOf && inside ? { b: insideOf, floors: floorsInside(inside.page), roomOpen: view.kind === "room" } : null;
+  // Inside a building, the view into its cutaway stays clear: no trees between it and the quad.
+  const avoid = useMemo(() => {
+    const points = occupiedPoints(layout);
+    if (!insideOf) return points;
+    const front = doorPoint(insideOf, 9);
+    return [...points, [front.x, front.z] as const, [front.x * 0.55, front.z * 0.55] as const];
+  }, [layout, insideOf]);
   const fountain = campus.player.unlocks.includes("fountain");
   const nav = navFor(layout, fountain);
   const visible = useVisible();
   const narrow = isNarrow();
   const g = grow(layout.half);
   const root = useRef<HTMLDivElement>(null);
+  // The GPU giving the canvas up while the world is open; not the canvas let go as the world closes (three.js gives up
+  // its own context then, which raises the same event).
+  const open = useRef(true);
+  useLayoutEffect(() => {
+    open.current = true;
+    return () => void (open.current = false);
+  }, []);
   const [look, setLook] = useState<Look | null>(null);
   const lookAt = (at: readonly [number, number], distance = 64, exact = false) => setLook({ at, distance, exact, n: performance.now() });
   const road = useMemo(() => roadLine(layout.half), [layout.half]);
@@ -350,7 +413,7 @@ export default function World({ campus, coach, hour, command, walk, celebrate, o
         camera={{ fov: 30, position: HOME_TARGET.clone().add(homeOffset(layout.half)).toArray(), near: 1, far: 700 * g }}
         onPointerMissed={() => (document.body.style.cursor = "")}
         onCreated={({ gl, scene, camera }) => {
-          gl.domElement.addEventListener("webglcontextlost", onLost, { once: true });
+          gl.domElement.addEventListener("webglcontextlost", () => open.current && onLost(), { once: true });
           // In development only: the browser checks find things on screen and read draw calls.
           if (import.meta.env.DEV) Object.assign(window, { __gl: gl, __scene: scene, __camera: camera });
         }}
@@ -360,23 +423,34 @@ export default function World({ campus, coach, hour, command, walk, celebrate, o
         <Grounds half={layout.half} curve={road} />
         <Quad buildings={layout.buildings} />
         {layout.buildings.map((b) => (
-          <Building key={b.id} b={b} celebrate={b.name === celebrate} onEnter={enter} onTap={(x) => walkTo({ door: x.id, then: () => enter(x) })} onFocus={lookAt} />
+          <Building
+            key={b.id}
+            b={b}
+            labels={!insideId}
+            inside={b.id === insideId ? inside : null}
+            celebrate={b.name === celebrate}
+            onEnter={enter}
+            onTap={onCampus ? (x) => walkTo({ door: x.id, then: () => enter(x) }) : enter}
+            onFocus={lookAt}
+          />
         ))}
-        {layout.freePlot && <FreePlot plot={layout.freePlot} onAdd={onAddSubject} onFocus={lookAt} />}
-        <ClockTower streak={campus.player.streak.count} kept={campus.player.streak.keptToday} rung={rung} onTap={onTower} onRing={onRing} />
+        {/* Inside a building, the campus's own things step aside: the tower would stand between the camera and the
+            cutaway (and catch its taps), and their labels would crowd the rooms'. */}
+        {!insideId && layout.freePlot && <FreePlot plot={layout.freePlot} onAdd={onAddSubject} onFocus={lookAt} />}
+        {!insideId && <ClockTower streak={campus.player.streak.count} kept={campus.player.streak.keptToday} rung={rung} onTap={onTower} onRing={onRing} />}
         {fountain && <Fountain />}
-        <CoachOffice who={coach.who} onOpen={openOffice} onTap={() => walkTo({ door: "office", then: openOffice })} onFocus={lookAt} />
+        {!insideId && <CoachOffice who={coach.who} onOpen={openOffice} onTap={onCampus ? () => walkTo({ door: "office", then: openOffice }) : openOffice} onFocus={lookAt} />}
         <Trees avoid={avoid} half={layout.half} />
-        <Lamps />
+        {!insideId && <Lamps />}
         <Bus curve={road} half={layout.half} />
         <BusStop half={layout.half} />
         <Hills half={layout.half} />
-        <Students buildings={layout.buildings} mastery={mastery} />
-        <You nav={nav} doors={doors} steerable={steerable} />
-        <Coach who={coach.who} nav={nav} comes={coach.comes} news={coach.news} talking={coach.talking} onTalk={coach.onTalk} onFrame={(at, distance) => lookAt(at, distance, true)} />
+        {!insideId && <Students buildings={layout.buildings} mastery={mastery} />}
+        <You nav={nav} doors={doors} steerable={steerable} active={onCampus} />
+        {onCampus && <Coach who={coach.who} nav={nav} comes={coach.comes} news={coach.news} talking={coach.talking} onTalk={coach.onTalk} onFrame={(at, distance) => lookAt(at, distance, true)} />}
         <Declutter />
-        <MapControls makeDefault enableDamping dampingFactor={0.08} minDistance={18} maxDistance={(narrow ? 230 : 140) * g} minPolarAngle={0.5} maxPolarAngle={1.1} />
-        <CameraRig half={layout.half} command={command} look={look} />
+        <MapControls makeDefault enableDamping dampingFactor={0.08} minDistance={18} maxDistance={(narrow ? 230 : 140) * g} minPolarAngle={0.5} maxPolarAngle={insideId ? 1.42 : 1.1} />
+        <CameraRig half={layout.half} command={command} look={look} shot={shot} />
       </Canvas>
       {/* The places' labels, and their links (overflow: clip, so focusing one never scrolls the layer). */}
       <div ref={labelLayer} role="group" aria-label="Places on your campus" className="pointer-events-none absolute inset-0 overflow-clip" />

@@ -56,6 +56,20 @@ const RANK: Record<StudySetStatus["key"], number> = { missed: 0, fading: 1, inPr
 export const ordered = (rooms: readonly Room[], order: Order): Room[] =>
   order === "attention" ? rooms.toSorted((a, b) => RANK[a.status.key] - RANK[b.status.key] || missedIn(b) - missedIn(a)) : [...rooms];
 
+// A page of a subject's sets, 9 to a page: a page of the 2D list, and in 3D the classroom floors the lift shows, 3 rooms
+// a floor (D-19: the two match). page: the page asked for (clamped); with none, the one a set is on (roomId), else the
+// first. newRoom: the "+ New study set" room after the last set, when there's space on the last page and no search.
+export const SETS_PER_PAGE = 9;
+export type RoomsPage = { items: Room[]; page: number; pages: number; newRoom: boolean };
+export function roomsPage(found: readonly Room[], { page, roomId = null, search = "" }: { page: number | null; roomId?: string | null; search?: string }): RoomsPage {
+  const pages = Math.max(1, Math.ceil(found.length / SETS_PER_PAGE));
+  const at = roomId ? found.findIndex((r) => r.set._id === roomId) : -1;
+  const asked = page ?? (at >= 0 ? Math.floor(at / SETS_PER_PAGE) + 1 : 1);
+  const current = Math.min(pages, Math.max(1, Math.floor(asked) || 1));
+  const items = found.slice((current - 1) * SETS_PER_PAGE, current * SETS_PER_PAGE);
+  return { items, page: current, pages, newRoom: current === pages && items.length < SETS_PER_PAGE && !search };
+}
+
 // Whether a set matches the search: every word typed, in its titles, in any case.
 export function matchesSearch(set: SubjectSet, query: string): boolean {
   const text = `${set.subtopic} ${set.topic}`.toLocaleLowerCase();

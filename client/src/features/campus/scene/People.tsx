@@ -76,6 +76,19 @@ export function Students({ buildings, mastery }: { buildings: readonly CampusBui
   ));
 }
 
+// A student on a classroom chair, facing the board (-z): only the top half shows over the desk.
+const SIT_Y = 0.14; // the kit's sitting pose, lifted onto a classroom chair
+const SIT_SCALE = 2.1; // smaller than on the street, so heads clear the desks
+export function Seated({ seed }: { seed: number }) {
+  return (
+    <group rotation-y={Math.PI} position-y={SIT_Y}>
+      <Suspense fallback={null}>
+        <KitPerson variant={(seed * 7) % PEOPLE_COUNT} action="sit" scale={SIT_SCALE} />
+      </Suspense>
+    </group>
+  );
+}
+
 // ---------- you ----------
 
 // A place you can go into from its door: a subject's building, or the coach's office (your report card).
@@ -98,7 +111,9 @@ type Plan = { pts: THREE.Vector3[]; i: number; top: number; v: number; left: num
 // - at a door, "Go into …" (or Enter) takes you in;
 // - Start on the timetable walks you to its building first (a walk nothing else cuts short).
 // Coming back to the campus, you come out of the door of the place you went into.
-export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[]; steerable: () => boolean }) {
+// active: on the campus itself; behind another page (inside a building, the subjects list) you wait out of sight, where
+// you were, and the keys and doors are left alone.
+export function You({ nav, doors, steerable, active = true }: { nav: Nav; doors: readonly Door[]; steerable: () => boolean; active?: boolean }) {
   const ref = useRef<THREE.Group>(null);
   const person = useRef<PersonApi>(null);
   const marker = useRef<THREE.Mesh>(null);
@@ -108,8 +123,8 @@ export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[
   const [near, setNear] = useState<Door | null>(null);
   const justOut = useRef(false); // just came out of a door: it isn't offered again until you move
   const still = useMemo(prefersReducedMotion, []);
-  const live = useRef({ nav, doors, steerable });
-  live.current = { nav, doors, steerable };
+  const live = useRef({ nav, doors, steerable, active });
+  live.current = { nav, doors, steerable, active };
 
   // Back on the campus: out of the door of the place you went into, with no walk left over from before you went.
   useEffect(() => {
@@ -126,7 +141,7 @@ export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
-      if (e.ctrlKey || e.metaKey || e.altKey || you.locked || !live.current.steerable()) return;
+      if (e.ctrlKey || e.metaKey || e.altKey || you.locked || !live.current.active || !live.current.steerable()) return;
       const k = e.key.toLowerCase();
       if (KEYS[k]) {
         keys.current.add(k);
@@ -261,7 +276,7 @@ export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[
     // 5. Standing at a door (or steering past one): the offer to go in.
     if (you.moving) justOut.current = false;
     let at: Door | null = null;
-    if (!plan.current && !justOut.current) {
+    if (!plan.current && !justOut.current && live.current.active) {
       let best = DOOR_REACH;
       for (const door of places) {
         const d = Math.hypot(door.at.x - you.pos.x, door.at.z - you.pos.z);
@@ -289,7 +304,7 @@ export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[
         <ringGeometry args={[0.75, 1, 40]} />
         <meshBasicMaterial color={COLORS.indigo} transparent opacity={0.75} depthWrite={false} />
       </mesh>
-      <group ref={ref} position={you.pos.toArray()} scale={1.35} name="you">
+      <group ref={ref} position={you.pos.toArray()} scale={1.35} name="you" visible={active}>
         <mesh rotation-x={-Math.PI / 2} position-y={0.03}>
           <ringGeometry args={[0.55, 0.75, 32]} />
           <meshBasicMaterial color={COLORS.indigo} transparent opacity={0.55} />
@@ -300,7 +315,7 @@ export function You({ nav, doors, steerable }: { nav: Nav; doors: readonly Door[
         {/* Above the places' labels (0 to 20), so none covers them. At a door, its "Go into …" takes the place of
             "You" (stacked, they overlapped). */}
         <Label position={[0, 2.2, 0]} zIndexRange={[24, 21]}>
-          <div className={near ? "hidden" : "scene-chip scene-chip-you"} data-rank={near ? undefined : 3} aria-hidden="true">
+          <div className={near || !active ? "hidden" : "scene-chip scene-chip-you"} data-rank={near || !active ? undefined : 3} aria-hidden="true">
             You
           </div>
         </Label>
