@@ -372,7 +372,7 @@ export const PATH_HISTORY_PER_PAGE = 20;
 export const PathHistoryQuery = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1) });
 export type PathHistoryKind = "created" | "edited" | "suggestion" | "deleted";
 export type PathHistoryEntry = { _id: string; at: string; kind: PathHistoryKind; by: PathPerson | null; from: PathPerson | null; summary: string[] };
-export type PathHistoryPage = { entries: PathHistoryEntry[]; page: number; pages: number };
+export type PathHistoryPage = { entries: PathHistoryEntry[]; total: number; page: number; pages: number };
 
 // POST /api/paths/:id/steps/:stepId/test-out?tz=…  { answers }: a test out of a step, as the browser marked it (the
 // answers themselves are saved as any class's are). Checked here (checkTestOut): when it passed, the step is done for

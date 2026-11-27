@@ -463,6 +463,7 @@ export async function getHistory(req: Request, res: Response) {
       from: e.from ? (people.get(String(e.from)) ?? null) : null,
       summary: e.summary ?? [],
     })),
+    total,
     page: query.page,
     pages: Math.ceil(total / PATH_HISTORY_PER_PAGE),
   } satisfies PathHistoryPage);

@@ -32,11 +32,11 @@ import type { Notice } from "#features/editor/shared.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
-import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
+import { useGetProgressQuery, useGetStudySetQuery, useReportStudySetMutation } from "./classroomApi.ts";
 import { ABOUT_LABEL, ClassroomGuestNote, ClassroomSkeleton, DESK_ROW, STUDY_VIEWS_ITEMS } from "./ClassroomSkeleton.tsx";
 import { OrderDialog } from "./OrderDialog.tsx";
 import { ReadItem } from "./ReadItem.tsx";
-import { ReportStudySet } from "./ReportStudySet.tsx";
+import { ReportDialog } from "./ReportDialog.tsx";
 import { RoundList } from "./Rounds.tsx";
 import type { Reading, SetRound } from "./Rounds.tsx";
 import { useStudyView } from "./useStudyView.ts";
@@ -136,6 +136,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView, ov
   const reviewer = progress?.reviewer === true;
   const both = set.flashcards.length > 0 && set.questions.length > 0;
   const [reporting, setReporting] = useState(false);
+  const [report, reportState] = useReportStudySetMutation();
   const [ordering, setOrdering] = useState(false);
   const [orderSaved, setOrderSaved] = useState<"mine" | "author's" | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
@@ -275,7 +276,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView, ov
           </Button>
         )}
       </div>
-      {reporting && <ReportStudySet setId={set._id} name={set.subtopic} onClose={() => setReporting(false)} />}
+      {reporting && <ReportDialog kind="set" name={set.subtopic} send={(body) => report({ setId: set._id, ...body }).unwrap()} sending={reportState.isLoading} onClose={() => setReporting(false)} />}
       {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} onSaved={setOrderSaved} />}
       {reading && <ReadItem set={set} item={reading} progress={progress} returnTo={home} onClose={() => setReading(null)} />}
     </Page>

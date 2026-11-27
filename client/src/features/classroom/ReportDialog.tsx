@@ -1,6 +1,7 @@
-// "Report this set" (P0-14), from the classroom: why (one of core's reasons) and an optional note. One report per
-// person per set; once enough people report a set, it's unlisted until someone checks it. Sent, the dialog says thanks.
-// The author can't report their own set (the server says so, and that's shown).
+// "Report this set" (P0-14), from the classroom, and "Report this path" (P2-07, decision 13), from a path's page: why
+// (one of core's reasons) and an optional note. One report per person; once enough people report one, it's taken out
+// of the lists until someone checks it. Sent, the dialog says thanks. Its author can't report their own (the server
+// says so, and that's shown). send: the report's request (the set's or the path's).
 import { useState } from "react";
 import type { FormEvent } from "react";
 import { REPORT_NOTE_MAX, StudySetReport } from "@retainlearn/core";
@@ -9,18 +10,21 @@ import { problemOf } from "#api/problem.ts";
 import { Button } from "#components/ui/Button.tsx";
 import { Dialog } from "#components/ui/Dialog.tsx";
 import { Field, inputClass } from "#components/ui/Field.tsx";
-import { useReportStudySetMutation } from "./classroomApi.ts";
 
-const FORM = "report-study-set";
+const FORM = "report-form";
 const REASONS: Record<StudySetReportBody["reason"], string> = {
   spam: "Spam or advertising",
   offensive: "Offensive or inappropriate",
   wrong: "Wrong or misleading",
   other: "Something else",
 };
+const WORDS = {
+  set: { title: "Report this set", after: "If enough people report a set, it's taken out of the subjects until someone checks it." },
+  path: { title: "Report this path", after: "If enough people report a path, it's taken out of the lists until someone checks it." },
+};
 
-export function ReportStudySet({ setId, name, onClose }: { setId: string; name: string; onClose: () => void }) {
-  const [report, { isLoading }] = useReportStudySetMutation();
+type Props = { kind: keyof typeof WORDS; name: string; send: (body: StudySetReportBody) => Promise<unknown>; sending: boolean; onClose: () => void };
+export function ReportDialog({ kind, name, send, sending, onClose }: Props) {
   const [sent, setSent] = useState(false);
   const [problem, setProblem] = useState<string | null>(null);
   const [reasonError, setReasonError] = useState<string | null>(null);
@@ -36,7 +40,7 @@ export function ReportStudySet({ setId, name, onClose }: { setId: string; name: 
       return;
     }
     try {
-      await report({ setId, ...body.data }).unwrap();
+      await send(body.data);
       setSent(true);
     } catch (error) {
       setProblem(problemOf(error, "The report wasn't sent. Check your connection and try again."));
@@ -46,20 +50,20 @@ export function ReportStudySet({ setId, name, onClose }: { setId: string; name: 
   if (sent) {
     return (
       <Dialog title="Thanks for telling us" eyebrow={name} onClose={onClose} footer={<Button onClick={onClose}>Close</Button>}>
-        <p className="text-sm text-ink/70">We'll take a look. If enough people report a set, it's taken out of the subjects until someone checks it.</p>
+        <p className="text-sm text-ink/70">{`We'll take a look. ${WORDS[kind].after}`}</p>
       </Dialog>
     );
   }
   return (
     <Dialog
-      title="Report this set"
+      title={WORDS[kind].title}
       eyebrow={name}
       onClose={onClose}
       footer={
         <>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" form={FORM} tone="danger" disabled={isLoading}>
-            {isLoading ? "Sending…" : "Send report"}
+          <Button type="submit" form={FORM} tone="danger" disabled={sending}>
+            {sending ? "Sending…" : "Send report"}
           </Button>
         </>
       }
