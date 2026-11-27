@@ -16,7 +16,8 @@ import { Confirm } from "#components/ui/Confirm.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
-import { browserTimeZone, useToday } from "#features/campus/campusApi.ts";
+import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
+import { SkillsSection } from "#features/paths/Skills.tsx";
 import { SET_STATUS_TONE } from "#features/campus/subjects.ts";
 import { cx } from "#utils/cx.ts";
 import { setPath } from "#features/classes/modes.ts";
@@ -86,6 +87,8 @@ function tileValues(card: ReportCardData, totals: ReturnType<typeof overview>): 
 
 function ReportCardView({ card }: { card: ReportCardData }) {
   const when = useToday();
+  // The path you follow, for Skills (from your campus, usually loaded already).
+  const campus = useCampus(useSession() !== "in");
   const sets = useMemo(() => studiedSets(card, when), [card, when]);
   const totals = useMemo(() => overview(card, sets), [card, sets]);
   const [reportFor, setReportFor] = useState<string | null>(null);
@@ -110,6 +113,7 @@ function ReportCardView({ card }: { card: ReportCardData }) {
     <Page title="Report card" eyebrow="Your progress" back={false}>
       <Overview values={tileValues(card, totals)} />
       <StudySets sets={sets} notice={notice} onQuizReport={setReportFor} />
+      <SkillsSection skills={card.skills} path={campus.data?.player.path ?? null} />
       {reporting && (
         <QuizReport
           set={reporting}

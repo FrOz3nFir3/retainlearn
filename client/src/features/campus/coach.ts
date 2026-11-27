@@ -5,7 +5,7 @@
 // training) come with the stadium. Plain TypeScript, tested in coach.test.ts.
 import type { Campus, ClassMode, Day, Why } from "@retainlearn/core";
 import type { IconName } from "#components/ui/Icon.tsx";
-import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
+import { CLASS_KINDS, classPath, periodPath } from "#features/classes/modes.ts";
 import { subjectPath } from "./subjects.ts";
 
 // key: what the line is about, so the coach comes over only with something you haven't heard. act: its button, a
@@ -46,6 +46,8 @@ export function whySaid(why: Why, category: string | undefined): string {
       return `You're ${why.n} of ${why.of} flashcards in.`;
     case "new":
       return `You haven't started ${category ?? "it"} yet.`;
+    case "path":
+      return `It's step ${why.n} of your ${why.title} path.`;
   }
 }
 
@@ -74,7 +76,7 @@ export function coachLines(campus: Campus, username: string | null | undefined):
     ? {
         key: `period:${nextIndex}:${nextPeriod.setId}:${nextPeriod.mode}`,
         text: `${nextIndex === 0 ? "First up today" : "Next on your timetable"}: ${nextPeriod.set?.subtopic ?? "a study set"}, in ${nextPeriod.set?.category ?? "your subjects"}. ${whySaid(nextPeriod.why, nextPeriod.set?.category)} ${CLASS_KINDS[nextPeriod.mode].label}, about ${MINUTES[nextPeriod.mode]} minutes.`,
-        act: { label: "Let's go", to: classPath(nextPeriod.setId, nextPeriod.mode), category: nextPeriod.set?.category },
+        act: { label: "Let's go", to: periodPath(nextPeriod), category: nextPeriod.set?.category },
         chip: { label: `Next: ${nextPeriod.set?.subtopic ?? "a class"}`, icon: ICON[nextPeriod.mode] },
       }
     : null;

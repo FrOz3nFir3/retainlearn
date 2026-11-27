@@ -11,7 +11,7 @@ import type { Campus, ClassMode, Why } from "@retainlearn/core";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
-import { CLASS_KINDS, classPath } from "#features/classes/modes.ts";
+import { CLASS_KINDS, periodPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 import { TIMETABLE_LOOK, TimetableSection } from "./CampusSkeleton.tsx";
 import type { TimetableLook } from "./CampusSkeleton.tsx";
@@ -36,6 +36,8 @@ function whyText(why: Why): string {
       return `${why.n} of ${why.of} flashcards so far`;
     case "new":
       return "Not started yet";
+    case "path":
+      return `Your path, step ${why.n}`;
   }
 }
 
@@ -154,13 +156,13 @@ export function Timetable({ campus, look = "page", onStart, busy = false }: Prop
               <p className={cx("mt-0.5 text-[11px] font-semibold text-bell-ink", shape.line)}>Why: {whyText(p.why)}</p>
             </div>
             <Link
-              to={classPath(p.setId, p.mode)}
+              to={periodPath(p)}
               state={{ returnTo: "/" }}
               aria-disabled={busy || undefined}
               onClick={(e) => {
                 if (!onStart || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return; // a new tab: as it is
                 e.preventDefault();
-                if (!busy) onStart(p, classPath(p.setId, p.mode));
+                if (!busy) onStart(p, periodPath(p));
               }}
               className={cx(buttonClass(p.done ? "quiet" : "primary"), "shrink-0 aria-disabled:cursor-wait aria-disabled:opacity-60")}
             >

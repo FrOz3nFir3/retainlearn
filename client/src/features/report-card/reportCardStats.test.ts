@@ -18,7 +18,7 @@ const set = (over: Partial<ReportCardSet>): ReportCardSet => ({
   lastAt: null,
   ...over,
 });
-const card = (sets: ReportCardSet[]): ReportCard => ({ xp: 120, level: 2, streak: { count: 3, freezes: 0 }, subjects: 2, sets });
+const card = (sets: ReportCardSet[]): ReportCard => ({ xp: 120, level: 2, streak: { count: 3, freezes: 0 }, subjects: 2, sets, skills: [] });
 
 const js = set({
   setId: "js",

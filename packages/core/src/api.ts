@@ -152,7 +152,8 @@ export type ReportCardSet = {
   quiz: { started: number; finished: number };
   lastAt: string | null;
 };
-export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[] };
+// skills: the paths' skills you've earned (P2-07), each with its path's title as it was, the earliest first.
+export type ReportCard = { xp: number; level: number; streak: { count: number; freezes: number }; subjects: number; sets: ReportCardSet[]; skills: { pathId: string; title: string; at: string }[] };
 
 // GET /api/subjects?search=…&page=…: every subject with a listed study set, 12 a page, the most recently updated
 // first. search finds the subjects with a word in their name that starts with it, in any case ("dev" finds "Web

@@ -91,6 +91,11 @@ export function ProfileSkeleton() {
           <p className="mt-1 text-sm text-ink/55">System follows your device. Also in the menu under your initials.</p>
           <SkeletonBlock className="mt-3 h-8 max-w-xs rounded-xl" />
         </div>
+        {/* Skills earned (paths/Skills.tsx): a chip's placeholder, as the section shows while your report card loads. */}
+        <div className={SECTION}>
+          <p className={SECTION_TITLE}>Skills earned</p>
+          <SkeletonBlock className="mt-3 h-7 w-40 rounded-full" />
+        </div>
       </div>
       <div className="space-y-4">
         <div className={SECTION}>
