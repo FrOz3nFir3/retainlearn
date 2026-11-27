@@ -12,7 +12,8 @@ import { cx } from "#utils/cx.ts";
 import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 
-type Props = { title: string; eyebrow?: string; onClose: () => void; onCloseRequest?: () => boolean; children: ReactNode; footer?: ReactNode; wide?: boolean };
+// placement: centred (the default), or "bottom", a speech box at the foot of the screen (the coach's).
+type Props = { title: string; eyebrow?: string; onClose: () => void; onCloseRequest?: () => boolean; children: ReactNode; footer?: ReactNode; wide?: boolean; placement?: "center" | "bottom" };
 
 // The light-dismiss fallback compares the pointer with the dialog's box: the dialog is also the target for its own
 // padding, so checking the target alone would close it on those taps. Pressed and released outside, so a text
@@ -23,7 +24,7 @@ const isOutside = (e: PointerEvent<HTMLDialogElement>) => {
   return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
 };
 
-export function Dialog({ title, eyebrow, onClose, onCloseRequest, children, footer, wide = false }: Props) {
+export function Dialog({ title, eyebrow, onClose, onCloseRequest, children, footer, wide = false, placement = "center" }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
   const pressedOutside = useRef(false);
@@ -61,7 +62,7 @@ export function Dialog({ title, eyebrow, onClose, onCloseRequest, children, foot
       {...({ closedby: "any" } as Record<string, string>)}
       onPointerDown={lightDismissIsNative ? undefined : (e) => void (pressedOutside.current = isOutside(e))}
       onPointerUp={lightDismissIsNative ? undefined : (e) => pressedOutside.current && isOutside(e) && mayClose() && e.currentTarget.close()}
-      className={cx("kit-dialog panel w-[calc(100%-1.5rem)] outline-none", wide ? "max-w-3xl" : "max-w-lg")}
+      className={cx("kit-dialog panel w-[calc(100%-1.5rem)] outline-none", wide ? "max-w-3xl" : "max-w-lg", placement === "bottom" && "kit-dialog-bottom")}
     >
       <div className="flex max-h-[inherit] flex-col">
         <header className="flex items-start gap-3 border-b border-ink/[0.06] px-5 py-4">

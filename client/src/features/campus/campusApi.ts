@@ -3,7 +3,7 @@
 // of answers (the Campus tag, classesApi.ts).
 import { useMemo } from "react";
 import { dayKey } from "@retainlearn/core";
-import type { Campus, SettingsPatchBody, When } from "@retainlearn/core";
+import type { Campus, CoachPatchBody, SettingsPatchBody, When } from "@retainlearn/core";
 import { apiSlice } from "#api/apiSlice.js";
 
 // The browser's time zone, an IANA name such as "Asia/Kolkata".
@@ -31,8 +31,8 @@ export const campusApi = apiSlice.enhanceEndpoints({ addTagTypes: ["Campus"] }).
 // in app/configureStore.js). skip: until someone is signed in.
 export const useCampus = (skip = false) => campusApi.useGetCampusQuery(browserTimeZone(), { skip, refetchOnFocus: true });
 
-// Some of your settings (for now, what the classroom shows of each round). Shown at once: the cached campus takes the
-// change, and goes back if the save fails.
+// Some of your settings (what the classroom shows of each round, the colour scheme). Shown at once: the cached campus
+// takes the change, and goes back if the save fails.
 export const settingsApi = campusApi.injectEndpoints({
   endpoints: (build) => ({
     saveSettings: build.mutation<SettingsPatchBody, SettingsPatchBody>({
@@ -54,3 +54,27 @@ export const settingsApi = campusApi.injectEndpoints({
 });
 
 export const { useSaveSettingsMutation } = settingsApi;
+
+// What the coach has told you (the line heard today, a day of "Later", the tour given), kept on your player so the
+// coach doesn't say it twice, on this device or another. Shown at once, like settings.
+export const coachApi = campusApi.injectEndpoints({
+  endpoints: (build) => ({
+    saveCoach: build.mutation<CoachPatchBody, CoachPatchBody>({
+      query: (body) => ({ url: "/campus/coach", method: "PATCH", params: { tz: browserTimeZone() }, body }),
+      async onQueryStarted(body, { dispatch, queryFulfilled }) {
+        const patch = dispatch(
+          campusApi.util.updateQueryData("getCampus", browserTimeZone(), (campus) => {
+            Object.assign(campus.player.coach, body);
+          }),
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patch.undo();
+        }
+      },
+    }),
+  }),
+});
+
+export const { useSaveCoachMutation } = coachApi;

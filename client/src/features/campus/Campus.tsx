@@ -1,9 +1,10 @@
-// The campus in 2D (/, the prototype's World2D), for a signed-in player: today's timetable, then each subject you
-// study as a card (how warm it is, what you missed, what's fading, your mastery), your report card, and a way to add a
-// subject. While the session is checked or the campus loads, its skeleton. The coach, the stadium and paths join it
-// with their features, and the 3D campus after.
+// The campus in 2D (/, the prototype's World2D), for a signed-in player: your coach (Coach.tsx), today's timetable,
+// then each subject you study as a card (how warm it is, what you missed, what's fading, your mastery), your report
+// card, and a way to add a subject. While the session is checked or the campus loads, its skeleton. The stadium and
+// paths join it with their features, and the 3D campus after.
 import { Link } from "react-router-dom";
 import type { Campus as CampusData, CampusSubject } from "@retainlearn/core";
+import { useMyUsername } from "#app/hooks.ts";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
@@ -14,6 +15,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { useCampus } from "./campusApi.ts";
 import { CampusSkeleton, SUBJECTS_GRID, SUBJECTS_HEADING, dayName } from "./CampusSkeleton.tsx";
+import { CoachCard, CoachTalk, useCoach } from "./Coach.tsx";
 import { SUBJECT_STATUS, pennantOf, subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
 
@@ -39,8 +41,11 @@ function Failed({ retry }: { retry: () => void }) {
 function CampusView({ campus }: { campus: CampusData }) {
   const fading = new Map(campus.fading.map((f) => [f.category, f.count]));
   const subjects = campus.subjects.toSorted((a, b) => a.plot - b.plot);
+  const coach = useCoach(campus, useMyUsername());
   return (
     <Page title="Your campus" eyebrow={dayName(campus.day)} back={false}>
+      <CoachCard who={coach.who} news={coach.news} onTalk={coach.open} />
+      {coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} />}
       <Timetable campus={campus} />
       <section aria-labelledby="subjects-title" className="mt-8">
         <h2 id="subjects-title" className={SUBJECTS_HEADING}>
