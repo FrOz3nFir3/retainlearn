@@ -24,6 +24,7 @@ import { EditorSkeleton } from "#features/editor/EditorSkeleton.tsx";
 import { ReportCardSkeleton } from "#features/report-card/ReportCardSkeleton.tsx";
 import { SubjectSkeleton } from "#features/subjects/SubjectSkeleton.tsx";
 import { SubjectsSkeleton } from "#features/subjects/SubjectsSkeleton.tsx";
+import { PathsSkeleton } from "#features/paths/PathsSkeleton.tsx";
 import { SignInSkeleton } from "#features/sign-in/SignInSkeleton.tsx";
 // The home page for visitors comes with the app: most of them land there.
 import Landing from "#features/landing/Landing.tsx";
@@ -35,6 +36,7 @@ import { PublicProfileSkeleton } from "#features/profile/PublicProfileSkeleton.t
 // Lazy-loaded route wrappers
 const Subjects = lazy(() => import("#features/subjects/Subjects.tsx"));
 const Subject = lazy(() => import("#features/subjects/Subject.tsx"));
+const Paths = lazy(() => import("#features/paths/Paths.tsx"));
 const ReportCard = lazy(() => import("#features/report-card/ReportCard.tsx"));
 const Profile = lazy(() => import("#features/profile/Profile.tsx"));
 const PublicProfile = lazy(() => import("#features/profile/PublicProfile.tsx"));
@@ -124,6 +126,14 @@ const router = createBrowserRouter([
         element: (
           <Suspense fallback={<SubjectSkeleton />}>
             <Subject />
+          </Suspense>
+        ),
+      },
+      {
+        path: "paths",
+        element: (
+          <Suspense fallback={<PathsSkeleton />}>
+            <Paths />
           </Suspense>
         ),
       },

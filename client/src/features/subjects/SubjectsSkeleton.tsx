@@ -13,6 +13,7 @@ import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
 import { useWorld } from "#features/campus/view.ts";
 import { cx } from "#utils/cx.ts";
+import { DirectoryTabs } from "./DirectoryTabs.tsx";
 
 export const DIRECTORY_TITLE = { title: "Subjects", eyebrow: "Every subject on RetainLearn" };
 export const DIRECTORY_DESCRIPTION = "Every subject on RetainLearn, with its study sets of flashcards and quizzes. Find one to study, or start your own.";
@@ -26,6 +27,7 @@ export function SubjectsSkeleton() {
   const overWorld = world.shown && world.view.kind === "directory";
   return (
     <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={overWorld ? "/" : false} description={DIRECTORY_DESCRIPTION} panel={overWorld ? "side" : undefined}>
+      <DirectoryTabs />
       <div className={TOOLBAR}>
         <div className={SEARCH_BOX}>
           <div className={cx(inputClass, "relative flex h-10 items-center pl-9 text-ink/40")}>

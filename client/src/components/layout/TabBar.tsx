@@ -14,7 +14,7 @@ export function TabBar() {
   return (
     <nav aria-label="Main" className="kit-tab-bar fixed inset-x-0 bottom-0 z-50 border-t border-ink/6 bg-surface/92 px-1 pt-1 pb-[max(0.25rem,env(safe-area-inset-bottom))] text-ink backdrop-blur-xl md:hidden">
       <ul className="flex">
-        {[...mainPlaces(signedOut), you].map((place) => (
+        {[...mainPlaces(signedOut).filter((place) => !place.wide), you].map((place) => (
           <li key={place.to} className="flex-1">
             <NavLink
               to={place.to}
