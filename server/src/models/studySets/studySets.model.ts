@@ -6,7 +6,7 @@ import Card from "#models/cards/cards.mongo.js";
 import { isListed, listedFilter } from "#models/cards/cards.model.js";
 import { escapeRegex } from "#utils/textNormalization.js";
 import { SUBJECTS_PER_PAGE } from "@retainlearn/core";
-import type { StudySetContent, SubjectListing, SubjectSet } from "@retainlearn/core";
+import type { StepSet, StudySetContent, SubjectListing, SubjectSet } from "@retainlearn/core";
 
 // A study set as the old model stores it. Written by hand: that model is today's JavaScript, which is replaced rather
 // than converted (PLAN 14.15), so there's no schema type to infer this from.
@@ -190,4 +190,30 @@ export async function subjectsPage(search: string, page: number, perPage = SUBJE
     })),
     total: result?.total[0]?.n ?? 0,
   };
+}
+
+// The study sets a path's steps draw on, as core's rules need them (StepSet): name, subject, and the ids of their
+// flashcards and questions (each question with its flashcard), with whether each is listed (a public path takes only
+// listed sets: decision 6). Every set in one read; one that's gone isn't in the map.
+export type PathStepSet = StepSet & { listed: boolean };
+export async function stepSetsOf(ids: readonly string[]): Promise<Map<string, PathStepSet>> {
+  const wanted = [...new Set(ids)].filter((id) => Types.ObjectId.isValid(id)).map((id) => new Types.ObjectId(id));
+  if (!wanted.length) return new Map();
+  const sets = await Card.find(
+    { _id: { $in: wanted } },
+    { category: 1, "sub-topic": 1, listed: 1, listAt: 1, "review._id": 1, "quizzes._id": 1, "quizzes.flashcardId": 1 },
+  ).lean<StoredSet[]>();
+  return new Map(
+    sets.map((set) => [
+      String(set._id),
+      {
+        _id: String(set._id),
+        title: set["sub-topic"],
+        category: set.category,
+        listed: isListed(set),
+        flashcards: (set.review ?? []).map((f) => ({ _id: String(f._id) })),
+        questions: (set.quizzes ?? []).map((q) => ({ _id: String(q._id), flashcardId: q.flashcardId ? String(q.flashcardId) : null })),
+      },
+    ]),
+  );
 }

@@ -60,7 +60,7 @@ const reviewQueueItemSchema = new Schema({
   submittedAt: { type: Date, default: Date.now },
   expiresAt: {
     type: Date,
-    default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    default: () => new Date(Date.now() + 15 * 24 * 60 * 60 * 1000),
   },
   metadata: { type: Schema.Types.Mixed }, // Additional context data
 });
