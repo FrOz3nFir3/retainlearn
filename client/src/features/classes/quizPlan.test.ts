@@ -18,6 +18,11 @@ const set: StudySetContent = {
   description: "",
   listed: true,
   version: 1,
+  author: null,
+  updatedBy: null,
+  createdAt: null,
+  updatedAt: null,
+  reviewers: 0,
   flashcards: Array.from({ length: 8 }, (_, i) => ({ _id: `f${i + 1}`, question: `<p>Flashcard ${i + 1}</p>`, answer: "<p>A</p>" })),
   questions: Array.from({ length: 8 }, (_, i) => ({ _id: `q${i + 1}`, question: `<p>Q ${i + 1}</p>`, answer: "Yes", wrongAnswers: ["No", "Maybe", "Never", "Always"], flashcardId: `f${i + 1}` })),
 };
