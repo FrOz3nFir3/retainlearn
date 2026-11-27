@@ -83,7 +83,7 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
     const asked = view.kind === "building" ? Number(params.get("page")) || null : null;
     const page = roomsPage(found, { page: asked, roomId: view.kind === "room" ? view.setId : null, search });
     const newHref = `${subjectPath(insideOf)}?new=1`;
-    return { page, roomId: view.kind === "room" ? view.setId : null, onOpen: (id) => navigate(setPath(id)), onNew: () => navigate(newHref), newHref };
+    return { page, roomId: view.kind === "room" ? view.setId : null, onOpen: (id) => navigate(setPath(id), { state: { building: insideOf } }), onNew: () => navigate(newHref), newHref };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- navigate is stable
   }, [insideOf, subject.data, card.data, when, view, params]);
   const [command, setCommand] = useState<MapCommand | null>(null);

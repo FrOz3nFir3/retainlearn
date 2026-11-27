@@ -26,7 +26,7 @@ const TITLE = "font-display text-2xl font-semibold text-balance sm:text-3xl";
 export type PanelPlace = "lobby" | "side";
 const PANEL: Record<PanelPlace, string> = {
   lobby: "fixed inset-x-3 top-[4.25rem] max-h-[45dvh] sm:top-20 md:right-auto md:left-5 md:w-[340px] md:max-h-[calc(100dvh-6rem)]",
-  side: "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] max-h-[72dvh] max-md:rounded-b-none! md:inset-x-auto md:top-20 md:right-5 md:bottom-4 md:max-h-none md:w-[min(440px,calc(100vw-2.5rem))]",
+  side: "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] max-h-[55dvh] max-md:rounded-b-none! md:inset-x-auto md:top-20 md:right-5 md:bottom-4 md:max-h-none md:w-[min(440px,calc(100vw-2.5rem))]",
 };
 const PANEL_FRAME = "panel z-20 overflow-y-auto overscroll-contain text-ink";
 const PANEL_BODY = "p-4";

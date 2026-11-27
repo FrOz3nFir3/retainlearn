@@ -202,14 +202,15 @@ type Shot = { b: CampusBuilding; floors: number; roomOpen: boolean };
 // Framing for the cutaway: in front of the building, low and nearly level (so each floor's slab doesn't hide the boards
 // on the back walls below it), a little to one side so the panels don't cover it. Wide screens: the lobby panel is on
 // the left (the building right of centre); a classroom's panel is on the right (the building left of centre). Phones:
-// the lobby sits on top and sheets come up from the bottom, so the aim is above the building (it lands mid-screen).
+// the lobby sits on top, so the aim is above the building (it lands below the lobby); a classroom's sheet comes up from
+// the bottom, so the aim is below it (it lands in the band above the sheet).
 function interiorGoal({ b, floors, roomOpen }: Shot) {
   const rot = facingCenter(b.pos);
   const n = new THREE.Vector3(Math.sin(rot), 0, Math.cos(rot));
   const right = new THREE.Vector3(n.z, 0, -n.x);
   const narrow = isNarrow();
   const H = floors * STOREY + 0.3;
-  const target = new THREE.Vector3(b.pos[0], H / 2 + (narrow ? (roomOpen ? 9 : 4.5) : 0.2), b.pos[1]).add(right.multiplyScalar(narrow ? 0 : roomOpen ? 4.6 : -3.4));
+  const target = new THREE.Vector3(b.pos[0], H / 2 + (narrow ? (roomOpen ? -6.5 : 4.5) : 0.2), b.pos[1]).add(right.multiplyScalar(narrow ? 0 : roomOpen ? 4.6 : -3.4));
   const dist = 20 + b.size[0] * 1.15 + floors * 2.4 + (narrow ? 30 : 0);
   return { target, position: target.clone().add(n.multiplyScalar(dist)).add(new THREE.Vector3(0, 2.5 + floors * 0.7, 0)) };
 }

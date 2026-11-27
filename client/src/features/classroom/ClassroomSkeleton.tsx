@@ -12,6 +12,7 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { PageSkeleton } from "#components/ui/Page.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { useWorld } from "#features/campus/view.ts";
 import { setPath } from "#features/classes/modes.ts";
 import { cx } from "#utils/cx.ts";
 
@@ -41,6 +42,8 @@ export function ClassroomGuestNote({ returnTo }: { returnTo: string }) {
 export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
   const { id = "" } = useParams();
+  // In 3D, over its room (a panel), when the world can tell its building: from the set, or from the room it was opened in.
+  const world = useWorld();
   const desk: [IconName, string][] = [
     ["review", "Flashcards"],
     ["quiz", "Quiz questions"],
@@ -51,6 +54,7 @@ export function ClassroomSkeleton() {
   return (
     <PageSkeleton
       label="Loading the classroom"
+      panel={world.shown && world.view.kind === "room" ? "side" : undefined}
       width="max-w-3xl"
       actions={
         signedIn && (

@@ -11,6 +11,7 @@ import { inputClass } from "#components/ui/Field.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { useWorld } from "#features/campus/view.ts";
 import { cx } from "#utils/cx.ts";
 
 export const DIRECTORY_TITLE = { title: "Subjects", eyebrow: "Every subject on RetainLearn" };
@@ -21,8 +22,10 @@ export const TOOLBAR = "flex flex-wrap items-center gap-3";
 export const SEARCH_BOX = "min-w-0 flex-1 basis-64";
 
 export function SubjectsSkeleton() {
+  const world = useWorld();
+  const overWorld = world.shown && world.view.kind === "directory";
   return (
-    <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={false} description={DIRECTORY_DESCRIPTION}>
+    <Page title={DIRECTORY_TITLE.title} eyebrow={DIRECTORY_TITLE.eyebrow} back={overWorld ? "/" : false} description={DIRECTORY_DESCRIPTION} panel={overWorld ? "side" : undefined}>
       <div className={TOOLBAR}>
         <div className={SEARCH_BOX}>
           <div className={cx(inputClass, "relative flex h-10 items-center pl-9 text-ink/40")}>

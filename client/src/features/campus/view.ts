@@ -101,18 +101,19 @@ export function worldViewOf(pathname: string): WorldView | null {
 // Whether the 3D world shows behind this page, and as what: signed in, the campus in 3D (and not broken), and for a
 // subject or a study set, only when the subject is on your campus (only then does it have a building, as in the
 // prototype; otherwise its page stays the 2D page). The pages use it to show themselves as panels over the world.
-// category: the building a room is in. kinds: the views built so far.
+// category: the building a room is in.
 export type World = { shown: false } | { shown: true; view: WorldView; campus: Campus; category: string | null };
-const BUILT: readonly WorldView["kind"][] = ["campus", "building"];
 export function useWorld(): World {
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // A room opened from its building says which (the set itself says, once it's loaded).
+  const building = (state as { building?: string } | null)?.building ?? null;
   const session = useSession();
   const campus = useCampus(session !== "in");
   const isBroken = useBroken();
   const view = worldViewOf(pathname);
   const set = useGetStudySetQuery(view?.kind === "room" && session === "in" ? view.setId : skipToken);
-  if (!view || !BUILT.includes(view.kind) || session !== "in" || !campus.data || isBroken || !shows3d(campus.data.player.settings.view3d)) return { shown: false };
-  const category = view.kind === "building" ? view.category : view.kind === "room" ? (set.data?.category ?? null) : null;
+  if (!view || session !== "in" || !campus.data || isBroken || !shows3d(campus.data.player.settings.view3d)) return { shown: false };
+  const category = view.kind === "building" ? view.category : view.kind === "room" ? (set.data?.category ?? building) : null;
   if ((view.kind === "building" || view.kind === "room") && !campus.data.subjects.some((s) => s.category === category)) return { shown: false };
   return { shown: true, view, campus: campus.data, category };
 }
