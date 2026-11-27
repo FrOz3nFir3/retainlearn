@@ -264,6 +264,84 @@ dialog.kit-dialog[open] {
   }
 }
 
+/* A dialog's content says when there's more of it (the prototype's ScrollArea: in testing, people didn't notice a
+   panel could scroll). A shadow at each edge with more beyond it, drawn by the scroller's own ::before and ::after,
+   and "More below" (.kit-more, its last child) while there's more below. Shown by scroll-state queries, else by a
+   scroll-driven animation (guide: scrollability affordance hints). No listeners, nothing when it all fits. */
+.kit-scroll {
+  container-type: scroll-state;
+
+  &::before,
+  &::after {
+    content: "";
+    display: block;
+    position: sticky;
+    z-index: 1;
+    block-size: 0.75rem;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  &::before {
+    inset-block-start: 0;
+    margin-block-end: -0.75rem;
+    background: radial-gradient(farthest-side at 50% 0, light-dark(rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.5)), transparent);
+  }
+  &::after {
+    inset-block-end: 0;
+    margin-block-start: -0.75rem;
+    background: radial-gradient(farthest-side at 50% 100%, light-dark(rgb(0 0 0 / 0.15), rgb(0 0 0 / 0.5)), transparent);
+  }
+}
+.kit-more {
+  position: sticky;
+  inset-block-end: 0.5rem;
+  z-index: 2;
+  display: flex;
+  inline-size: fit-content;
+  block-size: 1.75rem;
+  margin: -1.75rem auto 0; /* takes no room */
+  opacity: 0;
+  visibility: hidden;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s allow-discrete;
+}
+@container scroll-state(scrollable: block-start) {
+  .kit-scroll::before {
+    opacity: 1;
+  }
+}
+@container scroll-state(scrollable: block-end) {
+  .kit-scroll::after,
+  .kit-more {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+@supports not (container-type: scroll-state) {
+  .kit-scroll::before,
+  .kit-scroll::after,
+  .kit-more {
+    animation: kit-show linear both;
+    animation-timeline: scroll();
+  }
+  .kit-scroll::before {
+    animation-range: 0 2rem;
+  }
+  .kit-scroll::after,
+  .kit-more {
+    animation-direction: reverse;
+    animation-range: calc(100% - 2rem) 100%;
+  }
+}
+@keyframes kit-show {
+  to {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
 /* Sheet (components/ui/Sheet.tsx): a panel you keep working beside, in the top layer (popover="manual"). A bottom
    sheet on phones, a side panel from the md breakpoint. Display only while open, so a closed one stays hidden. */
 .kit-sheet[popover] {

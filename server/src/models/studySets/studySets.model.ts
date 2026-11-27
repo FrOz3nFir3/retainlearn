@@ -25,9 +25,41 @@ type StoredSet = {
 
 const versionOf = (set: { updatedAt?: Date }) => (set.updatedAt ? new Date(set.updatedAt).getTime() : 0);
 
-// A study set's content, for studying it. Null when there's no such set.
+// A person as a set shows them: their public name and username, nothing else (null when the account is gone).
+type Shown = { username?: string; name?: string } | null | undefined;
+const shown = (p: Shown) => (p?.username ? { username: p.username, name: p.name || p.username } : null);
+const iso = (d: Date | undefined) => (d ? new Date(d).toISOString() : null);
+// Who made a set and who changed it last, looked up in the same round trip, as their public name only.
+const person = (field: string) => [
+  { $lookup: { from: "users", localField: field, foreignField: "_id", as: field } },
+  { $set: { [field]: { $let: { vars: { p: { $arrayElemAt: [`$${field}`, 0] } }, in: { username: "$$p.username", name: "$$p.name" } } } } },
+];
+
+// A study set's content, for studying it, with who made it and changed it last, when, and how many review its
+// changes (a count: who they are is for its reviewers only). Null when there's no such set.
 export async function studySetContent(id: string): Promise<StudySetContent | null> {
-  const set = await Card.findById(id, { category: 1, "main-topic": 1, "sub-topic": 1, description: 1, listed: 1, listAt: 1, updatedAt: 1, review: 1, quizzes: 1 }).lean<StoredSet>();
+  const [set] = await Card.aggregate<Omit<StoredSet, "author"> & { createdAt?: Date; author?: Shown; lastUpdatedBy?: Shown; reviewers: number }>([
+    { $match: { _id: new Types.ObjectId(id) } },
+    {
+      $project: {
+        category: 1,
+        "main-topic": 1,
+        "sub-topic": 1,
+        description: 1,
+        listed: 1,
+        listAt: 1,
+        createdAt: 1,
+        updatedAt: 1,
+        review: 1,
+        quizzes: 1,
+        author: 1,
+        lastUpdatedBy: 1,
+        reviewers: { $size: { $ifNull: ["$reviewers", []] } },
+      },
+    },
+    ...person("author"),
+    ...person("lastUpdatedBy"),
+  ]);
   if (!set) return null;
   return {
     _id: String(set._id),
@@ -37,6 +69,11 @@ export async function studySetContent(id: string): Promise<StudySetContent | nul
     description: set.description ?? "",
     listed: isListed(set),
     version: versionOf(set),
+    author: shown(set.author),
+    updatedBy: shown(set.lastUpdatedBy),
+    createdAt: iso(set.createdAt),
+    updatedAt: iso(set.updatedAt),
+    reviewers: set.reviewers,
     flashcards: (set.review ?? []).map((card) => ({ _id: String(card._id), question: card.question ?? "", answer: card.answer ?? "" })),
     questions: (set.quizzes ?? []).map((quiz) => ({
       _id: String(quiz._id),

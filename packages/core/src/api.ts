@@ -60,7 +60,9 @@ export type SaveAnswers = z.infer<typeof SaveAnswers>;
 export type SaveAnswersBody = z.input<typeof SaveAnswers>;
 
 // GET /api/study-sets/:id: a study set's content, in the new names. answer is the right answer to a question, and
-// wrongAnswers the others offered with it. version changes whenever the content does.
+// wrongAnswers the others offered with it. version changes whenever the content does. author and updatedBy: their
+// public names (null when the account is gone); reviewers: how many review its changes (who they are is for them).
+export type PersonShown = { username: string; name: string };
 export type StudySetContent = {
   _id: string;
   category: string;
@@ -69,6 +71,11 @@ export type StudySetContent = {
   description: string;
   listed: boolean;
   version: number;
+  author: PersonShown | null;
+  updatedBy: PersonShown | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  reviewers: number;
   flashcards: { _id: string; question: string; answer: string }[];
   questions: { _id: string; question: string; answer: string; wrongAnswers: string[]; flashcardId: string | null }[];
 };
@@ -77,6 +84,7 @@ export type StudySetContent = {
 export type ClassInProgress = { key: string; mode: ClassMode; day: Day; seq: number; ids?: string[]; index?: number };
 
 // GET /api/study-sets/:id/progress: your progress in the set, maps keyed by item id. Empty for a set you haven't started.
+// reviewer: whether you review the set's changes (its author does), so the classroom can say what your edits do.
 export type ProgressView = {
   setId: string;
   flashcards: Record<string, FlashcardProgress>;
@@ -85,6 +93,7 @@ export type ProgressView = {
   quiz: { started: number; finished: number };
   classInProgress: ClassInProgress | null;
   lastAt: string | null;
+  reviewer?: boolean;
 };
 
 // What saving a batch of answers gives back. saved: false when the batch had been saved already (nothing changed).

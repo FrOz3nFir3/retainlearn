@@ -10,7 +10,7 @@ import { quizDone, reviewFlashcard, reviewLoad, roundState, setRounds, studySetS
 import type { FlashcardProgress, ProgressView, StudySetContent, When } from "@retainlearn/core";
 import { buttonClass } from "#components/ui/Button.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
-import { ClassShell, Resumed, useReturnTo } from "./ClassShell.tsx";
+import { ClassShell, Resumed, SAVE_FAILED, useReturnTo } from "./ClassShell.tsx";
 import { classPath } from "./modes.ts";
 import { PointsFlashcard } from "./PointsFlashcard.tsx";
 import type { FlashcardResult } from "./PointsFlashcard.tsx";
@@ -23,7 +23,7 @@ import { byPoints } from "./reviewPlan.ts";
 import { Ring } from "./Ring.tsx";
 import { Summary, useWasCold } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
-import { useClassSaver } from "./useClassSaver.ts";
+import { useClassSaver, useSaveFailed } from "./useClassSaver.ts";
 import { WholeFlashcard } from "./WholeFlashcard.tsx";
 
 const MAX_MS = 3_600_000;
@@ -34,15 +34,17 @@ type Props = {
   mode: "review" | "reviewMissed";
   when: When;
   plan: ReviewPlan;
+  keyRound: string; // what the class is, in its sitting's key (resume.ts)
   start: number; // flashcards already done, in a class carried on
   resume: { key: string; seq: number } | null;
   onRestart?: () => void;
 };
 
-export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
+export function ReviewRun({ set, progress, mode, when, plan, keyRound, start, resume, onRestart }: Props) {
   const wasCold = useWasCold(set.category);
   const flashcards = plan.flashcards;
-  const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
+  const saver = useClassSaver(set._id, mode, keyRound, resume);
+  const problem = useSaveFailed(saver) ? SAVE_FAILED : null;
   const [index, setIndex] = useState(start);
   const [marks, setMarks] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<FlashcardResult[]>([]);
@@ -89,7 +91,7 @@ export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRe
       });
   };
 
-  const shellBase = { set, mode };
+  const shellBase = { set, mode, problem };
   if (result || finishing) {
     const all = [...results];
     const known = all.reduce((n, r) => n + r.known, 0);

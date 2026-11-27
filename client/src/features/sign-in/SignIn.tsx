@@ -3,7 +3,8 @@
 // with the shared rules (@retainlearn/core), the server's own (guide: forms: errors once you leave a field, focus to
 // the first wrong one on submit), and say what the server says when it refuses. After three refusals, how to get help.
 // Signed in, you go where the link that asked for it said (a returnTo in its state, this site's pages only), else to
-// your campus; someone already signed in goes straight there.
+// your campus; someone already signed in goes straight there. A class tried as a guest is saved to the account on the
+// way in (features/classes/guestClasses.ts).
 import { useEffect, useRef, useState } from "react";
 import type { FormEvent, ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
@@ -14,7 +15,9 @@ import { problemOf } from "#api/problem.ts";
 import { Button } from "#components/ui/Button.tsx";
 import { Field, inputClass, schemaRule, useFieldErrors } from "#components/ui/Field.tsx";
 import { PasswordInput } from "#components/ui/PasswordInput.tsx";
-import { initialUser } from "#features/authentication/state/authSlice.js";
+import { initialUser, setCsrfToken } from "#features/authentication/state/authSlice.js";
+import { keptClasses } from "#features/classes/guestClasses.ts";
+import { sendKeptClasses } from "#features/classes/useClassSaver.ts";
 import { setSessionStatus } from "#utils/session.js";
 import { GoogleSignIn } from "./GoogleSignIn.tsx";
 import { SignInFrame } from "./SignInSkeleton.tsx";
@@ -40,8 +43,16 @@ export default function SignIn({ mode }: { mode: SignInMode }) {
     if (signedIn) navigate(goTo, { replace: true });
   }, [signedIn, navigate, goTo]);
 
-  // The server's answer to a sign-in or sign-up: the account, and the session in its cookies.
-  const enter = (user: unknown) => {
+  // The server's answer to a sign-in or sign-up: the account, and the session in its cookies. A class tried as a guest
+  // (kept on this device) goes to the account first, so the page you go back to shows it.
+  const [keeping, setKeeping] = useState(false);
+  const enter = async (user: unknown) => {
+    if (keptClasses().length) {
+      setKeeping(true);
+      const csrfToken = (user as { csrfToken?: unknown } | null)?.csrfToken;
+      if (typeof csrfToken === "string") dispatch(setCsrfToken(csrfToken));
+      await sendKeptClasses(dispatch);
+    }
     dispatch(initialUser(user));
     setSessionStatus(true);
   };
@@ -49,7 +60,7 @@ export default function SignIn({ mode }: { mode: SignInMode }) {
   const google = async (credential: string) => {
     setGoogleProblem(null);
     try {
-      enter(await signInWithGoogle({ credential }).unwrap());
+      await enter(await signInWithGoogle({ credential }).unwrap());
     } catch (error) {
       refused();
       setGoogleProblem(problemOf(error, "Signing in with Google didn't work. Check your connection, then try again."));
@@ -58,7 +69,10 @@ export default function SignIn({ mode }: { mode: SignInMode }) {
 
   return (
     <SignInFrame mode={mode}>
-      <div className="mt-5">
+      <div role="status" className="empty:hidden">
+        {keeping && <p className="mt-5 rounded-2xl bg-brand/[0.07] px-3.5 py-2.5 text-sm font-semibold text-brand">Saving your class to your account…</p>}
+      </div>
+      <div className="mt-5" inert={keeping}>
         <GoogleSignIn onCredential={(credential) => void google(credential)} onFailure={refused} />
         <div role="alert" className="empty:hidden">
           {googleProblem && <p className="mt-3 rounded-2xl bg-rose-wash px-3.5 py-2.5 text-sm text-rose-ink">{googleProblem}</p>}
@@ -91,7 +105,7 @@ export default function SignIn({ mode }: { mode: SignInMode }) {
   );
 }
 
-type FormProps = { onEnter: (user: unknown) => void; onRefused: () => void };
+type FormProps = { onEnter: (user: unknown) => Promise<void>; onRefused: () => void };
 
 // A form's way of saying the server refused it: one message, read out as it appears.
 function Refusal({ text }: { text: string | null }) {
@@ -117,7 +131,7 @@ function SignInForm({ onEnter, onRefused }: FormProps) {
     if (!form.check(e.currentTarget)) return;
     const data = new FormData(e.currentTarget);
     try {
-      onEnter(await signIn({ loginIdentifier: String(data.get("loginIdentifier")).trim(), password: String(data.get("password")) }).unwrap());
+      await onEnter(await signIn({ loginIdentifier: String(data.get("loginIdentifier")).trim(), password: String(data.get("password")) }).unwrap());
     } catch (error) {
       onRefused();
       setProblem(problemOf(error, "Signing in didn't work. Check your connection, then try again."));
@@ -174,7 +188,7 @@ function SignUpForm({ onEnter, onRefused }: FormProps) {
     const data = new FormData(e.currentTarget);
     const text = (name: string) => String(data.get(name) ?? "");
     try {
-      onEnter(
+      await onEnter(
         await signUp({ name: text("name").trim(), username: text("username").trim(), email: text("email").trim(), password: text("password"), confirmPassword: text("confirmPassword") }).unwrap(),
       );
     } catch (error) {

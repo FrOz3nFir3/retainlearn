@@ -1,4 +1,5 @@
 import Users from "../users/users.mongo.js";
+import Card from "../cards/cards.mongo.js";
 import crypto from "crypto";
 import { escapeRegex, normalizeEmail } from "../../utils/textNormalization.js";
 
@@ -17,6 +18,14 @@ export async function getPublicUserByUsername(username, excludeId = true) {
   })
     .select(`name username ${excludeId ? "-_id" : ""}`)
     .lean();
+}
+
+// A public profile: the name and username, and the subjects of the study sets they made (in order), for its page.
+export async function getPublicProfile(username) {
+  const user = await Users.findOne({ username }).select("name username").lean();
+  if (!user) return null;
+  const subjects = await Card.distinct("category", { author: user._id });
+  return { name: user.name, username: user.username, subjects: subjects.filter((s) => typeof s === "string" && s).sort((a, b) => a.localeCompare(b)) };
 }
 
 export async function findUserByEmailOrUsername(

@@ -1,6 +1,6 @@
-// Someone's public profile (/profile/:username; the prototype's PublicProfile): who they are and the study sets they
-// made, a page at a time. Your own shows how others see it, with the way to edit it. A username that isn't anyone's
-// (changed, or the account deleted) says so.
+// Someone's public profile (/profile/:username; the prototype's PublicProfile): who they are, the subjects they make
+// study sets in, and the study sets they made, a page at a time. Your own shows how others see it, with the way to
+// edit it. A username that isn't anyone's (changed, or the account deleted) says so.
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { useAppSelector } from "#app/hooks.ts";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
@@ -9,6 +9,7 @@ import { Page } from "#components/ui/Page.tsx";
 import { Pager } from "#components/ui/Pager.tsx";
 import { SkeletonText } from "#components/ui/Skeleton.tsx";
 import { selectCurrentUser } from "#features/authentication/state/authSlice.js";
+import { subjectPath } from "#features/campus/subjects.ts";
 import { useGetAuthoredSetsQuery, useGetPublicProfileQuery } from "./profileApi.ts";
 import { AuthoredSetCard, AuthoredSetsSkeleton, IdentityCard, SETS_GRID } from "./ProfileSkeleton.tsx";
 import { PUBLIC_SETS_HEADING, PublicProfileSkeleton } from "./PublicProfileSkeleton.tsx";
@@ -64,6 +65,22 @@ export default function PublicProfile() {
         }
       />
       {isMe && <p className="mt-2 text-sm text-ink/55">This is how other people see your profile.</p>}
+      {(profile.data.subjects?.length ?? 0) > 0 && (
+        <section aria-labelledby="subjects-title">
+          <h2 id="subjects-title" className={PUBLIC_SETS_HEADING}>
+            Subjects
+          </h2>
+          <ul className="flex flex-wrap gap-2">
+            {profile.data.subjects?.map((subject) => (
+              <li key={subject}>
+                <Link to={subjectPath(subject)} className="block rounded-full bg-brand/10 px-3 py-1 text-sm font-semibold text-brand hover:bg-brand/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+                  {subject}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <h2 className={PUBLIC_SETS_HEADING}>Study sets</h2>
       {sets.isError ? (
         <p className="text-sm text-ink/55">The study sets didn't load. Check your connection, then reload the page.</p>

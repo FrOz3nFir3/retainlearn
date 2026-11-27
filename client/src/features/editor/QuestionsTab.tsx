@@ -10,15 +10,14 @@ import { Button } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Confirm } from "#components/ui/Confirm.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
-import { inputClass } from "#components/ui/Field.tsx";
 import { IconButton } from "#components/ui/IconButton.tsx";
+import { PickList } from "#components/ui/PickList.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
-import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { QuestionDialog } from "./QuestionDialog.tsx";
 import { useSaveStudySetMutation } from "./editorApi.ts";
 import type { SetChange, Suggestion } from "./editorApi.ts";
-import { clip, plural, savedNotice } from "./shared.ts";
+import { clip, flashcardOptions, plural, savedNotice } from "./shared.ts";
 import type { Access, Notice } from "./shared.ts";
 
 type Props = { set: StudySetContent; access: Access; suggestions: Suggestion[]; onNotice: (notice: Notice) => void };
@@ -111,15 +110,16 @@ export function QuestionsTab({ set, access, suggestions, onNotice }: Props) {
         <SearchInput label="Search the quiz questions" value={query} onChange={setQuery} placeholder="Search questions, answers and options" className="lg:flex-1" />
         <label className="flex items-center gap-2 text-sm">
           <span className="shrink-0 text-ink/55">Flashcard</span>
-          <select aria-label="Flashcard" value={filter} onChange={(e) => setFilter(e.target.value)} className={cx(inputClass, "lg:w-60")}>
-            <option value="all">All quiz questions</option>
-            <option value="none">Not linked to a flashcard</option>
-            {set.flashcards.map((f, i) => (
-              <option key={f._id} value={f._id}>
-                {`Flashcard ${i + 1}: ${clip(textOf(f.question), 70)}`}
-              </option>
-            ))}
-          </select>
+          <PickList
+            aria-label="Flashcard"
+            value={filter}
+            onChange={setFilter}
+            options={flashcardOptions(set.flashcards, [
+              { value: "all", label: "All quiz questions" },
+              { value: "none", label: "Not linked to a flashcard" },
+            ])}
+            className="lg:w-60"
+          />
         </label>
         {create}
       </div>

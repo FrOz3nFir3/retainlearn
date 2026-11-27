@@ -1,7 +1,8 @@
 // The review queue (the prototype's QueueTab): changes suggested by people who aren't the set's reviewers, oldest
-// first, each with who suggested it and when, what it changes (before and after, each part of it), and how long it
-// waits before it lapses. The set's reviewers accept or decline each; anyone else signed in can follow them.
-import { useState } from "react";
+// first, each with who suggested it and when, what it changes (before and after, each part of it; of a long text, only
+// the paragraphs that changed), and how long it waits before it lapses. The set's reviewers accept or decline each;
+// anyone else signed in can follow them, their own on top.
+import { useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import { useMyUsername } from "#app/hooks.ts";
 import { problemOf } from "#api/problem.ts";
@@ -10,6 +11,7 @@ import { Chip } from "#components/ui/Chip.tsx";
 import type { ChipTone } from "#components/ui/Chip.tsx";
 import { Confirm } from "#components/ui/Confirm.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
+import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { SkeletonBlock } from "#components/ui/Skeleton.tsx";
 import { textOf } from "#utils/safeHtml.ts";
@@ -78,9 +80,27 @@ export function SuggestionsTab({ setId, access, onNotice }: Props) {
   if (suggestions.isLoading) return <SkeletonBlock className="h-40" />;
   if (suggestions.isError) return <Empty icon="x" title="The review queue didn't load" body="Check your connection, then open this tab again." />;
   const list = suggestions.data ?? [];
+  const yours = access === "contributor" && me ? list.filter((s) => s.submittedBy.username === me) : [];
+  const daysLeft = (s: Suggestion) => Math.max(0, Math.ceil((Date.parse(s.expiresAt) - Date.now()) / 864e5));
 
   return (
     <div className="space-y-3">
+      {/* Your own suggestions first, so you can see where they stand (the prototype's). */}
+      {yours.length > 0 && (
+        <section aria-labelledby="yours-title" className="rounded-2xl bg-bell-wash p-4">
+          <h3 id="yours-title" className="flex items-center gap-2 text-sm font-semibold text-bell-ink">
+            <Icon name="clock" className="size-4" /> Your suggestions: {plural(yours.length, "change")} waiting for a reviewer
+          </h3>
+          <ul className="mt-2 space-y-1.5">
+            {yours.map((s) => (
+              <li key={s._id} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface/70 px-3 py-2 text-sm">
+                <span className="min-w-0 flex-1">{fieldName(s.field)}</span>
+                <span className="text-xs text-ink/55">Lapses in {plural(daysLeft(s), "day")}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
       <p className="text-xs text-ink/55">
         {access === "editor"
           ? "Changes from people who aren't reviewers of this set wait here until you or another reviewer accepts or declines them. Any left undecided lapses after a while."
@@ -146,13 +166,45 @@ export function SuggestionsTab({ setId, access, onNotice }: Props) {
   );
 }
 
-// One change: before and after, each part of a whole flashcard or question on its own, or the order as a list.
+// A text's top-level blocks (its paragraphs, lists and code), so a long answer with one tip added shows just that tip.
+const parser = typeof DOMParser === "undefined" ? null : new DOMParser();
+function blocksOf(html: string): string[] {
+  if (!parser) return [html];
+  return [...parser.parseFromString(html, "text/html").body.childNodes].map((n) => (n.nodeType === 1 ? (n as Element).outerHTML : (n.textContent ?? ""))).filter((s) => s.trim());
+}
+// The blocks that changed between two texts: what's the same at the start and the end is left out, and counted.
+function changedBlocks(before: string, after: string) {
+  const a = blocksOf(before);
+  const b = blocksOf(after);
+  let start = 0;
+  while (start < a.length && start < b.length && a[start] === b[start]) start++;
+  let end = 0;
+  while (end < a.length - start && end < b.length - start && a[a.length - 1 - end] === b[b.length - 1 - end]) end++;
+  return { before: a.slice(start, a.length - end).join(""), after: b.slice(start, b.length - end).join(""), same: start + end };
+}
+
+// One change: before and after, each part of a whole flashcard or question on its own, or the order as a list. An
+// edited text shows only the paragraphs that changed (the prototype's), with the full text a tap away.
 function ChangeView({ change }: { change: SuggestedChange }) {
-  const before = partsOf(change.oldValue, change.oldDisplayText);
-  const after = partsOf(change.newValue, change.newDisplayText);
+  const [full, setFull] = useState(false);
+  const texts = change.changeType === "edit" && typeof change.oldValue === "string" && typeof change.newValue === "string";
+  const diff = useMemo(() => (texts ? changedBlocks(String(change.oldValue), String(change.newValue)) : null), [texts, change.oldValue, change.newValue]);
+  const partial = !!diff && diff.same > 0 && !full;
+  const before = partial ? (diff.before ? [<RichText key="b" html={diff.before} className="!text-sm" />] : [<p key="b" className="text-sm text-ink/45">Nothing removed here</p>]) : partsOf(change.oldValue, change.oldDisplayText);
+  const after = partial ? (diff.after ? [<RichText key="a" html={diff.after} className="!text-sm" />] : [<p key="a" className="text-sm text-ink/45">Removed</p>]) : partsOf(change.newValue, change.newDisplayText);
   return (
     <div className="rounded-xl bg-ink/[0.03] p-3">
-      <p className="text-xs font-semibold text-ink/70">{fieldName(change.field)}</p>
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <p className="text-xs font-semibold text-ink/70">{fieldName(change.field)}</p>
+        {diff && diff.same > 0 && (
+          <>
+            <span className="text-[11px] text-ink/50">{full ? "The full text" : `Only the changed part: ${plural(diff.same, "unchanged paragraph")} hidden`}</span>
+            <button type="button" className="cursor-pointer text-[11px] font-semibold text-brand hover:underline" onClick={() => setFull((f) => !f)}>
+              {full ? "Show only the changes" : "Show full text"}
+            </button>
+          </>
+        )}
+      </div>
       <div className="mt-2 grid gap-3 sm:grid-cols-2">
         {change.changeType !== "addition" && before.length > 0 && <Side title="Before">{before}</Side>}
         {change.changeType !== "deletion" && after.length > 0 && <Side title={change.changeType === "addition" ? "Added" : "After"}>{after}</Side>}

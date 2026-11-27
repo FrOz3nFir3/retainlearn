@@ -1,7 +1,7 @@
 // A class, full screen: a sticky header (Leave, what class, where you are, its progress), the content scrolling under
 // it, and a sticky bar of actions at the bottom (within the phone's safe area). track: the class's own progress in the
 // header instead of a bar (a quiz's balls), so it stays in sight however far you scroll. Someone not signed in can
-// try a class, and is told it isn't saved.
+// try a class, and is told signing in saves it.
 import type { ReactNode } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { ClassMode } from "@retainlearn/core";
@@ -24,10 +24,14 @@ type Props = {
   progress?: number;
   track?: ReactNode;
   bar?: ReactNode;
+  problem?: string | null; // said over the class, signed in: answers that didn't save (SAVE_FAILED)
   children: ReactNode;
 };
 
-export function ClassShell({ set, mode, progressText, progress, track, bar, children }: Props) {
+// What a class says when some of its answers couldn't be saved (useSaveFailed).
+export const SAVE_FAILED = "Some answers didn't save: check your connection. The ones after save as usual once you're back online.";
+
+export function ClassShell({ set, mode, progressText, progress, track, bar, problem, children }: Props) {
   const navigate = useNavigate();
   const signedIn = useSignedIn();
   const returnTo = useReturnTo(set._id);
@@ -39,14 +43,14 @@ export function ClassShell({ set, mode, progressText, progress, track, bar, chil
       progressText={progressText}
       below={track ? <div className={TRACK}>{track}</div> : progress != null && <Bar value={progress} label="How far through the class" className="h-1 rounded-none" />}
       notice={
-        !signedIn && (
-          <p className={GUEST}>
-            Trying it out: this class isn't saved.{" "}
-            <Link to="/sign-in" className="font-semibold underline">
-              Sign in
-            </Link>{" "}
-            to keep your progress and player cards.
-          </p>
+        !signedIn ? (
+          <GuestNote returnTo={returnTo} />
+        ) : (
+          problem && (
+            <p role="alert" className="rounded-xl bg-rose-wash px-3 py-2 text-sm text-rose-ink">
+              {problem}
+            </p>
+          )
         )
       }
       bar={bar}
@@ -57,7 +61,20 @@ export function ClassShell({ set, mode, progressText, progress, track, bar, chil
 }
 
 export const TRACK = "mx-auto max-w-3xl px-4 pb-2.5";
-export const GUEST = "rounded-xl bg-bell-wash px-3 py-2 text-sm text-bell-ink";
+
+// A guest's note over a class: it's a try-out, and signing in, at any point, saves it to an account (guestClasses.ts),
+// then goes back where the class would. The class's skeleton shows the same note, so nothing moves as the class comes.
+export function GuestNote({ returnTo }: { returnTo: string }) {
+  return (
+    <p className="rounded-xl bg-bell-wash px-3 py-2 text-sm text-bell-ink">
+      Trying it out:{" "}
+      <Link to="/sign-in" state={{ returnTo }} className="font-semibold underline">
+        sign in
+      </Link>{" "}
+      at any point to save this class to your account.
+    </p>
+  );
+}
 
 // The frame every class is in, a screen of its own: the bar at the top (Leave, which class in which set, how far
 // through, and what's under it), a guest's note, the content, and the bar at the bottom. ClassShell fills it for a
@@ -81,7 +98,8 @@ export function ClassFrame({ leave, eyebrow, title, progressText, below, notice,
         {below}
       </header>
       {notice && <div className="mx-auto max-w-3xl px-4 pt-3">{notice}</div>}
-      <main className="mx-auto max-w-3xl px-4 pt-4 pb-40">{children}</main>
+      {/* Not a <main>: the class is inside the page's own (App.jsx), and a page has one. */}
+      <div className="mx-auto max-w-3xl px-4 pt-4 pb-40">{children}</div>
       {bar && (
         <div className="fixed inset-x-0 bottom-0 z-20 border-t border-ink/[0.06] bg-surface/92 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-xl">
           <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-end gap-2 px-4 pt-3">{bar}</div>

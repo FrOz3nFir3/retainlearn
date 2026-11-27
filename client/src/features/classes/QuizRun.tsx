@@ -20,7 +20,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { textOf } from "#utils/safeHtml.ts";
 import { AnswerOption } from "./AnswerOption.tsx";
-import { ClassShell, Resumed, useReturnTo } from "./ClassShell.tsx";
+import { ClassShell, Resumed, SAVE_FAILED, useReturnTo } from "./ClassShell.tsx";
 import { classPath } from "./modes.ts";
 import { Pips } from "./Pips.tsx";
 import { recallPoints } from "./recallPoints.ts";
@@ -29,7 +29,8 @@ import type { QuizPlan } from "./quizPlan.ts";
 import { answerOptions } from "./quizPlan.ts";
 import { Summary, useWasCold } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
-import { useClassSaver } from "./useClassSaver.ts";
+import { useClassSaver, useSaveFailed } from "./useClassSaver.ts";
+import { Why } from "./Why.tsx";
 
 const PIPS_UP_TO = 12; // more balls than this won't fit a phone's row: a longer quiz shows a bar instead
 const MAX_MS = 3_600_000;
@@ -89,7 +90,11 @@ function Stake({ held, reward }: { held: QuestionProgress | undefined; reward: R
   );
 }
 
-type Answer = { id: string; correct: boolean; picked: string; reward: Reward };
+// picked: the answer you chose, null for one given before you left (it isn't kept).
+type Answer = { id: string; correct: boolean; picked: string | null; reward: Reward };
+// A question answered before you left a class you've carried on: right, missed, or not known (null).
+export type Earlier = { id: string; correct: boolean | null };
+const NO_REWARD: Reward = { kind: "none", from: 0, to: 0 };
 
 type Props = {
   set: StudySetContent;
@@ -97,21 +102,25 @@ type Props = {
   mode: Extract<ClassMode, "quiz" | "retryMissed">;
   when: When;
   plan: QuizPlan;
-  start: number; // questions already answered, in a class carried on
+  keyRound: string; // what the class is, in its sitting's key (resume.ts)
+  earlier: readonly Earlier[]; // in a class carried on, the questions answered before you left
   resume: { key: string; seq: number } | null;
   onRestart?: () => void;
 };
 
-export function QuizRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
+export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, resume, onRestart }: Props) {
   const wasCold = useWasCold(set.category);
   const questions = plan.questions;
+  const start = earlier.length;
   const [options] = useState(() => questions.map((q) => answerOptions(q)));
-  const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
-  const [marks, setMarks] = useState<{ correct: boolean | null }[]>(() => Array.from({ length: start }, () => ({ correct: null })));
+  const saver = useClassSaver(set._id, mode, keyRound, resume);
+  const problem = useSaveFailed(saver) ? SAVE_FAILED : null;
+  const [marks, setMarks] = useState<{ correct: boolean | null }[]>(() => earlier.map((e) => ({ correct: e.correct })));
   const [picked, setPicked] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
   const [best, setBest] = useState(0);
-  const [answers, setAnswers] = useState<Answer[]>([]); // this sitting's, for the end
+  // This sitting's, for the end: in a class carried on, the earlier ones whose outcome is known come first.
+  const [answers, setAnswers] = useState<Answer[]>(() => earlier.flatMap((e) => (e.correct === null ? [] : [{ id: e.id, correct: e.correct, picked: null, reward: NO_REWARD }])));
   const signedIn = useSignedIn();
   const { view } = useStudyView(signedIn);
   const returnTo = useReturnTo(set._id);
@@ -194,7 +203,6 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
 
   const right = marks.filter((m) => m.correct).length;
   const pips = questions.length <= PIPS_UP_TO;
-  const linked = question?.flashcardId ? set.flashcards.find((f) => f._id === question.flashcardId) : undefined;
 
   if (result || finishing) {
     // The set's rounds as they stand now, for the round's panel and what's next.
@@ -213,7 +221,7 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
     const behind = [...new Set(answers.filter((a) => !a.correct).map((a) => questions.find((q) => q._id === a.id)?.flashcardId).filter((id): id is string => !!id && set.flashcards.some((f) => f._id === id)))];
     const textOfQuestion = (id: string) => questions.find((q) => q._id === id);
     return (
-      <ClassShell set={set} mode={mode} progress={1}>
+      <ClassShell set={set} mode={mode} progress={1} problem={problem}>
         {result ? (
           <Summary
             setId={set._id}
@@ -222,7 +230,7 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
             result={result}
             hero={
               <div className="flex flex-col items-center gap-2 rounded-2xl bg-mist px-4 py-4 text-center">
-                {here ? <Stars count={here.stars} className="[&_svg]:size-12 [&_svg]:motion-safe:animate-[kit-land_0.5s_both]" /> : questions.length <= PIPS_UP_TO && <Pips marks={marks.map((m) => ({ correct: m.correct ?? false }))} total={questions.length} index={-1} />}
+                {here ? <Stars count={here.stars} landing className="[&_svg]:size-12" /> : questions.length <= PIPS_UP_TO && <Pips marks={marks} total={questions.length} index={-1} />}
                 <p className="text-sm font-semibold">
                   {right} of {marks.length} right{best >= 3 ? `, best run ${best} in a row` : ""}
                 </p>
@@ -274,9 +282,11 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
                             </div>
                             {!a.correct && (
                               <div className="mt-2 grid gap-1 pl-6 text-[13px]">
-                                <div className="flex gap-1 text-rose-ink">
-                                  <span className="shrink-0 font-semibold">You:</span> <RichText html={a.picked} className="min-w-0 !text-[13px] !text-rose-ink" />
-                                </div>
+                                {a.picked !== null && (
+                                  <div className="flex gap-1 text-rose-ink">
+                                    <span className="shrink-0 font-semibold">You:</span> <RichText html={a.picked} className="min-w-0 !text-[13px] !text-rose-ink" />
+                                  </div>
+                                )}
                                 <div className="flex gap-1 text-mint-ink">
                                   <span className="shrink-0 font-semibold">Answer:</span> <RichText html={q?.answer ?? ""} className="min-w-0 !text-[13px] !text-mint-ink" />
                                 </div>
@@ -297,7 +307,8 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
                     Review the flashcard{behind.length === 1 ? "" : "s"} behind your misses
                   </Link>
                 )}
-                {missedNow > 0 && mode !== "retryMissed" && (
+                {/* Missed in this class, a retry included: what you missed, again (as the prototype). */}
+                {missedNow > 0 && answers.some((a) => !a.correct) && (
                   <Link to={classPath(set._id, "retryMissed")} state={{ returnTo }} className={buttonClass("quiet")}>
                     Retry what you missed ({missedNow})
                   </Link>
@@ -324,12 +335,13 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
     <ClassShell
       set={set}
       mode={mode}
+      problem={problem}
       progressText={pips ? (plan.title ?? "Quiz") : `${plan.title ? `${plan.title} · ` : ""}Question ${index + 1} of ${questions.length}`}
       progress={pips ? undefined : marks.length / questions.length}
       track={
         pips && (
           <div className="flex min-h-6 flex-wrap items-center gap-x-3 gap-y-1.5">
-            <Pips marks={marks.map((m) => ({ correct: m.correct ?? false }))} total={questions.length} index={answered ? -1 : index} size="size-6" />
+            <Pips marks={marks} total={questions.length} index={answered ? -1 : index} size="size-6" />
             {combo >= 2 && (
               <span key={combo} className="ml-auto rounded-full bg-bell-wash px-2.5 py-0.5 text-xs font-bold text-bell-ink motion-safe:animate-[kit-land_0.5s_both]">
                 {combo} in a row
@@ -377,14 +389,12 @@ export function QuizRun({ set, progress, mode, when, plan, start, resume, onRest
           <p className={reward.kind === "none" || reward.kind === "slip" ? "rounded-2xl bg-rose-wash px-4 py-3 text-sm font-semibold text-rose-ink" : "rounded-2xl bg-mint-wash px-4 py-3 text-sm font-semibold text-mint-ink"}>
             {REWARD_TEXT[reward.kind](reward)}
           </p>
-          {linked && (
-            <details open={reward.kind === "none" || reward.kind === "slip"} className="panel bg-surface p-4">
-              <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand">
-                <Icon name="review" className="size-4" /> Why? From its flashcard
-              </summary>
-              <RichText html={linked.answer} className="mt-2" />
-            </details>
-          )}
+          <details open={reward.kind === "none" || reward.kind === "slip"} className="panel bg-surface p-4">
+            <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand">
+              <Icon name="review" className="size-4" /> Why?
+            </summary>
+            <Why question={question} flashcards={set.flashcards} className="mt-2" />
+          </details>
         </div>
       )}
     </ClassShell>

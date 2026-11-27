@@ -4,7 +4,8 @@
 // later go at the end. Saved for you alone (PUT /api/study-sets/:id/order); "Back to the author's order" undoes yours.
 // Moving a topic (guide: drag-and-drop): drag it by its handle, which keeps the item in its slot, lifted under the
 // pointer, with a line where it will land, and moves it once on release (Esc cancels); or its menu (to the top, up,
-// down, to the bottom), the way for the keyboard and screen readers. Each move is said once in a status line.
+// down, to the bottom, or to a position you type), the way for the keyboard and screen readers. Each move is said once
+// in a status line. Each topic shows its question in full and opens to the quiz questions that move with it.
 // Closing with changes not saved asks first, in the dialog's own footer.
 import { useMemo, useRef, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
@@ -13,6 +14,7 @@ import type { StudySetContent } from "@retainlearn/core";
 import { problemOf } from "#api/problem.ts";
 import { Button } from "#components/ui/Button.tsx";
 import { Dialog } from "#components/ui/Dialog.tsx";
+import { inputClass } from "#components/ui/Field.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Menu, MenuButton } from "#components/ui/Menu.tsx";
 import { recallPoints } from "#features/classes/recallPoints.ts";
@@ -20,7 +22,8 @@ import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { useSaveOrderMutation } from "./classroomApi.ts";
 
-type Props = { set: StudySetContent; order: string[] | null; onClose: () => void };
+// onSaved: the order was saved (the classroom says so); "mine" or the author's.
+type Props = { set: StudySetContent; order: string[] | null; onClose: () => void; onSaved: (which: "mine" | "author's") => void };
 type Drag = { id: string; pointer: number; startY: number; startScroll: number; dy: number; to: number };
 
 const same = (a: readonly string[], b: readonly string[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -29,18 +32,21 @@ const moved = (ids: readonly string[], id: string, to: number) => {
   return [...rest.slice(0, to), id, ...rest.slice(to)];
 };
 
-export function OrderDialog({ set, order, onClose }: Props) {
+export function OrderDialog({ set, order, onClose, onSaved }: Props) {
   const authors = useMemo(() => set.flashcards.map((f) => f._id), [set]);
   const initial = useMemo(() => orderedFlashcards(set.flashcards, order).map((f) => f._id), [set, order]);
   const byId = useMemo(() => new Map(set.flashcards.map((f) => [f._id, f])), [set]);
+  // Each topic's quiz questions, which move with it.
   const questions = useMemo(() => {
-    const count = new Map<string, number>();
-    for (const q of set.questions) if (q.flashcardId) count.set(q.flashcardId, (count.get(q.flashcardId) ?? 0) + 1);
-    return count;
+    const of = new Map<string, string[]>();
+    for (const q of set.questions) if (q.flashcardId) of.set(q.flashcardId, [...(of.get(q.flashcardId) ?? []), q.question]);
+    return of;
   }, [set]);
   const [ids, setIds] = useState(initial);
   const [leaving, setLeaving] = useState(false);
   const [said, setSaid] = useState("");
+  const [open, setOpen] = useState<ReadonlySet<string>>(new Set()); // topics showing their quiz questions
+  const [placing, setPlacing] = useState<string | null>(null); // the topic being moved to a position you type
   const [problem, setProblem] = useState<string | null>(null);
   const [drag, setDrag] = useState<Drag | null>(null);
   const [save, saving] = useSaveOrderMutation();
@@ -107,6 +113,7 @@ export function OrderDialog({ set, order, onClose }: Props) {
     setProblem(null);
     try {
       await save({ setId: set._id, order: isAuthors ? null : ids }).unwrap();
+      onSaved(isAuthors ? "author's" : "mine");
       onClose();
     } catch (error) {
       setProblem(problemOf(error, "Your order wasn't saved. Check your connection and try again."));
@@ -156,7 +163,9 @@ export function OrderDialog({ set, order, onClose }: Props) {
       }
     >
       <p className="text-sm text-ink/65">Rounds follow this order, for review and quiz alike: each topic's quiz questions move with it. Drag a topic by its handle, or use its menu.</p>
-      <p className="mt-1 text-xs text-ink/50">The author's order stays as it is. Yours is only for you: flashcards added later go at the end, and your progress stays with each flashcard.</p>
+      <p className="mt-1 text-xs text-ink/50">
+        The author's order stays as {set.author ? `@${set.author.username} set it` : "it is"}. Yours is only for you: flashcards added later go at the end, and your progress stays with each flashcard.
+      </p>
       {problem && (
         <p role="alert" className="mt-3 rounded-xl bg-rose-wash px-3 py-2 text-sm text-rose-ink">
           {problem}
@@ -170,7 +179,8 @@ export function OrderDialog({ set, order, onClose }: Props) {
         {ids.map((id, i) => {
           const lifted = drag?.id === id;
           const n = roundStarts.get(id);
-          const count = questions.get(id) ?? 0;
+          const its = questions.get(id) ?? [];
+          const showing = open.has(id);
           return (
             <li
               key={id}
@@ -200,8 +210,53 @@ export function OrderDialog({ set, order, onClose }: Props) {
                 </button>
                 <span className="w-6 shrink-0 text-right text-xs font-semibold text-ink/45 tabular-nums">{i + 1}</span>
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{topic(id)}</p>
-                  {count > 0 && <p className="text-[11px] text-ink/50">{count === 1 ? "1 quiz question" : `${count} quiz questions`}</p>}
+                  <p className="line-clamp-2 text-sm font-medium">{textOf(byId.get(id)?.question ?? "")}</p>
+                  {its.length > 0 ? (
+                    <button
+                      type="button"
+                      aria-expanded={showing}
+                      onClick={() => setOpen((s) => (s.has(id) ? new Set([...s].filter((x) => x !== id)) : new Set([...s, id])))}
+                      className="flex cursor-pointer items-center gap-0.5 text-[11px] font-semibold text-ink/50 hover:text-brand"
+                    >
+                      {its.length === 1 ? "1 quiz question" : `${its.length} quiz questions`}
+                      <Icon name={showing ? "chevronUp" : "chevronDown"} className="size-3" />
+                    </button>
+                  ) : (
+                    <p className="text-[11px] text-ink/40">No quiz questions</p>
+                  )}
+                  {showing && (
+                    <ul aria-label={`The quiz questions that move with ${topic(id)}`} className="mt-1 space-y-1 border-l-2 border-ink/10 pl-2.5">
+                      {its.map((q, k) => (
+                        <li key={k} className="line-clamp-2 text-xs text-ink/60">
+                          {textOf(q)}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {placing === id && (
+                    <form
+                      className="mt-2 flex flex-wrap items-center gap-2"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        const to = Number(new FormData(e.currentTarget).get("position"));
+                        if (Number.isInteger(to) && to >= 1 && to <= ids.length) {
+                          place(id, to - 1);
+                          setPlacing(null);
+                        }
+                      }}
+                    >
+                      <label htmlFor={`position-${id}`} className="text-xs text-ink/60">
+                        Move to
+                      </label>
+                      <input id={`position-${id}`} name="position" type="number" min={1} max={ids.length} required autoFocus placeholder={`1 to ${ids.length}`} className={cx(inputClass, "h-8 w-24 !py-1 text-sm")} />
+                      <Button size="sm" type="submit">
+                        Go
+                      </Button>
+                      <Button size="sm" className="border-transparent bg-transparent" onClick={() => setPlacing(null)}>
+                        Cancel
+                      </Button>
+                    </form>
+                  )}
                 </div>
                 <Menu label={`Move ${topic(id)}`} trigger={<Icon name="more" className="size-4" />} triggerClassName="grid size-8 place-items-center rounded-lg text-ink/55 hover:bg-ink/[0.05] hover:text-ink">
                   {i > 0 && (
@@ -222,6 +277,11 @@ export function OrderDialog({ set, order, onClose }: Props) {
                   {i < ids.length - 1 && (
                     <MenuButton icon="arrowDown" onSelect={() => place(id, ids.length - 1)}>
                       Move to the bottom
+                    </MenuButton>
+                  )}
+                  {ids.length > 2 && (
+                    <MenuButton icon="layers" onSelect={() => setPlacing(id)}>
+                      Move to a position…
                     </MenuButton>
                   )}
                 </Menu>

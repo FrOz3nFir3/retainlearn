@@ -60,8 +60,8 @@ export const editorApi = classroomApi.enhanceEndpoints({ addTagTypes: ["Suggesti
       transformResponse: (set: { reviewQueue?: Suggestion[] } | null) => set?.reviewQueue ?? [],
       providesTags: (_list, _error, setId) => [{ type: "Suggestions", id: setId }],
     }),
-    // Only the set's reviewers may see the list: anyone else is refused (403), which is how the editor knows who
-    // saves directly and who suggests.
+    // Only the set's reviewers may see the list (anyone else is refused): the editor asks for it only when your progress
+    // says you review the set.
     getReviewers: build.query<Person[], string>({
       query: (setId) => `/card/${setId}/reviewers`,
       transformResponse: (body: { reviewers: Person[] }) => body.reviewers,
@@ -96,11 +96,12 @@ export const editorApi = classroomApi.enhanceEndpoints({ addTagTypes: ["Suggesti
     }),
     addReviewer: build.mutation<void, { setId: string; username: string }>({
       query: ({ setId, username }) => ({ url: `/card/${setId}/reviewers`, method: "POST", body: { usernames: [username] } }),
-      invalidatesTags: (_done, error, { setId }) => (error ? [] : [{ type: "Reviewers", id: setId }]),
+      // Who reviews the set changed: its count (the set's content) and whether you do (your progress) too.
+      invalidatesTags: (_done, error, { setId }) => (error ? [] : [{ type: "Reviewers", id: setId }, { type: "Progress", id: setId }, { type: "StudySet", id: setId }]),
     }),
     removeReviewer: build.mutation<void, { setId: string; username: string }>({
       query: ({ setId, username }) => ({ url: `/card/${setId}/reviewers/${encodeURIComponent(username)}`, method: "DELETE" }),
-      invalidatesTags: (_done, error, { setId }) => (error ? [] : [{ type: "Reviewers", id: setId }]),
+      invalidatesTags: (_done, error, { setId }) => (error ? [] : [{ type: "Reviewers", id: setId }, { type: "Progress", id: setId }, { type: "StudySet", id: setId }]),
     }),
   }),
 });

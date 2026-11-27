@@ -1,13 +1,16 @@
 // A study set's classroom (/study-sets/:id, the prototype's Classroom): how you stand in it; Study, with what each
 // round shows (both its review and its quiz, or one of them: a setting), what to do next, going over or retrying what
 // you missed, a mixed quiz of what you hold, and the rounds, in your order or the author's ("Change order"), each opening
-// in place to its flashcards and quiz questions; then the teacher's desk (the editor's parts, with their counts) and the
-// noticeboard (the latest changes). While the set, your progress and your settings load, its skeleton. Someone not
-// signed in can study, and is told nothing is saved. The description is the editor's HTML, shown as user content.
-import { useMemo, useState } from "react";
+// in place to its flashcards and quiz questions; then the teacher's desk (the editor's parts, with their counts), About
+// (what it is, who made it and when, its details edited in place) and the noticeboard (the latest changes). While the
+// set, your progress and your settings load, its skeleton. Someone not signed in can study, and is told signing in
+// saves it. The description is the editor's HTML, shown as user content.
+import { Suspense, lazy, useMemo, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useParams } from "react-router-dom";
-import { MIX_READY, isPlayerCard, mixableCount, nextReview, quizDone, reviewDone, reviewLoad, roundState, setRounds, shortTopic, studySetStats, upNext } from "@retainlearn/core";
+import { isPlayerCard, reviewLoad, roundState, setRounds, shortTopic, studyPlan, studySetStats } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, StudyView, When } from "@retainlearn/core";
+import { useMyUsername } from "#app/hooks.ts";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
@@ -20,14 +23,16 @@ import { RichText } from "#components/ui/RichText.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
-import { classPath, setPath } from "#features/classes/modes.ts";
+import { setPath, stepPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetHistoryInfiniteQuery, useGetSuggestionsQuery } from "#features/editor/editorApi.ts";
 import { daysAgo } from "#features/editor/shared.ts";
+import type { Notice } from "#features/editor/shared.ts";
+import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { cx } from "#utils/cx.ts";
 import { textOf } from "#utils/safeHtml.ts";
 import { useGetProgressQuery, useGetStudySetQuery } from "./classroomApi.ts";
-import { ClassroomSkeleton, DESK_ROW, STUDY_VIEWS_ITEMS } from "./ClassroomSkeleton.tsx";
+import { ABOUT_LABEL, ClassroomGuestNote, ClassroomSkeleton, DESK_ROW, STUDY_VIEWS_ITEMS } from "./ClassroomSkeleton.tsx";
 import { OrderDialog } from "./OrderDialog.tsx";
 import { ReadItem } from "./ReadItem.tsx";
 import { ReportStudySet } from "./ReportStudySet.tsx";
@@ -121,53 +126,48 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
   const states = rounds.map((r) => roundState(r, progress, when));
   const stats = studySetStats(set, progress, when);
   const held = Object.values(progress?.questions ?? {}).filter((q) => isPlayerCard(q)).length;
-  const mixable = held >= MIX_READY ? mixableCount(rounds, progress, when) : 0;
   const home = setPath(set._id);
+  const reviewer = progress?.reviewer === true;
   const both = set.flashcards.length > 0 && set.questions.length > 0;
-  // A set with only flashcards, or only questions, shows what it has.
-  const view: StudyView = both ? picked : set.flashcards.length ? "review" : "quiz";
   const [reporting, setReporting] = useState(false);
   const [ordering, setOrdering] = useState(false);
+  const [orderSaved, setOrderSaved] = useState<"mine" | "author's" | null>(null);
   const [reading, setReading] = useState<Reading | null>(null);
 
-  // Up next, for what each round shows.
-  const next: { round: SetRound; mode: "review" | "quiz" } | null =
-    view === "both"
-      ? upNext(rounds, states)
-      : view === "review"
-        ? (() => {
-            const round = nextReview(rounds, states);
-            return round ? { round, mode: "review" as const } : null;
-          })()
-        : (() => {
-            const i = rounds.findIndex((r, j) => r.questions.length > 0 && states[j] && !quizDone(states[j]));
-            return rounds[i] ? { round: rounds[i], mode: "quiz" as const } : null;
-          })();
-  const nextState = next ? states[rounds.indexOf(next.round)] : undefined;
-  const upNextButton: Next | null =
-    next && nextState
-      ? {
-          to: `${classPath(set._id, next.mode)}?round=${next.round.n}`,
-          icon: next.mode,
-          label: view === "both" ? `Round ${next.round.n}: ${next.round.flashcards[0] ? shortTopic(textOf(next.round.flashcards[0].question)) : "quiz questions"}` : `${next.mode === "review" ? "Review" : "Quiz"} round ${next.round.n}`,
-          note:
-            next.mode === "review"
-              ? `${plural(next.round.flashcards.length, "flashcard")}, about ${next.round.load} recall points.`
-              : `${plural(next.round.questions.length, "question")} on what you've reviewed. Each one you get right becomes a player card.`,
-          steps:
-            view === "both" && next.round.flashcards.length > 0 && next.round.questions.length > 0
-              ? [
-                  { text: "Review", state: reviewDone(nextState) ? "done" : "now" },
-                  { text: "Quiz", state: next.mode === "quiz" ? "now" : quizDone(nextState) ? "done" : "later" },
-                ]
-              : undefined,
-        }
-      : null;
+  // Up next and what else there is to do here: one rule for everywhere that suggests it (core's studyPlan). A set
+  // with only flashcards, or only questions, shows what it has.
+  const plan = studyPlan({ rounds, states, progress, when, view: picked, loadOf: (f) => reviewLoad(recallPoints(f.answer).length) });
+  const view = plan.view;
+  const next = plan.next;
+  // In Both, a round says its first topic.
+  const topicOf = (n: number) => {
+    const first = rounds[n - 1]?.flashcards[0];
+    return first ? shortTopic(textOf(first.question)) : "quiz questions";
+  };
+  const upNextButton: Next | null = next && {
+    to: stepPath(set._id, next.action),
+    icon: next.icon,
+    label: next.kind === "round" && view === "both" && next.round ? `${next.label}: ${topicOf(next.round)}` : next.label,
+    note: next.note,
+    steps: next.steps,
+  };
 
   return (
     <Page
       title={set.subtopic}
-      eyebrow={`${set.topic} in ${set.category}`}
+      eyebrow={
+        <>
+          {set.topic} in {set.category}
+          {set.author && (
+            <>
+              , by{" "}
+              <Link to={`/profile/${encodeURIComponent(set.author.username)}`} className="font-semibold text-brand hover:underline">
+                @{set.author.username}
+              </Link>
+            </>
+          )}
+        </>
+      }
       back={subjectPath(set.category)}
       headTitle={`${set.topic}: ${set.subtopic}`}
       description={textOf(set.description) || `Study ${set.topic}: ${set.subtopic}, in ${set.category}, with flashcards and quizzes.`}
@@ -182,22 +182,15 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
       }
     >
       <div className="space-y-5">
-        {!signedIn && (
-          <p className="rounded-2xl bg-bell-wash px-3.5 py-3 text-sm text-bell-ink">
-            You can study as a guest, but nothing is saved.{" "}
-            <Link to="/sign-in" state={{ returnTo: home }} className="font-semibold underline">
-              Sign in
-            </Link>{" "}
-            to keep your progress and earn player cards.
-          </p>
-        )}
-        {textOf(set.description) && <RichText html={set.description} className="!text-sm text-ink/65" />}
+        {!signedIn && <ClassroomGuestNote returnTo={home} />}
 
         {signedIn && stats.started && (
           <section aria-label="How you stand in this set" className="panel bg-surface p-4">
-            <div className="flex items-baseline justify-between">
-              <span className="font-display text-3xl font-semibold tabular-nums">{pct(stats.mastery)}</span>
-              <span className="text-xs text-ink/50">mastery</span>
+            <div className="flex items-baseline justify-between gap-3">
+              <span className="font-display text-3xl font-semibold tabular-nums">
+                {pct(stats.mastery)} <span className="font-sans text-xs font-normal text-ink/50">mastery</span>
+              </span>
+              {stats.daysAgo != null && <span className="text-xs text-ink/50">Last visit: {daysAgoInWords(stats.daysAgo)}</span>}
             </div>
             <Bar value={stats.mastery} label="Mastery of this set" className="mt-1.5 h-2" />
             <div className="mt-3 flex flex-wrap gap-1.5">
@@ -222,9 +215,13 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
               title="Nothing to study yet"
               body="This set has no flashcards or questions yet."
               action={
-                signedIn && (
+                signedIn ? (
                   <Link to={`${home}/edit`} className={buttonClass("primary")}>
                     Add flashcards
+                  </Link>
+                ) : (
+                  <Link to="/sign-in" state={{ returnTo: home }} className={buttonClass("primary")}>
+                    Sign in to add flashcards
                   </Link>
                 )
               }
@@ -232,13 +229,9 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
           ) : (
             <>
               {upNextButton && <UpNext next={upNextButton} returnTo={home} />}
-              {stats.missedFlashcards > 0 && view !== "quiz" && (
-                <Action returnTo={home} to={classPath(set._id, "reviewMissed")} icon="focus" title="Go over what you missed" body={`Just the points you missed, on ${plural(Math.min(4, stats.missedFlashcards), "flashcard")}.`} />
-              )}
-              {stats.missedQuestions > 0 && view !== "review" && (
-                <Action returnTo={home} to={classPath(set._id, "retryMissed")} icon="focus" title="Retry what you missed" body={`${plural(stats.missedQuestions, "question")} you got wrong, until you get them right.`} />
-              )}
-              {mixable > 0 && view !== "review" && <Action returnTo={home} to={`${classPath(set._id, "quiz")}?mix=1`} icon="layers" title="Mixed quiz" body="Questions you hold, from across the set: the fading ones first." />}
+              {plan.others.map((step) => (
+                <Action key={step.kind} returnTo={home} to={stepPath(set._id, step.action)} icon={step.icon} title={step.label} body={step.note} />
+              ))}
 
               <div className="pt-2">
                 <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -255,14 +248,18 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
                       </Link>
                     ))}
                 </div>
-                <RoundList set={set} rounds={rounds} states={states} progress={progress} view={view} current={next?.round.n ?? null} returnTo={home} onRead={setReading} />
+                <RoundList set={set} rounds={rounds} states={states} progress={progress} view={view} when={when} current={plan.current} currentTag={plan.currentTag} returnTo={home} onRead={setReading} />
                 <p className="mt-1.5 text-xs text-ink/50">Open a round to see its flashcards and quiz questions.</p>
+                <p role="status" className="mt-1.5 text-xs font-semibold text-mint-ink empty:hidden">
+                  {orderSaved && (orderSaved === "mine" ? "Saved: the rounds follow your order." : "Saved: the rounds follow the author's order again.")}
+                </p>
               </div>
             </>
           )}
         </section>
 
-        <TeachersDesk set={set} signedIn={signedIn} />
+        <TeachersDesk set={set} signedIn={signedIn} reviewer={reviewer} />
+        <About set={set} signedIn={signedIn} reviewer={reviewer} />
         <Noticeboard set={set} />
 
         {signedIn && (
@@ -272,44 +269,132 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
         )}
       </div>
       {reporting && <ReportStudySet setId={set._id} name={set.subtopic} onClose={() => setReporting(false)} />}
-      {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} />}
+      {ordering && <OrderDialog set={set} order={order} onClose={() => setOrdering(false)} onSaved={setOrderSaved} />}
       {reading && <ReadItem set={set} item={reading} progress={progress} returnTo={home} onClose={() => setReading(null)} />}
     </Page>
   );
 }
 
-// The set's editor, by its parts (the prototype's teacher's desk): each a link to that tab, with its count.
-function TeachersDesk({ set, signedIn }: { set: StudySetContent; signedIn: boolean }) {
+// The set's editor, by its parts (the prototype's teacher's desk): each a link to that tab, with its count, and who
+// you are here (its author, one of its reviewers, or someone whose edits are suggestions). Its reviewers are a count
+// for everyone; only they can open the list.
+function TeachersDesk({ set, signedIn, reviewer }: { set: StudySetContent; signedIn: boolean; reviewer: boolean }) {
   const suggestions = useGetSuggestionsQuery(set._id, { skip: !signedIn });
+  const me = useMyUsername();
   const edit = `${setPath(set._id)}/edit`;
   const waiting = suggestions.data?.length ?? 0;
   const rows: [IconName, string, string, string][] = [
     ["review", "Flashcards", plural(set.flashcards.length, "flashcard"), "flashcards"],
     ["quiz", "Quiz questions", plural(set.questions.length, "question"), "questions"],
     ...(signedIn ? [["inbox", "Review queue", waiting ? `${waiting} waiting` : "Nothing waiting", "review-queue"] as [IconName, string, string, string]] : []),
+    ["users", "Reviewers", plural(set.reviewers, "reviewer"), "reviewers"],
     ["clock", "History", "Every change", "history"],
   ];
   return (
     <section aria-labelledby="desk-title">
-      <h2 id="desk-title" className="mb-2 font-display text-xl font-semibold">
-        Teacher's desk
-      </h2>
+      <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+        <h2 id="desk-title" className="font-display text-xl font-semibold">
+          Teacher's desk
+        </h2>
+        {signedIn && <Chip tone={reviewer ? "mint" : "brand"}>{me && set.author?.username === me ? "Your set" : reviewer ? "You review it" : "Your edits are suggestions"}</Chip>}
+      </div>
       <ul className="divide-y divide-ink/[0.06] overflow-hidden rounded-2xl border border-ink/[0.08] bg-surface">
-        {rows.map(([icon, label, note, view]) => (
-          <li key={view}>
-            <Link to={`${edit}?view=${view}`} className={DESK_ROW}>
+        {rows.map(([icon, label, note, view]) => {
+          const inner = (
+            <>
               <Icon name={icon} className="size-4 shrink-0 text-ink/50" />
-              <span className="flex-1 font-medium">{signedIn ? label : `See its ${label.toLowerCase()}`}</span>
+              <span className="flex-1 font-medium">{signedIn || view === "reviewers" ? label : `See its ${label.toLowerCase()}`}</span>
               <span className={cx("text-xs", view === "review-queue" && waiting ? "font-semibold text-bell-ink" : "text-ink/50")}>{note}</span>
-              <Icon name="chevronRight" className="size-4 shrink-0 text-ink/30" />
-            </Link>
-          </li>
-        ))}
+            </>
+          );
+          return (
+            <li key={view}>
+              {view === "reviewers" && !reviewer ? (
+                <div className={cx(DESK_ROW, "hover:bg-transparent")}>
+                  {inner}
+                  <span className="size-4 shrink-0" />
+                </div>
+              ) : (
+                <Link to={`${edit}?view=${view}`} className={DESK_ROW}>
+                  {inner}
+                  <Icon name="chevronRight" className="size-4 shrink-0 text-ink/30" />
+                </Link>
+              )}
+            </li>
+          );
+        })}
       </ul>
       <p className="mt-1.5 text-xs text-ink/50">{signedIn ? "The set's reviewers change it directly; anyone else's changes wait for one of them to accept." : "Sign in to suggest changes."}</p>
     </section>
   );
 }
+
+// What the set is (the prototype's About): its topic, subtopic and description, when it was made and last changed and
+// by whom, and its details edited right here (the editor's Details: its reviewers save, anyone else suggests). The
+// dialog's rich text editor is loaded only when it opens.
+const DetailsDialog = lazy(() => import("#features/editor/DetailsDialog.tsx").then((m) => ({ default: m.DetailsDialog })));
+const onDay = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : null);
+
+export function About({ set, signedIn, reviewer }: { set: StudySetContent; signedIn: boolean; reviewer: boolean }) {
+  const [editing, setEditing] = useState(false);
+  const [notice, setNotice] = useState<Notice | null>(null);
+  const created = onDay(set.createdAt);
+  const updated = onDay(set.updatedAt);
+  return (
+    <section aria-labelledby="about-title">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <h2 id="about-title" className="font-display text-xl font-semibold">
+          About
+        </h2>
+        {signedIn && (
+          <Button size="sm" icon="edit" onClick={() => setEditing(true)}>
+            {reviewer ? "Edit details" : "Suggest a change"}
+          </Button>
+        )}
+      </div>
+      <div role="status" className="empty:hidden">
+        {notice && <p className={cx("mb-2 rounded-xl px-3 py-2 text-sm", NOTICE_TONE[notice.tone])}>{notice.text}</p>}
+      </div>
+      <div className="rounded-2xl border border-ink/[0.08] bg-surface p-3.5 text-sm">
+        <dl className="space-y-2">
+          <AboutRow label="Topic">{set.topic}</AboutRow>
+          <AboutRow label="Subtopic">{set.subtopic}</AboutRow>
+          <AboutRow label="Description">{textOf(set.description) ? <RichText html={set.description} className="!text-sm" /> : <span className="text-ink/45">No description yet</span>}</AboutRow>
+        </dl>
+        {(created || updated) && (
+          <p className="mt-2 border-t border-ink/[0.06] pt-2 text-xs text-ink/50">
+            {created && `Created ${created}. `}
+            {updated && `Updated ${updated}`}
+            {updated && set.updatedBy && (
+              <>
+                {" by "}
+                <Link to={`/profile/${encodeURIComponent(set.updatedBy.username)}`} className="font-semibold text-brand hover:underline">
+                  @{set.updatedBy.username}
+                </Link>
+              </>
+            )}
+            {updated && "."}
+          </p>
+        )}
+      </div>
+      {editing && (
+        <Suspense fallback={null}>
+          <DetailsDialog set={set} access={reviewer ? "editor" : "contributor"} onClose={() => setEditing(false)} onSaved={setNotice} />
+        </Suspense>
+      )}
+    </section>
+  );
+}
+
+function AboutRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex gap-2">
+      <dt className={ABOUT_LABEL}>{label}</dt>
+      <dd className="min-w-0 flex-1 font-medium">{children}</dd>
+    </div>
+  );
+}
+const NOTICE_TONE: Record<Notice["tone"], string> = { mint: "bg-mint-wash text-mint-ink", bell: "bg-bell-wash text-bell-ink", rose: "bg-rose-wash text-rose-ink" };
 
 // The latest changes to the set (the prototype's noticeboard): three, and the way to all of them.
 function Noticeboard({ set }: { set: StudySetContent }) {

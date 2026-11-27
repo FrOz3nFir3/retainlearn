@@ -1,6 +1,6 @@
 // The set's reviewers (the prototype's ReviewersTab), for the reviewers themselves: who can change the set directly and
 // decide on suggestions, a way to add someone (found by name, username or exact email), and to take someone off. The
-// author is always one, and can't be taken off (the server says so).
+// author is always one, and can't be taken off: marked Author, with no Remove (the server refuses it too).
 import { useDeferredValue, useState } from "react";
 import { useMyUsername } from "#app/hooks.ts";
 import { problemOf } from "#api/problem.ts";
@@ -13,9 +13,10 @@ import { useAddReviewerMutation, useFindPeopleQuery, useRemoveReviewerMutation }
 import type { Person } from "./editorApi.ts";
 import type { Notice } from "./shared.ts";
 
-type Props = { setId: string; reviewers: Person[]; onNotice: (notice: Notice) => void };
+// author: the set's author's username: always a reviewer, so marked, with no Remove.
+type Props = { setId: string; reviewers: Person[]; author: string | null; onNotice: (notice: Notice) => void };
 
-export function ReviewersTab({ setId, reviewers, onNotice }: Props) {
+export function ReviewersTab({ setId, reviewers, author, onNotice }: Props) {
   const me = useMyUsername();
   const [search, setSearch] = useState("");
   const term = useDeferredValue(search.trim());
@@ -59,10 +60,13 @@ export function ReviewersTab({ setId, reviewers, onNotice }: Props) {
                 <p className="truncate text-sm font-semibold">{r.name || r.username}</p>
                 <p className="truncate text-xs text-ink/50">@{r.username}</p>
               </div>
+              {r.username === author && <Chip tone="mint">Author</Chip>}
               {r.username === me && <Chip tone="brand">You</Chip>}
-              <Button size="sm" onClick={() => setRemoving(r)}>
-                Remove<span className="sr-only"> {r.name || r.username}</span>
-              </Button>
+              {r.username !== author && (
+                <Button size="sm" onClick={() => setRemoving(r)}>
+                  Remove<span className="sr-only"> {r.name || r.username}</span>
+                </Button>
+              )}
             </li>
           ))}
         </ul>

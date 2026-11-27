@@ -60,3 +60,12 @@ test("the reviewer search finds an email only from the whole address, never from
   assert.deepEqual(await found("LEE@example.test"), ["lee_learner"]);
   assert.deepEqual(await found("learner"), ["lee_learner"], "names and usernames still match any part");
 });
+
+test("a public profile is a name, a username and the subjects of the sets they made; your own session says when you joined", async () => {
+  const res = await t.api("/api/users/ada_author");
+  assert.deepEqual(await res.json(), { name: "Ada Author", username: "ada_author", subjects: ["Biology", "Programming"] });
+  const lee = await (await t.api("/api/users/lee_learner")).json();
+  assert.deepEqual(lee.subjects, [], "no sets made, no subjects");
+  const me = await (await t.api("/api/user/authed", { method: "POST", headers: ada })).json();
+  assert.ok(!Number.isNaN(Date.parse(me.user.joinedAt)), "joinedAt is a date");
+});

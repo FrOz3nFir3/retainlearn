@@ -25,7 +25,9 @@ import useLogout from "#hooks/useLogout.js";
 import { AuthoredSetCard, AuthoredSetsSkeleton, IdentityCard, ProfileSkeleton, SECTION, SECTION_TITLE, SETS_GRID } from "./ProfileSkeleton.tsx";
 import { useGetAuthoredSetsQuery, useUpdateProfileMutation } from "./profileApi.ts";
 
-type Me = { name: string; username: string; email: string; googleId?: string | null };
+type Me = { name: string; username: string; email: string; googleId?: string | null; joinedAt?: string };
+// "joined November 2026", from when the account was made.
+const joined = (at: string | undefined) => (at && !Number.isNaN(Date.parse(at)) ? `, joined ${new Date(at).toLocaleDateString("en-GB", { month: "long", year: "numeric" })}` : "");
 type Notice = { tone: "done" | "failed"; text: string };
 const THEMES: { value: SchemeChoice; label: string }[] = [
   { value: "system", label: "System" },
@@ -75,7 +77,7 @@ function ProfileView({ user }: { user: Me }) {
           <IdentityCard
             name={user.name}
             username={`@${user.username}`}
-            detail={user.email}
+            detail={`${user.email}${joined(user.joinedAt)}`}
             action={
               <Link to={`/profile/${encodeURIComponent(user.username)}`} className={buttonClass("quiet", "sm")}>
                 Public view

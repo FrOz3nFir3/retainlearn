@@ -1,6 +1,6 @@
 // The kinds of class, named as the API names them (CLASS_MODES in packages/core), and their addresses, which use the
 // same names (your decision, 2026-11-24): /study-sets/:id/review, /quiz, /review-missed and /retry-missed.
-import type { ClassMode } from "@retainlearn/core";
+import type { ClassMode, StepAction } from "@retainlearn/core";
 
 export const CLASS_KINDS: Record<ClassMode, { label: string; path: string }> = {
   review: { label: "Review", path: "review" },
@@ -12,6 +12,11 @@ export const CLASS_KINDS: Record<ClassMode, { label: string; path: string }> = {
 // A study set's address (its classroom), and a class's in it: the one place the scheme is written.
 export const setPath = (setId: string): string => `/study-sets/${setId}`;
 export const classPath = (setId: string, mode: ClassMode): string => `${setPath(setId)}/${CLASS_KINDS[mode].path}`;
+// The address of a step suggested by the next-step rule (core's studyPlan): its class, and which items.
+export const stepPath = (setId: string, step: StepAction): string => {
+  const query = step.round ? `?round=${step.round}` : step.mix ? "?mix=1" : step.ids?.length ? `?ids=${step.ids.join(",")}` : "";
+  return `${classPath(setId, step.mode)}${query}`;
+};
 
 // Whether a path is a class's: a class takes the whole screen, with no top bar or tab bar.
 const CLASS_PATH = new RegExp(`^/study-sets/[^/]+/(${Object.values(CLASS_KINDS).map((kind) => kind.path).join("|")})/?$`);

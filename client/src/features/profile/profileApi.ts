@@ -3,7 +3,8 @@
 // the account's at the end; their answers are read into the new names here, so the screens use only those.
 import { apiSlice } from "#api/apiSlice.js";
 
-export type PublicProfile = { name: string; username: string };
+// subjects: of the study sets they made (older answers had none).
+export type PublicProfile = { name: string; username: string; subjects?: string[] };
 export type AuthoredSet = { _id: string; topic: string; subtopic: string; category: string; flashcards: number; questions: number };
 export type AuthoredSets = { sets: AuthoredSet[]; total: number; pages: number };
 export type ProfileChange = { name?: string; username?: string; email?: string; googleAccessToken?: string };

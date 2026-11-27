@@ -51,6 +51,19 @@ export function useWasCold(category: string): boolean {
   return cold === true;
 }
 
+// Where "Back to…" goes, in words: the campus (the home page for a guest), a subject's page (a class started there),
+// or the classroom.
+function backTo(returnTo: string, signedIn: boolean): string {
+  if (returnTo === "/") return signedIn ? "campus" : "the home page";
+  const subject = /^\/subjects\/([^/?#]+)/.exec(returnTo)?.[1];
+  if (!subject) return "classroom";
+  try {
+    return decodeURIComponent(subject);
+  } catch {
+    return "the subject";
+  }
+}
+
 type Props = { setId: string; title?: string; result: ClassResult | null; warmAgain?: boolean; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
 
 export function Summary({ setId, title = "Class finished", result, warmAgain = false, hero, lines, extra, actions }: Props) {
@@ -70,7 +83,8 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
             </h2>
             {result?.firstToday && <p className="mt-1 text-sm font-semibold text-bell-ink">Streak kept: {result.streak} {result.streak === 1 ? "day" : "days"}</p>}
           </div>
-          {result && (
+          {/* A guest's XP comes once they sign in and the class is saved to their account (guestClasses.ts). */}
+          {result && signedIn && (
             <p className="rounded-2xl bg-bell-wash px-4 py-2 text-right">
               <span className="block font-display text-3xl font-semibold text-bell-ink tabular-nums">
                 +<CountUp to={result.xp} />
@@ -96,13 +110,13 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
       {extra}
       <div className="flex flex-wrap justify-end gap-2">
         {!signedIn && (
-          <Link to="/sign-in" className={buttonClass("quiet")}>
+          <Link to="/sign-in" state={{ returnTo }} className={buttonClass("quiet")}>
             Sign in to keep this
           </Link>
         )}
         {actions}
         <Link to={returnTo} className={buttonClass("primary")}>
-          Back to {returnTo === "/" ? "campus" : "classroom"}
+          Back to {backTo(returnTo, signedIn)}
         </Link>
       </div>
     </section>

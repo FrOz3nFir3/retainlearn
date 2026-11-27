@@ -8,14 +8,14 @@ import { problemOf } from "#api/problem.ts";
 import { Button, buttonClass } from "#components/ui/Button.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Dialog } from "#components/ui/Dialog.tsx";
-import { Field, inputClass } from "#components/ui/Field.tsx";
+import { Field } from "#components/ui/Field.tsx";
 import { IconButton } from "#components/ui/IconButton.tsx";
+import { PickList } from "#components/ui/PickList.tsx";
 import { RichEditor, RichField } from "#components/ui/RichEditor.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
-import { textOf } from "#utils/safeHtml.ts";
 import { useSaveStudySetMutation } from "./editorApi.ts";
 import type { SetChange } from "./editorApi.ts";
-import { SAVE_LABEL, clip, isBlank, plural, sameText, savedNotice } from "./shared.ts";
+import { SAVE_LABEL, flashcardOptions, isBlank, plural, sameText, savedNotice } from "./shared.ts";
 import type { Access, Notice } from "./shared.ts";
 
 const MAX_WRONG = 7;
@@ -158,17 +158,8 @@ function QuestionForm({ set, question, index, linkTo, access, onClose, onSaved }
             Add a wrong option
           </Button>
         </fieldset>
-        <Field label="The flashcard that teaches it" hint="Learners who miss the question read this flashcard's answer, and the question comes up with it in rounds.">
-          {({ id, describedBy }) => (
-            <select id={id} aria-describedby={describedBy} value={link} onChange={(e) => setLink(e.target.value)} className={inputClass}>
-              <option value="">Not linked</option>
-              {set.flashcards.map((f, i) => (
-                <option key={f._id} value={f._id}>
-                  {`Flashcard ${i + 1}: ${clip(textOf(f.question), 80)}`}
-                </option>
-              ))}
-            </select>
-          )}
+        <Field label="The flashcard that teaches it" hint="Type a word from it, or its number, to find it. Learners who miss the question read this flashcard's answer, and the question comes up with it in rounds.">
+          {({ id, describedBy }) => <PickList id={id} aria-describedby={describedBy} value={link} onChange={setLink} options={flashcardOptions(set.flashcards, [{ value: "", label: "Not linked" }])} />}
         </Field>
       </div>
     </Dialog>
