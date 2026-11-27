@@ -150,6 +150,7 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
             onEnter={(b) => navigate(subjectPath(b.name))}
             onAddSubject={() => navigate("/subjects")}
             onReportCard={() => navigate("/report-card")}
+            onPaths={() => navigate("/paths")}
             onTower={tower}
             onRing={() => setRinging(true)}
             onLost={onBroken}
