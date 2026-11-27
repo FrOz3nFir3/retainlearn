@@ -11,6 +11,8 @@ import type { IconName } from "#components/ui/Icon.tsx";
 import { SkeletonText } from "#components/ui/Skeleton.tsx";
 import { setPath } from "#features/classes/modes.ts";
 import { useGetSubjectQuery, useGetSubjectsQuery } from "#features/subjects/subjectsApi.ts";
+import { useGetPathsQuery } from "#features/paths/pathsApi.ts";
+import { pathPath } from "#features/paths/pathView.ts";
 import { cx } from "#utils/cx.ts";
 import { CampusSketch } from "./CampusSketch.tsx";
 import { ClassDemo } from "./ClassDemo.tsx";
@@ -115,6 +117,8 @@ export default function Landing() {
         </div>
       </section>
 
+      <StartWithAPath />
+
       <section className="bg-night text-white">
         <div className="mx-auto flex max-w-6xl flex-col items-start gap-5 px-4 py-14 sm:px-6 md:flex-row md:items-center md:justify-between">
           <div>
@@ -129,5 +133,38 @@ export default function Landing() {
         </div>
       </section>
     </div>
+  );
+}
+
+// "Not sure where to start?" (the prototype's landing): a few public paths, each opening its page, and all of them.
+// Nothing when there are none yet.
+function StartWithAPath() {
+  const paths = useGetPathsQuery({ search: "", subject: null, mine: false, page: 1 }).data?.paths.slice(0, 3) ?? [];
+  if (!paths.length) return null;
+  const count = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
+  return (
+    <section aria-labelledby="paths-heading" className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
+      <h2 id="paths-heading" className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+        Not sure where to start?
+      </h2>
+      <p className="mt-3 max-w-xl text-[15px] leading-relaxed text-pretty text-ink/65">Follow a path. It puts study sets in order, tells you what to learn next, and ends with a skill you can show.</p>
+      <ul className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {paths.map((path) => (
+          <li key={path._id}>
+            <Link to={pathPath(path._id)} className="block h-full rounded-2xl border border-ink/8 bg-surface p-4 transition-colors hover:border-brand/30 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand">
+              <span className="flex items-center gap-2 font-semibold text-balance">
+                <Icon name="path" className="size-4 shrink-0 text-brand" />
+                {path.title}
+              </span>
+              {path.description && <span className="mt-1 line-clamp-2 block text-sm text-pretty text-ink/65">{path.description}</span>}
+              <span className="mt-2 block text-xs text-ink/50">{`${count(path.steps, "step")}, ${count(path.flashcards, "flashcard")}, in ${path.category}`}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <Link to="/paths" className="mt-4 inline-block text-sm font-semibold text-brand underline-offset-2 hover:underline">
+        All paths
+      </Link>
+    </section>
   );
 }

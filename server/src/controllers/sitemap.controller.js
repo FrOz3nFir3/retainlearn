@@ -1,5 +1,6 @@
 import Card from "../models/cards/cards.mongo.js";
 import { listedFilter } from "../models/cards/cards.model.js";
+import Path from "../models/paths/paths.mongo.ts";
 
 // Helper to escape special XML characters
 const escapeXml = (unsafe) => {
@@ -59,6 +60,9 @@ export const generateSitemap = async (req, res) => {
     // Fetch all cards for individual URLs
     // Only fetching necessary fields to keep memory usage low
     const allCards = await Card.find(listed, "_id updatedAt").lean();
+    // Skill paths (P2-07, decision 10): the public ones, listed (as sets: a new account's join once it's trusted, and
+    // reported ones leave), not deleted.
+    const paths = await Path.find({ visibility: "public", deletedAt: null, ...listed }, "_id contentAt").lean();
 
     const baseUrl = process.env.BASE_URL || "https://retainlearn.com";
 
@@ -70,6 +74,7 @@ export const generateSitemap = async (req, res) => {
     const staticRoutes = [
       { url: "/", priority: 1.0, changefreq: "weekly" },
       { url: "/subjects", priority: 0.8, changefreq: "weekly" },
+      { url: "/paths", priority: 0.7, changefreq: "weekly" },
     ];
 
     staticRoutes.forEach((route) => {
@@ -107,6 +112,18 @@ export const generateSitemap = async (req, res) => {
         xml += `    <lastmod>${card.updatedAt.toISOString()}</lastmod>\n`;
       }
       xml += `    <changefreq>monthly</changefreq>\n`;
+      xml += `    <priority>0.6</priority>\n`;
+      xml += `  </url>\n`;
+    });
+
+    // 4. Skill paths
+    paths.forEach((path) => {
+      xml += `  <url>\n`;
+      xml += `    <loc>${escapeXml(`${baseUrl}/paths/${path._id}`)}</loc>\n`;
+      if (path.contentAt) {
+        xml += `    <lastmod>${path.contentAt.toISOString()}</lastmod>\n`;
+      }
+      xml += `    <changefreq>weekly</changefreq>\n`;
       xml += `    <priority>0.6</priority>\n`;
       xml += `  </url>\n`;
     });

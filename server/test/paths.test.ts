@@ -297,3 +297,14 @@ test("the path you follow on your campus: how far along it you are, and its curr
   assert.deepEqual([campus.timetable[0]?.setId, campus.timetable[0]?.why], [String(ids.bio), { kind: "path", n: 1, of: 1, title: "Biology basics" }]);
   assert.equal((await read<Campus>(await send("GET", `/api/campus?${tz}`, lee))).player.path, null);
 });
+
+test("the sitemap lists the paths list and the public paths that are listed, and no others", async () => {
+  const shown = await make(lee, [whole("s1", ids.js)], { title: "Sitemap path" });
+  const secret = await make(lee, [whole("s1", ids.js)], { title: "Private sitemap path", visibility: "private" });
+  const xml = await (await t.api("/api/sitemap.xml")).text();
+  assert.ok(xml.includes(`/paths/${shown}</loc>`));
+  assert.ok(xml.includes("/paths</loc>"));
+  assert.ok(!xml.includes(secret));
+  const newAccounts = (await read<PathsPage>(await send("GET", "/api/paths?mine=1", nina))).paths.map((p) => p._id);
+  assert.ok(newAccounts.length > 0 && newAccounts.every((id) => !xml.includes(id)));
+});
