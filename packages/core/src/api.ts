@@ -34,7 +34,15 @@ export const THEMES = ["system", "light", "dark"] as const;
 export type Theme = (typeof THEMES)[number];
 // view3d: the campus in 3D (true), as the 2D map (false), or as the device suits (null: 2D without WebGL or with
 // reduced motion).
-export const SettingsPatch = z.object({ studyView: z.enum(STUDY_VIEWS).optional(), theme: z.enum(THEMES).optional(), view3d: z.boolean().nullable().optional() });
+// sky: the campus sky as your time has it ("auto"), or always one part of the day.
+export const SKIES = ["auto", "morning", "afternoon", "evening", "night"] as const;
+export type Sky = (typeof SKIES)[number];
+export const SettingsPatch = z.object({
+  studyView: z.enum(STUDY_VIEWS).optional(),
+  theme: z.enum(THEMES).optional(),
+  view3d: z.boolean().nullable().optional(),
+  sky: z.enum(SKIES).optional(),
+});
 export type SettingsPatchBody = z.input<typeof SettingsPatch>;
 
 // PATCH /api/campus/coach?tz=…: what the coach has told you, kept so it isn't told twice. heard: the day and the line
