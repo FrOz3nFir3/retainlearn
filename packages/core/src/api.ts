@@ -248,7 +248,7 @@ export type Campus = {
     streak: { count: number; freezes: number; keptToday: boolean }; // keptToday: a class finished today already
     unlocks: string[];
     // A class left halfway, with what the coach says of it: its set's subtopic, and how far it got (index of of).
-    classLeft: { setId: string; key: string; day: Day; mode?: ClassMode; subtopic?: string | null; index?: number; of?: number } | null;
+    classLeft: { setId: string; key: string; day: Day; mode?: ClassMode; category?: string | null; subtopic?: string | null; index?: number; of?: number } | null;
     // Back after days without a class: how many, and the streak that ended meanwhile (0: none ended, or a freeze kept
     // it). null when your last class was today or yesterday.
     away: { days: number; endedStreak: number } | null;
