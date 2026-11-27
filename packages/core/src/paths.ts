@@ -60,9 +60,9 @@ export type PathVersion = z.infer<typeof PathContent>;
 
 // ---------- A step's study set, and what's in the step ----------
 
-// The study set a step draws on, as much of it as the rules need: its name, its subject, and its flashcards and
-// questions (each question with the flashcard it's linked to, if any).
-export type StepSet = { _id: string; title: string; category: string; flashcards: readonly FlashcardItem[]; questions: readonly QuestionItem[] };
+// The study set a step draws on, as much of it as the rules need: its name (and its topic, where it's shown), its
+// subject, and its flashcards and questions (each question with the flashcard it's linked to, if any).
+export type StepSet = { _id: string; title: string; topic?: string; category: string; flashcards: readonly FlashcardItem[]; questions: readonly QuestionItem[] };
 
 // A step's flashcards and questions: the whole set's, or the picked flashcards still in the set and the questions
 // linked to them.
