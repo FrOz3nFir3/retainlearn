@@ -74,6 +74,7 @@ export async function followedPath(userId: string, paths: PlayerDoc["paths"] | u
       category: version.category,
       done: along.done,
       total: along.total,
+      setIds: [...new Set(along.steps.map((s) => s.set._id))],
       current: current
         ? { n: along.steps.indexOf(current) + 1, stepId: current.step.id, setId: current.set._id, name: current.step.title || current.set.title, category: current.set.category, step: current.step.flashcardIds ? testedOutKey(id, current.step.id) : null }
         : null,

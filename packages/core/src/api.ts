@@ -401,4 +401,5 @@ export type CampusPath = {
   done: number;
   total: number;
   current: { n: number; stepId: string; setId: string; name: string; category: string; step: string | null } | null;
+  setIds: string[]; // its steps' study sets, in its order (a classroom's banner, and its skeleton, know whether to show)
 };
