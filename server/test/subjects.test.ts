@@ -82,7 +82,7 @@ test("a subject put on your campus takes the first free plot, not started; again
   assert.equal(res.status, 201);
   assert.deepEqual((await res.json()) as AddedSubject, { name: "Ancient History" });
   const subject = (await campus()).subjects.find((s) => s.category === "Ancient History");
-  assert.deepEqual(subject, { category: "Ancient History", plot: 0, started: 0, mastery: 0, missed: 0, lastAt: null, status: "new" });
+  assert.deepEqual(subject, { category: "Ancient History", plot: 0, started: 0, mastery: 0, missed: 0, lastAt: null, status: "new", sets: 0 });
   assert.equal((await add("Ancient History")).status, 200);
   assert.equal((await campus()).subjects.length, 1);
 });
@@ -117,4 +117,12 @@ test("a new study set's topics and subject are checked, and it's listed in its s
   assert.equal(res.status, 200);
   const { _id } = (await res.json()) as { _id: string };
   assert.deepEqual((await json<Subject>("/api/subjects/Spanish")).sets, [{ _id, topic: "Verbs", subtopic: "Present tense", flashcards: 0, questions: 0 }]);
+});
+
+test("each subject on the campus says how many listed sets it has: the size of its building in 3D", async () => {
+  const ada = await t.signIn("ada_author");
+  const added = await t.api(`/api/campus/subjects?${tz}`, { method: "POST", headers: ada, body: JSON.stringify({ name: "Programming" }) });
+  assert.ok([200, 201].includes(added.status));
+  const subjects = (await json<Campus>(`/api/campus?${tz}`, { headers: ada })).subjects;
+  assert.equal(subjects.find((s) => s.category === "Programming")?.sets, 1);
 });

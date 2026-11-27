@@ -1,0 +1,364 @@
+{
+  "asset": {
+    "generator": "glTF-Transform v4.1.1",
+    "version": "2.0"
+  },
+  "accessors": [
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 1464,
+      "bufferView": 0,
+      "byteOffset": 0
+    },
+    {
+      "type": "SCALAR",
+      "componentType": 5123,
+      "count": 639,
+      "bufferView": 0,
+      "byteOffset": 2928
+    },
+    {
+      "type": "VEC4",
+      "componentType": 5121,
+      "count": 930,
+      "bufferView": 1,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5122,
+      "count": 930,
+      "max": [
+        32767,
+        15729,
+        12309
+      ],
+      "min": [
+        -32767,
+        -15729,
+        -12309
+      ],
+      "normalized": true,
+      "bufferView": 1,
+      "byteOffset": 4
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5122,
+      "count": 930,
+      "normalized": true,
+      "bufferView": 1,
+      "byteOffset": 12
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5123,
+      "count": 930,
+      "normalized": true,
+      "bufferView": 1,
+      "byteOffset": 20
+    },
+    {
+      "type": "VEC4",
+      "componentType": 5121,
+      "count": 930,
+      "normalized": true,
+      "bufferView": 1,
+      "byteOffset": 24
+    },
+    {
+      "type": "VEC4",
+      "componentType": 5121,
+      "count": 361,
+      "bufferView": 2,
+      "byteOffset": 0
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5122,
+      "count": 361,
+      "max": [
+        32767,
+        23706,
+        24566
+      ],
+      "min": [
+        -32767,
+        -23706,
+        -24566
+      ],
+      "normalized": true,
+      "bufferView": 2,
+      "byteOffset": 4
+    },
+    {
+      "type": "VEC3",
+      "componentType": 5122,
+      "count": 361,
+      "normalized": true,
+      "bufferView": 2,
+      "byteOffset": 12
+    },
+    {
+      "type": "VEC2",
+      "componentType": 5123,
+      "count": 361,
+      "normalized": true,
+      "bufferView": 2,
+      "byteOffset": 20
+    },
+    {
+      "type": "VEC4",
+      "componentType": 5121,
+      "count": 361,
+      "normalized": true,
+      "bufferView": 2,
+      "byteOffset": 24
+    },
+    {
+      "type": "MAT4",
+      "componentType": 5126,
+      "count": 7,
+      "bufferView": 3,
+      "byteOffset": 0
+    },
+    {
+      "type": "MAT4",
+      "componentType": 5126,
+      "count": 7,
+      "bufferView": 3,
+      "byteOffset": 448
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteOffset": 0,
+      "byteLength": 4208,
+      "target": 34963
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 4208,
+      "byteLength": 26040,
+      "byteStride": 28,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 30248,
+      "byteLength": 10108,
+      "byteStride": 28,
+      "target": 34962
+    },
+    {
+      "buffer": 0,
+      "byteOffset": 40356,
+      "byteLength": 896
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9728,
+      "minFilter": 9984,
+      "wrapS": 10497,
+      "wrapT": 10497
+    }
+  ],
+  "textures": [
+    {
+      "source": 0,
+      "sampler": 0
+    }
+  ],
+  "images": [
+    {
+      "name": "colormap",
+      "mimeType": "image/png",
+      "uri": "Textures/colormap.png"
+    }
+  ],
+  "buffers": [
+    {
+      "uri": "character-male-f.bin",
+      "byteLength": 41252
+    }
+  ],
+  "materials": [
+    {
+      "name": "colormap",
+      "doubleSided": true,
+      "pbrMetallicRoughness": {
+        "metallicFactor": 0,
+        "baseColorTexture": {
+          "index": 0,
+          "extensions": {
+            "KHR_texture_transform": {
+              "texCoord": 0
+            }
+          }
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "body-mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "JOINTS_0": 2,
+            "POSITION": 3,
+            "NORMAL": 4,
+            "TEXCOORD_0": 5,
+            "WEIGHTS_0": 6
+          },
+          "mode": 4,
+          "material": 0,
+          "indices": 0
+        }
+      ]
+    },
+    {
+      "name": "head-mesh",
+      "primitives": [
+        {
+          "attributes": {
+            "JOINTS_0": 7,
+            "POSITION": 8,
+            "NORMAL": 9,
+            "TEXCOORD_0": 10,
+            "WEIGHTS_0": 11
+          },
+          "mode": 4,
+          "material": 0,
+          "indices": 1
+        }
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "name": "character-male-f",
+      "children": [
+        1,
+        8,
+        9
+      ]
+    },
+    {
+      "name": "root",
+      "children": [
+        2,
+        3,
+        4
+      ]
+    },
+    {
+      "name": "leg-left",
+      "translation": [
+        0.0835709646,
+        0.17625,
+        -0.02875
+      ]
+    },
+    {
+      "name": "leg-right",
+      "translation": [
+        -0.0835709646,
+        0.17625,
+        -0.02875
+      ]
+    },
+    {
+      "name": "torso",
+      "translation": [
+        -1.44382282e-15,
+        0.17625,
+        -0.02875
+      ],
+      "children": [
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "name": "arm-left",
+      "translation": [
+        0.09989677,
+        0.1115,
+        0.0115
+      ]
+    },
+    {
+      "name": "arm-right",
+      "translation": [
+        -0.09989677,
+        0.1115,
+        0.0115
+      ]
+    },
+    {
+      "name": "head",
+      "translation": [
+        1.81968929e-9,
+        0.167,
+        0.0263887774
+      ]
+    },
+    {
+      "name": "body-mesh",
+      "mesh": 0,
+      "skin": 0
+    },
+    {
+      "name": "head-mesh",
+      "mesh": 1,
+      "skin": 1
+    }
+  ],
+  "skins": [
+    {
+      "inverseBindMatrices": 12,
+      "joints": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    },
+    {
+      "inverseBindMatrices": 13,
+      "joints": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7
+      ]
+    }
+  ],
+  "scenes": [
+    {
+      "name": "character-male-f",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "scene": 0,
+  "extensionsUsed": [
+    "KHR_mesh_quantization",
+    "KHR_texture_transform"
+  ],
+  "extensionsRequired": [
+    "KHR_mesh_quantization"
+  ]
+}

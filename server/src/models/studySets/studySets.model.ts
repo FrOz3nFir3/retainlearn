@@ -150,6 +150,16 @@ export async function countedSets(categories: readonly string[], setIds: readonl
   }));
 }
 
+// How many listed study sets each of some subjects has (as their pages list them): the size of each one's building on
+// the 3D campus. One aggregation.
+// lean-ctx: it reads the subjects' sets on each campus load (8 sets in production); cache it per subject, or index the
+// category, once there are thousands (P1-12).
+export async function setCounts(categories: readonly string[]): Promise<Map<string, number>> {
+  if (!categories.length) return new Map();
+  const rows = await Card.aggregate<{ _id: string; n: number }>([{ $match: { category: { $in: categories }, ...listedFilter() } }, { $group: { _id: "$category", n: { $sum: 1 } } }]);
+  return new Map(rows.map((r) => [r._id, r.n]));
+}
+
 // A subject's listed study sets with their counts, in the order they were added (its building's floors).
 export async function subjectSets(name: string): Promise<SubjectSet[]> {
   return (await countedSets([name], [])).map(({ _id, topic, subtopic, flashcards, questions }) => ({ _id, topic, subtopic, flashcards, questions }));

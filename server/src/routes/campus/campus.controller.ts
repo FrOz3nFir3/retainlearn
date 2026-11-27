@@ -8,6 +8,7 @@ import { userIdOf } from "#middleware/routeHelpers.ts";
 import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject, updateCoach, updateSettings } from "#models/players/players.model.ts";
 import { activityOf } from "#models/activity/activity.model.ts";
 import { classLeftDetail } from "#models/progress/progress.model.ts";
+import { setCounts } from "#models/studySets/studySets.model.ts";
 import { planToday, subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const campusInput = { query: CampusQuery };
@@ -26,7 +27,7 @@ export async function getCampus(req: Request, res: Response) {
   const shown = campusPlayer(player, when.today);
   // A class left halfway today: what the coach says of it, read alongside today's plan.
   const left = shown.classLeft?.day === when.today ? shown.classLeft : null;
-  const [day, detail] = await Promise.all([
+  const [day, detail, sets] = await Promise.all([
     activityOf(userId, when.today, () =>
       planToday(
         userId,
@@ -35,6 +36,7 @@ export async function getCampus(req: Request, res: Response) {
       ),
     ),
     left ? classLeftDetail(userId, left.setId, left.key) : null,
+    setCounts(subjects.map((s) => s.category)),
   ]);
   res.json({
     day: when.today,
@@ -47,6 +49,7 @@ export async function getCampus(req: Request, res: Response) {
       missed: s.missed,
       lastAt: s.lastAt ? new Date(s.lastAt).toISOString() : null,
       status: subjectStatus({ empty: false, started: s.started, daysAgo: s.lastAt ? daysSince(s.lastAt, when) : null }),
+      sets: sets.get(s.category) ?? 0,
     })),
     timetable: day.timetable,
     fading: day.fading,
