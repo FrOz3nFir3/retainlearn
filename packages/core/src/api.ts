@@ -26,12 +26,24 @@ export const StudySetOrder = z.object({
 });
 export type StudySetOrderBody = z.input<typeof StudySetOrder>;
 
-// PATCH /api/campus/settings?tz=…: some of your settings, the ones sent. For now what the classroom shows of each
-// round: its review and its quiz, or one of them.
+// PATCH /api/campus/settings?tz=…: some of your settings, the ones sent: what the classroom shows of each round (its
+// review and its quiz, or one of them), and the colour scheme (as your device has it, or light or dark).
 export const STUDY_VIEWS = ["both", "review", "quiz"] as const;
 export type StudyView = (typeof STUDY_VIEWS)[number];
-export const SettingsPatch = z.object({ studyView: z.enum(STUDY_VIEWS).optional() });
+export const THEMES = ["system", "light", "dark"] as const;
+export type Theme = (typeof THEMES)[number];
+export const SettingsPatch = z.object({ studyView: z.enum(STUDY_VIEWS).optional(), theme: z.enum(THEMES).optional() });
 export type SettingsPatchBody = z.input<typeof SettingsPatch>;
+
+// PATCH /api/campus/coach?tz=…: what the coach has told you, kept so it isn't told twice. heard: the day and the line
+// you were told ("2026-11-27|period:0:…"); quiet: a day you said "Later" (no walking up again that day); toured: the
+// first-visit tour was given.
+export const CoachPatch = z.object({
+  heard: z.string().min(1).max(160).optional(),
+  quiet: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  toured: z.literal(true).optional(),
+});
+export type CoachPatchBody = z.input<typeof CoachPatch>;
 
 const ms = z.number().int().min(0).max(3_600_000); // how long it took to answer, up to an hour
 // A recall point's key comes from the answer's text (its section and first words), under 150 characters.
@@ -224,7 +236,11 @@ export type Campus = {
     level: number;
     streak: { count: number; freezes: number; keptToday: boolean }; // keptToday: a class finished today already
     unlocks: string[];
-    classLeft: { setId: string; key: string; day: Day } | null;
+    // A class left halfway, with what the coach says of it: its set's subtopic, and how far it got (index of of).
+    classLeft: { setId: string; key: string; day: Day; mode?: ClassMode; subtopic?: string | null; index?: number; of?: number } | null;
+    // Back after days without a class: how many, and the streak that ended meanwhile (0: none ended, or a freeze kept
+    // it). null when your last class was today or yesterday.
+    away: { days: number; endedStreak: number } | null;
   };
   subjects: CampusSubject[];
   timetable: (Period & { set: { topic: string; subtopic: string; category: string } | null })[];

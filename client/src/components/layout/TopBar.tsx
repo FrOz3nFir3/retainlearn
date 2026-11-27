@@ -3,7 +3,7 @@
 // search of the subjects. One compact row,
 // the one bar that stays at the top, sliding away while you scroll down (styles/kit.css; guide:
 // content-first-noise-reduction). On phones the main places are in the tab bar at the bottom (TabBar.tsx).
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { XP_PER_LEVEL } from "@retainlearn/core";
 import { setColorScheme, useColorScheme } from "#app/colorScheme.ts";
@@ -17,7 +17,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { Menu, MenuButton, MenuGroup, MenuLink, MenuRadio, MenuSeparator } from "#components/ui/Menu.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
 import { SkeletonCircle, SkeletonLine } from "#components/ui/Skeleton.tsx";
-import { useCampus } from "#features/campus/campusApi.ts";
+import { useCampus, useSaveSettingsMutation } from "#features/campus/campusApi.ts";
 import useLogout from "#hooks/useLogout.js";
 import { cx } from "#utils/cx.ts";
 import { mainPlaces } from "./navigation.ts";
@@ -149,11 +149,18 @@ function ThemeMenu() {
   );
 }
 
-function ThemeChoices({ choice, deviceDark }: { choice: SchemeChoice; deviceDark: boolean }) {
+function ThemeChoices({ choice, deviceDark, onPick }: { choice: SchemeChoice; deviceDark: boolean; onPick?: (choice: SchemeChoice) => void }) {
   return (
     <MenuGroup label="Theme">
       {SCHEMES.map((scheme) => (
-        <MenuRadio key={scheme.value} checked={choice === scheme.value} onSelect={() => setColorScheme(scheme.value)}>
+        <MenuRadio
+          key={scheme.value}
+          checked={choice === scheme.value}
+          onSelect={() => {
+            setColorScheme(scheme.value);
+            onPick?.(scheme.value);
+          }}
+        >
           {scheme.value === "system" ? `System (now ${deviceDark ? "dark" : "light"})` : scheme.label}
         </MenuRadio>
       ))}
@@ -161,11 +168,28 @@ function ThemeChoices({ choice, deviceDark }: { choice: SchemeChoice; deviceDark
   );
 }
 
+// A player's colour scheme follows their account (one of their settings): a pick here is saved there too, and on a
+// device that differs, the account's applies; while the account still has the default, this device's pick becomes the
+// account's instead.
+function useAccountTheme(choice: SchemeChoice): (pick: SchemeChoice) => void {
+  const campus = useCampus();
+  const [save] = useSaveSettingsMutation();
+  const saved = campus.data?.player.settings.theme;
+  useEffect(() => {
+    if (!saved || saved === choice) return;
+    if (saved === "system") void save({ theme: choice });
+    else if (saved === "light" || saved === "dark") setColorScheme(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- when the account's arrives or changes
+  }, [saved]);
+  return (pick) => void save({ theme: pick });
+}
+
 // Your account: your profile, the theme (a setting, so behind this menu rather than a switch always on show; guide:
 // dark-mode-toggle), and signing out.
 function AccountMenu() {
   const user = useAppSelector((state) => (state.auth as { user?: { name?: string; username?: string } | null }).user);
   const { choice, deviceDark } = useColorScheme();
+  const saveTheme = useAccountTheme(choice);
   const signOut = useLogout();
   const name = user?.name || user?.username || "You";
   return (
@@ -186,7 +210,7 @@ function AccountMenu() {
         Your profile
       </MenuLink>
       <MenuSeparator />
-      <ThemeChoices choice={choice} deviceDark={deviceDark} />
+      <ThemeChoices choice={choice} deviceDark={deviceDark} onPick={saveTheme} />
       <MenuSeparator />
       <MenuButton icon="logout" onSelect={() => void signOut()}>
         Sign out

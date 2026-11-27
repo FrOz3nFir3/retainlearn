@@ -34,11 +34,25 @@ export function TimetableSection({ count, children }: { count?: ReactNode; child
   );
 }
 
+// The coach's card (Coach.tsx), above the timetable: shared with this skeleton so the two are the same size.
+export const COACH_CARD = "panel mb-5 flex w-full items-center gap-3 bg-surface p-3.5 text-left";
+
 export function CampusSkeleton() {
   const { today } = useToday();
   return (
     <Page title="Your campus" eyebrow={dayName(today)} back={false}>
       <Loading label="Loading your campus">
+        <div className={COACH_CARD}>
+          <SkeletonBlock className="size-11 shrink-0 rounded-2xl" />
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-lg font-semibold">
+              <SkeletonText className="w-32" />
+            </span>
+            <span className="block text-xs">
+              <SkeletonText className="w-44" />
+            </span>
+          </span>
+        </div>
         <TimetableSkeleton />
         <div className="mt-8">
           <p className={SUBJECTS_HEADING}>Your subjects</p>

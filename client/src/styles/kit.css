@@ -264,6 +264,22 @@ dialog.kit-dialog[open] {
   }
 }
 
+/* A dialog as a speech box at the foot of the screen (the coach's: placement="bottom"), within the phone's safe area,
+   rising into place as it opens. */
+dialog.kit-dialog.kit-dialog-bottom {
+  margin-block: auto max(1rem, env(safe-area-inset-bottom));
+
+  @media (prefers-reduced-motion: no-preference) {
+    &[open] {
+      transform: none;
+
+      @starting-style {
+        transform: translateY(1rem);
+      }
+    }
+  }
+}
+
 /* A dialog's content says when there's more of it (the prototype's ScrollArea: in testing, people didn't notice a
    panel could scroll). A shadow at each edge with more beyond it, drawn by the scroller's own ::before and ::after,
    and "More below" (.kit-more, its last child) while there's more below. Shown by scroll-state queries, else by a

@@ -3,8 +3,8 @@
 import { Types } from "mongoose";
 import Player, { SETTINGS_DEFAULTS } from "#models/players/players.mongo.ts";
 import type { PlayerDoc } from "#models/players/players.mongo.ts";
-import { currentStreak, levelOf, streakAfterClass } from "@retainlearn/core";
-import type { Campus, Day, ReportCard, SettingsPatchBody, Streak } from "@retainlearn/core";
+import { currentStreak, daysBetween, levelOf, streakAfterClass } from "@retainlearn/core";
+import type { Campus, CoachPatchBody, Day, ReportCard, SettingsPatchBody, Streak } from "@retainlearn/core";
 
 // A subject's summary, as the rules work it out from your progress in it (services/campus.ts). Stored on the player
 // with its plot: the place of its building on the campus.
@@ -49,7 +49,19 @@ export function campusPlayer(player: PlayerDoc, today: Day): Campus["player"] {
     streak: { count: currentStreak(streakOf(player), today), freezes: player.streak?.freezes ?? 0, keptToday: player.streak?.lastDay === today },
     unlocks: player.unlocks ?? [],
     classLeft: left?.setId && left.key && left.day ? { setId: String(left.setId), key: left.key, day: left.day } : null,
+    away: awayOf(player, today),
   };
+}
+
+// Back after days without a class (the coach's welcome back): how many since your last finished class, and the streak
+// that ended meanwhile (0 when a freeze kept it, or there was none). null when your last class was today or yesterday,
+// or you've never finished one.
+function awayOf(player: Pick<PlayerDoc, "streak">, today: Day): Campus["player"]["away"] {
+  const last = player.streak?.lastDay;
+  if (!last) return null;
+  const days = daysBetween(last, today);
+  if (days < 2) return null;
+  return { days, endedStreak: currentStreak(streakOf(player), today) === 0 ? (player.streak?.count ?? 0) : 0 };
 }
 
 // The first plot not taken: each subject is a building in its own place on the campus.
@@ -80,6 +92,12 @@ export async function playerOf(userId: string, timeZone: string, subjects: () =>
 // Some of your settings, the ones given (PATCH /api/campus/settings), on a player already made.
 export async function updateSettings(userId: string, patch: SettingsPatchBody): Promise<void> {
   const changes = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined).map(([key, value]) => [`settings.${key}`, value]));
+  if (Object.keys(changes).length) await Player.updateOne({ _id: userId }, { $set: changes });
+}
+
+// What the coach has told you (PATCH /api/campus/coach): the fields sent.
+export async function updateCoach(userId: string, patch: CoachPatchBody): Promise<void> {
+  const changes = Object.fromEntries(Object.entries(patch).filter(([, value]) => value !== undefined).map(([key, value]) => [`coach.${key}`, value]));
   if (Object.keys(changes).length) await Player.updateOne({ _id: userId }, { $set: changes });
 }
 

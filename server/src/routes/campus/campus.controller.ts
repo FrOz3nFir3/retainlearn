@@ -1,18 +1,20 @@
 // The campus (PLAN 14.10): everything it shows, in one call. Two point reads on most loads (your player and today's
 // activity); at the day's first load the timetable and fading cards are drawn up from your progress, and kept.
 import type { Request, Response } from "express";
-import { AddSubject, CampusQuery, SettingsPatch, SubjectParams, dayKey, daysSince, subjectStatus } from "@retainlearn/core";
+import { AddSubject, CampusQuery, CoachPatch, SettingsPatch, SubjectParams, dayKey, daysSince, subjectStatus } from "@retainlearn/core";
 import type { AddedSubject, Campus, When } from "@retainlearn/core";
 import { inputOf } from "#middleware/validate.ts";
 import { userIdOf } from "#middleware/routeHelpers.ts";
-import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject, updateSettings } from "#models/players/players.model.ts";
+import { SUBJECTS_ADDED_MAX, addSubject, campusPlayer, playerOf, removeSubject, updateCoach, updateSettings } from "#models/players/players.model.ts";
 import { activityOf } from "#models/activity/activity.model.ts";
+import { classLeftDetail } from "#models/progress/progress.model.ts";
 import { planToday, subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const campusInput = { query: CampusQuery };
 export const addSubjectInput = { query: CampusQuery, body: AddSubject };
 export const removeSubjectInput = { params: SubjectParams };
 export const settingsInput = { query: CampusQuery, body: SettingsPatch };
+export const coachInput = { query: CampusQuery, body: CoachPatch };
 
 // GET /api/campus?tz=Asia/Kolkata
 export async function getCampus(req: Request, res: Response) {
@@ -21,16 +23,22 @@ export async function getCampus(req: Request, res: Response) {
   const when: When = { today: dayKey(new Date(), query.tz), timeZone: query.tz };
   const player = await playerOf(userId, query.tz, () => subjectsFromProgress(userId, when));
   const subjects = player.subjects ?? [];
-  const day = await activityOf(userId, when.today, () =>
-    planToday(
-      userId,
-      subjects.map((s) => s.category),
-      when,
+  const shown = campusPlayer(player, when.today);
+  // A class left halfway today: what the coach says of it, read alongside today's plan.
+  const left = shown.classLeft?.day === when.today ? shown.classLeft : null;
+  const [day, detail] = await Promise.all([
+    activityOf(userId, when.today, () =>
+      planToday(
+        userId,
+        subjects.map((s) => s.category),
+        when,
+      ),
     ),
-  );
+    left ? classLeftDetail(userId, left.setId, left.key) : null,
+  ]);
   res.json({
     day: when.today,
-    player: campusPlayer(player, when.today),
+    player: { ...shown, classLeft: left && detail ? { ...left, ...detail } : shown.classLeft },
     subjects: subjects.map((s) => ({
       category: s.category,
       plot: s.plot,
@@ -78,5 +86,16 @@ export async function patchSettings(req: Request, res: Response) {
   const when: When = { today: dayKey(new Date(), query.tz), timeZone: query.tz };
   await playerOf(userId, query.tz, () => subjectsFromProgress(userId, when));
   await updateSettings(userId, body);
+  res.json(body);
+}
+
+// PATCH /api/campus/coach?tz=…  { heard?, quiet?, toured? }: what the coach has told you, so it isn't told twice, and
+// a day you said "Later". Your player is made first if this is before your first visit. Answers with what was saved.
+export async function patchCoach(req: Request, res: Response) {
+  const { query, body } = inputOf<typeof coachInput>(res);
+  const userId = userIdOf(req);
+  const when: When = { today: dayKey(new Date(), query.tz), timeZone: query.tz };
+  await playerOf(userId, query.tz, () => subjectsFromProgress(userId, when));
+  await updateCoach(userId, body);
   res.json(body);
 }
