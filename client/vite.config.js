@@ -6,9 +6,6 @@ import compression from "compression";
 // TODO: check this later
 // import { cloudflare } from "@cloudflare/vite-plugin";
 
-// TODO: check this out later
-// import { bundleStats } from "rollup-plugin-bundle-stats";
-
 export default defineConfig(() => {
   const plugins = [
     react({}),
