@@ -6,9 +6,11 @@
 // The page's title is the browser tab's too (headTitle, when it should say more), with its description for search
 // engines and link previews; noindex keeps a page out of search results (an unlisted set's, P0-14).
 // panel: the page as a panel over the 3D world (D-20) rather than a page of its own: the same heading and content, the
-// world round it. "lobby": a subject inside its building, on the left (on top, on a phone); "side": a classroom over its
-// room, or the subjects list, on the right (a sheet from the bottom, above the tab bar, on a phone). The panel scrolls
-// itself; the world doesn't.
+// world round it. "lobby": a subject inside its building, on the left (on top, on a phone); "list": a subject off your
+// campus, which has no building, its sets as cards in a wider panel on the left (from under the top bar to above the
+// tab bar, on a phone); "side": a classroom, or the subjects list, on the right (a sheet from the bottom, above the tab
+// bar, on a phone). Each fits the screen's dynamic height (dvh) and keeps clear of the tab bar and the phone's safe
+// area (guides: responsive-design, form-factor-adaptation). The panel scrolls itself; the world doesn't.
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "@dr.pogodin/react-helmet";
@@ -23,9 +25,10 @@ const BODY = "mx-auto px-4 pt-5 pb-16 sm:px-6";
 const HEADER = "mb-5 flex items-center gap-3";
 const EYEBROW = "text-xs text-ink/50";
 const TITLE = "font-display text-2xl font-semibold text-balance sm:text-3xl";
-export type PanelPlace = "lobby" | "side";
+export type PanelPlace = "lobby" | "list" | "side";
 const PANEL: Record<PanelPlace, string> = {
   lobby: "fixed inset-x-3 top-[4.25rem] max-h-[45dvh] sm:top-20 md:right-auto md:left-5 md:w-[340px] md:max-h-[calc(100dvh-6rem)]",
+  list: "fixed inset-x-3 top-[4.25rem] max-h-[calc(100dvh-8.75rem-env(safe-area-inset-bottom,0px))] sm:top-20 sm:max-h-[calc(100dvh-9.5rem-env(safe-area-inset-bottom,0px))] md:right-auto md:left-5 md:w-[min(760px,calc(100vw-2.5rem))] md:max-h-[calc(100dvh-6rem)]",
   side: "fixed inset-x-0 bottom-[calc(3.75rem+env(safe-area-inset-bottom,0px))] max-h-[55dvh] max-md:rounded-b-none! md:inset-x-auto md:top-20 md:right-5 md:bottom-4 md:max-h-none md:w-[min(440px,calc(100vw-2.5rem))]",
 };
 const PANEL_FRAME = "panel z-20 overflow-y-auto overscroll-contain text-ink";

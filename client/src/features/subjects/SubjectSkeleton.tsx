@@ -2,7 +2,8 @@
 // before the page's own code arrives, and the page shows it while the subject loads. Built from the page's real frame:
 // the subject's name (from the address, as it's kept), its counts to come, on a phone "Add to my campus" (signed in,
 // unless your campus is loaded and has the subject), Up next (signed in, or being checked), and the study sets' heading
-// over cards in a set's shape.
+// over cards in a set's shape. In 3D it's a panel over the world, as the page is: the lobby's for a subject on your
+// campus, the list's (the same content, a wider panel) for one off it.
 import { useParams } from "react-router-dom";
 import { subjectName } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
@@ -34,10 +35,11 @@ export function SubjectSkeleton() {
   // Before your campus loads (a page opened straight from its address), this browser's copy of its subjects says.
   const onCampus = campus.data ? campus.data.subjects.some((s) => s.category === name) : keptSubjects().includes(name);
   const world = useWorld();
+  const overWorld = world.shown && world.view.kind === "building";
   const broken = useBroken();
-  if (world.shown && world.view.kind === "building") return <LobbySkeleton name={name} />;
+  if (overWorld && onCampus) return <LobbySkeleton name={name} />;
   return (
-    <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects">
+    <Page title={name} eyebrow={<SkeletonText className="w-56" />} back="/subjects" panel={overWorld ? "list" : undefined}>
       <Loading label={`Loading ${name}`} className="space-y-5">
         {signedIn && !onCampus && plays3d(campus.data) && !broken && <OffCampusNote />}
         {signedIn && !onCampus && (
@@ -47,7 +49,7 @@ export function SubjectSkeleton() {
           </span>
         )}
         {signedIn && (
-          <div className="panel flex flex-wrap items-center gap-3 bg-surface p-4">
+          <div className={cx("flex flex-wrap items-center gap-3", overWorld ? "rounded-2xl bg-brand/6 p-3" : "panel bg-surface p-4")}>
             <SkeletonBlock className="size-10 shrink-0 rounded-xl" />
             <div className="min-w-0 flex-1 basis-48">
               <p className="text-xs">

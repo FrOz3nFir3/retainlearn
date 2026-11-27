@@ -69,9 +69,11 @@ export default function Campus3D({ campus, view, category, onPick, onBroken }: P
   }, []);
   // Inside a building (its subject's page, or one of its classrooms, open over the world): its rooms, worked out by the
   // same rules as the subject's page (subjectProgress.ts), the page of them on show (the page's address, or the one a
-  // classroom's set is on), and what a room does: a tap opens its classroom; the "+ New study set" room, the form.
+  // classroom's set is on), and what a room does: a tap opens its classroom; the "+ New study set" room, the form. Only
+  // a subject on your campus has a building: another's page, and its classrooms, stand over the campus itself.
   const [params] = useSearchParams();
-  const insideOf = view.kind === "building" ? view.category : view.kind === "room" ? category : null;
+  const pageSubject = view.kind === "building" ? view.category : view.kind === "room" ? category : null;
+  const insideOf = pageSubject && campus.subjects.some((s) => s.category === pageSubject) ? pageSubject : null;
   const subject = useGetSubjectQuery(insideOf ?? skipToken);
   const card = useReportCard(!insideOf);
   const when = useToday();
