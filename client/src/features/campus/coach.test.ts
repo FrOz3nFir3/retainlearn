@@ -44,7 +44,7 @@ test("a first visit is the tour, then the news; the report card is always an opt
 test("the next period: what, where, why and how long, and its class a tap away", () => {
   const [line] = coachLines(campus({ timetable: [period(true), period(false, "quiz")] }), "lee");
   assert.equal(line?.text, "Next on your timetable: Fundamentals, in Programming. 2 things you missed are due back. Quiz, about 3 minutes.");
-  assert.deepEqual(line?.act, { label: "Let's go", to: `/study-sets/${SET}/quiz` });
+  assert.deepEqual(line?.act, { label: "Let's go", to: `/study-sets/${SET}/quiz`, category: "Programming" }, "with its subject: the 3D campus walks you to its building");
 });
 
 test("back after days away comes first, without shaming, with the easiest way back in", () => {
@@ -57,9 +57,9 @@ test("back after days away comes first, without shaming, with the easiest way ba
 });
 
 test("a class left halfway today: carried on in its round", () => {
-  const lines = coachLines(campus({ player: { classLeft: { setId: SET, key: "quiz:2:abc", day: DAY, mode: "quiz", subtopic: "Fundamentals", index: 2, of: 5 } } }), "lee");
+  const lines = coachLines(campus({ player: { classLeft: { setId: SET, key: "quiz:2:abc", day: DAY, mode: "quiz", category: "Programming", subtopic: "Fundamentals", index: 2, of: 5 } } }), "lee");
   assert.equal(lines[0]?.text, "You left Fundamentals halfway, at 2 of 5 answered. Pick it up where you were?");
-  assert.deepEqual(lines[0]?.act, { label: "Carry on", to: `/study-sets/${SET}/quiz?round=2` });
+  assert.deepEqual(lines[0]?.act, { label: "Carry on", to: `/study-sets/${SET}/quiz?round=2`, category: "Programming" });
 });
 
 test("a timetable done rings the bell; fading cards say where; nothing at all is a quiet day", () => {

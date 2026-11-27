@@ -16,6 +16,7 @@ import { Loading } from "#components/ui/Skeleton.tsx";
 import { toast } from "#components/ui/Toast.tsx";
 import { CAMPUS_TITLE, HUD_CONTROLS, HUD_LAYER, MapButtons, ViewSwitch, WORLD_LAYER, WorldBackdrop } from "./CampusSkeleton.tsx";
 import { CoachTalk, useCoach } from "./Coach.tsx";
+import type { CoachAct } from "./coach.ts";
 import { skyHour, useLocalHour } from "./daytime.ts";
 import { subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
@@ -30,10 +31,24 @@ export default function Campus3D({ campus, onPick, onBroken }: Props) {
   const navigate = useNavigate();
   const coach = useCoach(campus, useMyUsername(), { walksUp: true });
   const hour = skyHour(campus.player.settings.sky, useLocalHour());
-  // A period's Start: you walk to its building, then the class opens (and comes back here after).
+  // A class from a period's Start or the coach's button: you walk to its subject's building, then the class opens (and
+  // comes back here after). One at a time.
   const [walk, setWalk] = useState<ClassWalk | null>(null);
-  const startClass = (period: Campus["timetable"][number], to: string) =>
-    setWalk((w) => w ?? { category: period.set?.category ?? "", then: () => navigate(to, { state: { returnTo: "/" } }), n: performance.now() });
+  const walkToClass = (category: string, to: string) => setWalk((w) => w ?? { category, then: () => navigate(to, { state: { returnTo: "/" } }), n: performance.now() });
+  const startClass = (period: Campus["timetable"][number], to: string) => walkToClass(period.set?.category ?? "", to);
+  // A walk that hasn't arrived in 20 s (a route that can't be walked, say): the class opens anyway, so Start is never
+  // left waiting. The longest walk, across a big campus at a run, takes about 12 s.
+  useEffect(() => {
+    if (!walk) return;
+    const timer = setTimeout(walk.then, 20_000);
+    return () => clearTimeout(timer);
+  }, [walk]);
+  // The coach's buttons that open a class walk you there too; their other pages open at once.
+  const coachGo = (act: CoachAct) => {
+    if (!act.category) return false;
+    walkToClass(act.category, act.to);
+    return true;
+  };
   // Back from a finished class (the class's end says which subject): its building sparkles, once; the address's state is
   // cleared, so coming back to this page later doesn't play it again.
   const location = useLocation();
@@ -97,7 +112,7 @@ export default function Campus3D({ campus, onPick, onBroken }: Props) {
           />
         </Suspense>
       </WorldBoundary>
-      {coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} />}
+      {coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} onGo={coachGo} />}
     </div>
   );
 }
