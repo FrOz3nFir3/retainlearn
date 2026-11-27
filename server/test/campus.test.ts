@@ -127,3 +127,42 @@ test("what the classroom shows of each round is one of your settings, saved as y
   assert.equal((await campus(ada)).player.settings.studyView, "quiz");
   assert.equal((await t.api(`/api/campus/settings?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 401);
 });
+
+test("the colour scheme is one of your settings too", async () => {
+  const patch = (body: object) => t.api(`/api/campus/settings?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: ada, body: JSON.stringify(body) });
+  assert.equal((await patch({ theme: "dark" })).status, 200);
+  assert.equal((await campus(ada)).player.settings.theme, "dark");
+  assert.equal((await patch({ theme: "purple" })).status, 400);
+});
+
+test("what the coach has told you is kept: the line heard today, a day of Later, and the tour given", async () => {
+  const patch = (body: object) => t.api(`/api/campus/coach?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: ada, body: JSON.stringify(body) });
+  const today = dayKey(new Date(), IST);
+  assert.equal((await patch({ heard: `${today}|period:0:x`, toured: true })).status, 200);
+  assert.equal((await patch({ quiet: today })).status, 200);
+  assert.deepEqual((await campus(ada)).player.coach, { heard: `${today}|period:0:x`, quiet: today, toured: true });
+  assert.equal((await patch({ quiet: "tomorrow" })).status, 400, "a day is a date");
+  assert.equal((await patch({ toured: false })).status, 400, "the tour can't be taken back");
+  assert.equal((await t.api(`/api/campus/coach?tz=${encodeURIComponent(IST)}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: "{}" })).status, 401);
+});
+
+test("back after days away: how many, and the streak that ended meanwhile", async () => {
+  const days = (n: number) => dayKey(new Date(Date.now() - n * 864e5), IST);
+  await Player.updateOne({ _id: ids.author }, { $set: { "streak.count": 6, "streak.lastDay": days(4), "streak.freezes": 0 } });
+  assert.deepEqual((await campus(ada)).player.away, { days: 4, endedStreak: 6 });
+  await Player.updateOne({ _id: ids.author }, { $set: { "streak.lastDay": days(1) } });
+  assert.equal((await campus(ada)).player.away, null, "yesterday isn't away");
+});
+
+test("a class left halfway today comes with its set's subtopic and how far it got", async () => {
+  const key = `quiz:1:${Date.now().toString(36)}`;
+  const questionId = String(((await (await t.api(`/api/study-sets/${js}`)).json()) as { questions: { _id: string }[] }).questions[0]!._id);
+  const res = await t.api(`/api/study-sets/${js}/answers`, {
+    method: "POST",
+    headers: lee,
+    body: JSON.stringify({ timeZone: IST, classKey: key, mode: "quiz", seq: 1, finished: false, answers: [{ kind: "question", itemId: questionId, correct: true, ms: 3000 }], resume: { ids: [questionId, questionId + "x".slice(1), questionId], index: 1 } }),
+  });
+  assert.equal(res.status, 200);
+  const left = (await campus(lee)).player.classLeft;
+  assert.deepEqual({ key: left?.key, mode: left?.mode, subtopic: left?.subtopic, index: left?.index, of: left?.of }, { key, mode: "quiz", subtopic: "Fundamentals", index: 1, of: 3 });
+});

@@ -34,6 +34,15 @@ function viewOf(setId: string, p: ProgressDoc | null): ProgressView {
   };
 }
 
+// A class left halfway, as the coach tells it: its kind, its set's subtopic, and how far it got. One point read, for
+// the campus, only when a class was left (null when it has been finished or dropped since).
+export async function classLeftDetail(userId: string, setId: string, key: string): Promise<{ mode: ClassMode; subtopic: string | null; index: number; of: number } | null> {
+  const p = await Progress.findOne({ userId: oid(userId), setId: oid(setId) }, { classInProgress: 1, "setInfo.subtopic": 1 }).lean<Pick<ProgressDoc, "classInProgress" | "setInfo">>();
+  const left = p?.classInProgress as ClassInProgress | null | undefined;
+  if (!left || left.key !== key || !left.ids?.length) return null;
+  return { mode: left.mode, subtopic: p?.setInfo?.subtopic ?? null, index: left.index ?? 0, of: left.ids.length };
+}
+
 // Your own order of a set's flashcards, or null for the author's (PUT /api/study-sets/:id/order). Kept with your
 // progress in the set, which is made if you haven't started it: it stays not started, with no details of the set, so
 // the report card and the campus (which read the sets you've studied) leave it out.
