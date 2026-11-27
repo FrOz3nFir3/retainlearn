@@ -127,16 +127,26 @@ export async function reportCardSets(userId: string): Promise<ReportCardSet[]> {
   }));
 }
 
+const FOR_RULES = { setId: 1, setInfo: 1, flashcards: 1, questions: 1, lastAt: 1 } as const;
+const forRules = (p: ProgressDoc): ProgressForRules => ({
+  setId: String(p.setId),
+  setInfo: p.setInfo ?? {},
+  flashcards: p.flashcards ?? {},
+  questions: p.questions ?? {},
+  lastAt: p.lastAt ?? null,
+});
+
 export async function allProgressOf(userId: string, category?: string): Promise<ProgressForRules[]> {
   const filter = { userId: oid(userId), ...(category ? { "setInfo.category": category } : {}) };
-  const docs = await Progress.find(filter, { setId: 1, setInfo: 1, flashcards: 1, questions: 1, lastAt: 1 }).lean<ProgressDoc[]>();
-  return docs.map((p) => ({
-    setId: String(p.setId),
-    setInfo: p.setInfo ?? {},
-    flashcards: p.flashcards ?? {},
-    questions: p.questions ?? {},
-    lastAt: p.lastAt ?? null,
-  }));
+  return (await Progress.find(filter, FOR_RULES).lean<ProgressDoc[]>()).map(forRules);
+}
+
+// Your progress in some sets (a path's steps'), by set, on the userId + setId index.
+export async function progressInSets(userId: string, setIds: readonly string[]): Promise<Record<string, ProgressForRules>> {
+  const ids = [...new Set(setIds)].filter((id) => Types.ObjectId.isValid(id)).map(oid);
+  if (!ids.length) return {};
+  const docs = await Progress.find({ userId: oid(userId), setId: { $in: ids } }, FOR_RULES).lean<ProgressDoc[]>();
+  return Object.fromEntries(docs.map((p) => [String(p.setId), forRules(p)]));
 }
 
 export type SavedBatch = {

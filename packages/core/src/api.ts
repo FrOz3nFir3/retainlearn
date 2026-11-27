@@ -3,6 +3,8 @@
 // from it. What they return is a plain type: it comes from our own server, so nothing checks it while the app runs.
 import { ObjectIdHex, SubjectName, TimeZone, z } from "./schemas.ts";
 import { MAX_RECALL_POINTS } from "./answers.ts";
+import { PathContent, StepId, TEST_OUT } from "./paths.ts";
+import type { PathStep, PathVersion, PathVisibility, StepCheck, StepSet } from "./paths.ts";
 import { CLASS_MODES } from "./timetable.ts";
 import type { ClassMode, Period } from "./timetable.ts";
 import type { SubjectStatus } from "./progress.ts";
@@ -258,3 +260,126 @@ export type Campus = {
   fading: { category: string; count: number }[];
   today: { xp: number; answers: number };
 };
+
+// ---------- Paths (P2-07): /api/paths ----------
+
+// Someone named on a path: its author, an editor, someone who suggested a change.
+export type PathPerson = { _id: string; username: string; name: string };
+
+// GET /api/paths?search=…&subject=…&mine=1&page=…: listed public paths, 12 a page, the most recently changed first.
+// search: those with a word in their title that starts with it, in any case (as subjects); subject: one subject's.
+// mine=1 (signed in): the paths you can edit instead, public or private, listed or not. A page past the last has none.
+export const PATHS_PER_PAGE = 12;
+export const PathsQuery = z.object({
+  search: z.string().trim().max(100).default(""),
+  subject: SubjectName.optional(),
+  mine: z.literal("1").optional(),
+  page: z.coerce.number().int().min(1).max(10_000).default(1),
+});
+export type PathListing = {
+  _id: string;
+  title: string;
+  category: string;
+  description: string;
+  steps: number;
+  exam: boolean;
+  visibility: PathVisibility;
+  listed: boolean;
+  author: PathPerson | null;
+  updatedAt: string;
+};
+export type PathsPage = { paths: PathListing[]; total: number; page: number; pages: number };
+
+// GET /api/paths/:id: a path, for everyone when it's public (listed or not: a link still opens it), for its editors
+// when it's private, and for nobody once deleted (404 for both). Each step comes with its study set (null: deleted)
+// and whether it can be studied (checkStep). version: when the path last changed, sent back with an edit or a
+// suggestion, so one made against an older version is refused rather than undoing what came since. you (signed in):
+// whether you can edit it (and delete it: its author), whether you follow it, the steps you tested out of, your
+// progress in its steps' sets, your suggestion (open, or decided and still kept) and its skill, if it's yours.
+export const PathParams = z.object({ id: ObjectIdHex });
+export type PathStepView = PathStep & { set: StepSet | null; check: StepCheck };
+export type PathStepProgress = { flashcards: Record<string, FlashcardProgress>; questions: Record<string, QuestionProgress>; lastAt: string | null };
+export type PathView = Omit<PathVersion, "steps"> & {
+  _id: string;
+  steps: PathStepView[];
+  author: PathPerson | null;
+  editors: PathPerson[];
+  copiedFrom: string | null;
+  listed: boolean;
+  version: string;
+  you: {
+    canEdit: boolean;
+    isAuthor: boolean;
+    following: boolean;
+    testedOut: string[];
+    progress: Record<string, PathStepProgress>;
+    suggestion: PathSuggestion | null;
+    skill: { at: string } | null;
+  } | null;
+};
+
+// POST /api/paths  PathContent: a new path, yours, answered with its id (201). As with study sets (P0-14), a new
+// account makes fewer a day, and its public paths are unlisted (out of the lists, open by link) for its first days.
+export type NewPath = { _id: string };
+
+// PUT /api/paths/:id  { path, version }: the path saved by one of its editors, if it's still the version they started
+// from (409 otherwise). Every step's set must be in the path's subject with something in it; picked flashcards no
+// longer in their set are dropped. Who can see it is its author's call. Answers with the path as GET does.
+export const PathEdit = z.object({ path: PathContent, version: z.iso.datetime() });
+
+// DELETE /api/paths/:id: taken down by its author. Hidden from everyone, its history kept; whoever follows it finds
+// it gone, and a skill earned on it keeps its title.
+// POST /api/paths/:id/copy: a private copy, yours, titled "… (copy)" (201, its id). Its steps and their ids come too.
+// PUT /api/paths/:id/follow?tz=… (CampusQuery): the path you follow (one at a time), its subject put on your campus
+// if it isn't there. DELETE /api/paths/:id/follow: no longer.
+
+// POST /api/paths/:id/editors  { username }: an editor added, by one of its editors (as a set's reviewers are).
+// DELETE /api/paths/:id/editors/:userId: one taken off, never its author. Both answer with the editors.
+export const PathEditorAdd = z.object({ username: Username });
+export const PathEditorParams = z.object({ id: ObjectIdHex, userId: ObjectIdHex });
+
+// Suggestions: someone signed in who can't edit a path can suggest a change, one at a time per path (sending another
+// replaces it: PUT …/suggestions/mine, DELETE to withdraw it). Its editors accept it, which applies its own changes to
+// the path as it is now (mergeSuggestion), or decline it with a note. Each lasts 15 days, then goes; until then its
+// suggester sees what happened to it. Who can see the path isn't something a suggestion can change.
+// GET /api/paths/:id/suggestions: the open ones, for its editors; yours, for anyone else.
+// POST /api/paths/:id/suggestions/:suggestionId/accept, and …/decline  { note }.
+export const PATH_SUGGESTION_DAYS = 15;
+export const PathSuggest = z.object({ path: PathContent, version: z.iso.datetime() });
+export const PathSuggestionParams = z.object({ id: ObjectIdHex, suggestionId: ObjectIdHex });
+export const PATH_NOTE_MAX = 500;
+export const PathDecline = z.object({ note: z.string().trim().max(PATH_NOTE_MAX, `Keep the note to ${PATH_NOTE_MAX} characters.`).default("") });
+export type PathSuggestionStatus = "open" | "accepted" | "declined";
+export type PathSuggestion = {
+  _id: string;
+  by: PathPerson | null;
+  at: string;
+  expiresAt: string;
+  status: PathSuggestionStatus;
+  summary: string[];
+  note: string;
+  after: PathVersion;
+  stale: boolean; // the path changed since it was made: accepting applies only its own changes
+};
+
+// GET /api/paths/:id/history?page=…: what changed and who changed it, newest first, 20 a page (for whoever can see the
+// path). from: whose suggestion it was, when an editor accepted one.
+export const PATH_HISTORY_PER_PAGE = 20;
+export const PathHistoryQuery = z.object({ page: z.coerce.number().int().min(1).max(10_000).default(1) });
+export type PathHistoryKind = "created" | "edited" | "suggestion" | "deleted";
+export type PathHistoryEntry = { _id: string; at: string; kind: PathHistoryKind; by: PathPerson | null; from: PathPerson | null; summary: string[] };
+export type PathHistoryPage = { entries: PathHistoryEntry[]; page: number; pages: number };
+
+// POST /api/paths/:id/steps/:stepId/test-out?tz=…  { answers }: a test out of a step, as the browser marked it (the
+// answers themselves are saved as any class's are). Checked here (checkTestOut): when it passed, the step is done for
+// you. Answers { passed }; 400 when they aren't the step's questions.
+export const PathStepParams = z.object({ id: ObjectIdHex, stepId: StepId });
+export const TestOut = z.object({ answers: z.array(z.object({ questionId: ObjectIdHex, right: z.boolean() })).min(1).max(TEST_OUT.questions) });
+export type TestOutResult = { passed: boolean };
+
+// POST /api/paths/:id/skill?tz=…: the path's skill, yours once every step is done (checked here, from your progress and
+// test outs; 409 until then). Kept for good, with the path's title as it was.
+export type PathSkill = { pathId: string; title: string; at: string };
+
+// POST /api/paths/:id/report  { reason, note }: "Report this path", as a set is reported (StudySetReport): enough
+// people reporting it take it out of the lists until it's checked.

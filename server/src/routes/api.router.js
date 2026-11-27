@@ -12,6 +12,7 @@ import studySetsRouter from "./studySets/studySets.router.ts";
 import campusRouter from "./campus/campus.router.ts";
 import reportCardRouter from "./reportCard/reportCard.router.ts";
 import subjectsRouter from "./subjects/subjects.router.ts";
+import pathsRouter from "./paths/paths.router.ts";
 import { csrfProtectionMiddleware } from "../middleware/csrf.middleware.js";
 
 apiRouter.use(csrfProtectionMiddleware);
@@ -25,5 +26,6 @@ apiRouter.use("/study-sets", studySetsRouter);
 apiRouter.use("/campus", campusRouter);
 apiRouter.use("/report-card", reportCardRouter);
 apiRouter.use("/subjects", subjectsRouter);
+apiRouter.use("/paths", pathsRouter);
 
 export default apiRouter;

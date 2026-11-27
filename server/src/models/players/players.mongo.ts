@@ -68,7 +68,8 @@ const playerSchema = new Schema(
     paths: {
       active: { type: Schema.Types.ObjectId, default: null },
       testedOut: { type: [String], default: [] }, // "pathId.stepId"
-      skills: { type: [new Schema({ pathId: Schema.Types.ObjectId, at: Date }, { _id: false })], default: [] },
+      // A path's skill, earned for good, with the path's title as it was (the path can change or go).
+      skills: { type: [new Schema({ pathId: Schema.Types.ObjectId, title: String, at: Date }, { _id: false })], default: [] },
     },
     // A class left halfway, for the coach. Its detail is in progress.classInProgress.
     classLeft: { type: new Schema({ setId: Schema.Types.ObjectId, key: String, day: String }, { _id: false }), default: null },

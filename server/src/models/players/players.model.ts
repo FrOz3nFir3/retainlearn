@@ -178,3 +178,36 @@ export async function finishClass(userId: string, today: Day, subject: SubjectSu
   }
   throw new Error("This player is being changed from elsewhere at the same moment");
 }
+
+// Paths (P2-07): the one you follow (or none), the steps you tested out of ("pathId.stepId"), and the skills you've
+// earned, each for good with its path's title as it was. Each write needs your player made first (playerOf).
+export type PlayerPaths = { active: string | null; testedOut: string[]; skills: { pathId: string; title: string; at: Date }[] };
+export async function pathsOf(userId: string): Promise<PlayerPaths> {
+  const player = await Player.findById(userId, { paths: 1 }).lean<Pick<PlayerDoc, "paths">>();
+  return {
+    active: player?.paths?.active ? String(player.paths.active) : null,
+    testedOut: player?.paths?.testedOut ?? [],
+    skills: (player?.paths?.skills ?? []).map((s) => ({ pathId: String(s.pathId), title: s.title ?? "", at: s.at ?? new Date(0) })),
+  };
+}
+
+export async function followPath(userId: string, pathId: string): Promise<void> {
+  await Player.updateOne({ _id: userId }, { $set: { "paths.active": new Types.ObjectId(pathId) } });
+}
+
+// No longer following the path, if it's the one you follow.
+export async function unfollowPath(userId: string, pathId: string): Promise<void> {
+  await Player.updateOne({ _id: userId, "paths.active": new Types.ObjectId(pathId) }, { $set: { "paths.active": null } });
+}
+
+export async function addTestedOut(userId: string, key: string): Promise<void> {
+  await Player.updateOne({ _id: userId }, { $addToSet: { "paths.testedOut": key } });
+}
+
+// A path's skill, once: earned again, the first stays (with its title and day).
+export async function addSkill(userId: string, skill: { pathId: string; title: string; at: Date }): Promise<{ title: string; at: Date }> {
+  const pathId = new Types.ObjectId(skill.pathId);
+  await Player.updateOne({ _id: userId, "paths.skills.pathId": { $ne: pathId } }, { $push: { "paths.skills": { pathId, title: skill.title, at: skill.at } } });
+  const earned = (await pathsOf(userId)).skills.find((s) => s.pathId === skill.pathId);
+  return earned ? { title: earned.title, at: earned.at } : { title: skill.title, at: skill.at };
+}

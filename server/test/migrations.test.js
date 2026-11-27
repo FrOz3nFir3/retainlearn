@@ -501,7 +501,9 @@ test("0005 brings over what's been studied in the old app since the first copy: 
   assert.ok(lines.includes(plan), lines.join("\n"));
   assert.deepEqual(await db.collection("progress").findOne({ userId: t.lee, setId: t.set }), first, "the dry run wrote nothing");
 
-  assert.deepEqual((await runMigrations(db, { log: quiet })).ran, ["0005-copy-progress-again"]);
+  // 0005 runs next (later migrations after it).
+  const { ran } = await runMigrations(db, { log: quiet });
+  assert.equal(ran[0], "0005-copy-progress-again", ran.join(", "));
   const again = await db.collection("progress").findOne({ userId: t.lee, setId: t.set });
   const [f1, f2, f3] = t.f.map(String);
   const reviewed = new Date("2026-11-20T10:00:00Z");
