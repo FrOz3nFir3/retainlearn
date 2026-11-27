@@ -2,14 +2,16 @@
 // through as placeholders, then the shape of what's coming: for a review, a flashcard and its button; for a quiz, the
 // question, its four answers and the hint under them. Screen readers hear label (Loading). Its own small file, loaded
 // with the app (PLAN 14.15), so the route shows it before the class's code arrives too.
+import { useParams } from "react-router-dom";
 import type { ClassMode } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
-import { ClassFrame, GUEST, TRACK } from "./ClassShell.tsx";
+import { ClassFrame, GuestNote, TRACK, useReturnTo } from "./ClassShell.tsx";
 
 export function ClassSkeleton({ label, mode }: { label: string; mode: ClassMode }) {
   const signedIn = useSession() !== "out";
+  const returnTo = useReturnTo(useParams().id ?? "");
   const review = mode === "review" || mode === "reviewMissed";
   return (
     <ClassFrame
@@ -30,13 +32,7 @@ export function ClassSkeleton({ label, mode }: { label: string; mode: ClassMode 
           <SkeletonBlock className="h-1 rounded-none" />
         )
       }
-      notice={
-        !signedIn && (
-          <p className={GUEST}>
-            <SkeletonText className="w-full" />
-          </p>
-        )
-      }
+      notice={!signedIn && <GuestNote returnTo={returnTo} />}
       bar={
         review ? (
           <SkeletonBlock className="h-9 w-44 rounded-xl" />

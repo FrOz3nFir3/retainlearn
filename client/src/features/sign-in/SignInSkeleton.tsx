@@ -2,11 +2,13 @@
 // form's side with the logo, its heading and the switch between signing in and signing up, and on wide screens the
 // campus with what it's like. The page fills the frame with Google's button and the form; the skeleton, loaded with
 // the app, fills it with their shapes while the page's code arrives.
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { Loading, SkeletonBlock, SkeletonText } from "#components/ui/Skeleton.tsx";
+import { keptClasses } from "#features/classes/guestClasses.ts";
 import { CampusSketch } from "#features/landing/CampusSketch.tsx";
 import { cx } from "#utils/cx.ts";
 
@@ -18,13 +20,15 @@ const WHAT_ITS_LIKE: [IconName, string][] = [
   ["cards", "Every question you get right becomes a player card. Remember it again and it levels up."],
 ];
 
-const HEADINGS: Record<SignInMode, [string, string]> = {
-  "sign-in": ["Welcome back", "Sign in to pick up where you left off."],
-  "sign-up": ["Create your account", "It's free. Your progress is saved from your first class."],
+// After a class tried as a guest (kept on this device: guestClasses.ts), the subtitle says it's saved as you come in.
+const HEADINGS: Record<SignInMode, (kept: string | null) => [string, string]> = {
+  "sign-in": (kept) => ["Welcome back", kept ? `Sign in and ${kept} is saved to your account.` : "Sign in to pick up where you left off."],
+  "sign-up": (kept) => ["Create your account", kept ? `It's free, and ${kept} is saved to it.` : "It's free. Your progress is saved from your first class."],
 };
 
 export function SignInFrame({ mode, children }: { mode: SignInMode; children: ReactNode }) {
-  const [title, subtitle] = HEADINGS[mode];
+  const [kept] = useState(() => keptClasses().length); // as the page opened: they're sent (and forgotten) on the way in
+  const [title, subtitle] = HEADINGS[mode](kept ? (kept === 1 ? "the class you just took" : "what you just studied") : null);
   return (
     <div className="grid min-h-dvh bg-mist text-ink md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
       <div className="flex flex-col px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-10">

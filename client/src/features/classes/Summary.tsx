@@ -70,7 +70,8 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
             </h2>
             {result?.firstToday && <p className="mt-1 text-sm font-semibold text-bell-ink">Streak kept: {result.streak} {result.streak === 1 ? "day" : "days"}</p>}
           </div>
-          {result && (
+          {/* A guest's XP comes once they sign in and the class is saved to their account (guestClasses.ts). */}
+          {result && signedIn && (
             <p className="rounded-2xl bg-bell-wash px-4 py-2 text-right">
               <span className="block font-display text-3xl font-semibold text-bell-ink tabular-nums">
                 +<CountUp to={result.xp} />
@@ -96,13 +97,13 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
       {extra}
       <div className="flex flex-wrap justify-end gap-2">
         {!signedIn && (
-          <Link to="/sign-in" className={buttonClass("quiet")}>
+          <Link to="/sign-in" state={{ returnTo }} className={buttonClass("quiet")}>
             Sign in to keep this
           </Link>
         )}
         {actions}
         <Link to={returnTo} className={buttonClass("primary")}>
-          Back to {returnTo === "/" ? "campus" : "classroom"}
+          Back to {returnTo !== "/" ? "classroom" : signedIn ? "campus" : "the home page"}
         </Link>
       </div>
     </section>
