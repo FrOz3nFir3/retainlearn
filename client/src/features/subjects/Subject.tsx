@@ -34,12 +34,24 @@ import type { Order, Room } from "./subjectProgress.ts";
 import { problemOf } from "#api/problem.ts";
 import { useAddSubjectMutation, useGetSubjectQuery, useRemoveSubjectMutation } from "./subjectsApi.ts";
 import { ADD_ON_PHONE, OffCampusNote, SETS_GRID, SETS_HEADING, SubjectSkeleton } from "./SubjectSkeleton.tsx";
+import { skipToken } from "@reduxjs/toolkit/query";
+import type { PathView } from "@retainlearn/core";
+import { along as alongPath, inPathOrder, pickedClass, stepBadges } from "#features/paths/pathView.ts";
+import type { StepBadgeInfo } from "#features/paths/pathView.ts";
+import { StepBadge } from "#features/paths/StepBadge.tsx";
+import { useGetPathQuery } from "#features/paths/pathsApi.ts";
+import { FollowedHere, PathsHereLinks } from "#features/paths/PathsHere.tsx";
 
 const FLOORS_PER_PAGE = SETS_PER_PAGE / ROOMS_PER_FLOOR; // the lift: page 2 is floors 4 to 6
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n.toLocaleString("en")} ${word}${n === 1 ? "" : "s"}`;
 const ORDERS = [
   { value: "building", label: "Building order" },
+  { value: "attention", label: "Needs attention" },
+] as const;
+// With the path you follow here, the building's order is the path's.
+const PATH_ORDERS = [
+  { value: "building", label: "Path order" },
   { value: "attention", label: "Needs attention" },
 ] as const;
 
@@ -53,15 +65,29 @@ export default function Subject() {
   const world = useWorld();
   const overWorld = world.shown && world.view.kind === "building";
   const broken = useBroken();
+  // The path you follow, when it's this subject's: its order, its step badges and its card.
+  const followed = campus.data?.player.path;
+  const followedHere = signedIn && followed && followed.category === (subject.data?.name ?? name) ? followed._id : null;
+  const path = useGetPathQuery(followedHere ?? skipToken);
   if (subject.isError) {
     const badName = (subject.error as { status?: unknown }).status === 400;
     return badName ? <NotASubject /> : <Failed retry={() => void subject.refetch()} />;
   }
   // Signed in, the page waits for your progress too (or for it to fail), so the sets' statuses don't pop in late.
-  const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError)));
+  const waiting = session === "checking" || (signedIn && ((!card.data && !card.isError) || (!campus.data && !campus.isError) || (!!followedHere && !path.data && !path.isError)));
   if (!subject.data || waiting) return <SubjectSkeleton />;
   const onCampus = signedIn && campus.data ? (campus.data.subjects.find((s) => s.category === subject.data?.name) ?? false) : null;
-  return <SubjectView subject={subject.data} card={signedIn ? (card.data ?? null) : null} onCampus={onCampus} signedIn={signedIn} overWorld={overWorld} in3d={signedIn && plays3d(campus.data) && !broken} />;
+  return (
+    <SubjectView
+      subject={subject.data}
+      card={signedIn ? (card.data ?? null) : null}
+      onCampus={onCampus}
+      signedIn={signedIn}
+      overWorld={overWorld}
+      in3d={signedIn && plays3d(campus.data) && !broken}
+      path={followedHere ? (path.data ?? null) : null}
+    />
+  );
 }
 
 function NotASubject() {
@@ -86,8 +112,10 @@ type Notice = { tone: "done" | "failed"; text: string };
 // overWorld: in 3D, the page is a panel over the world (D-20). For a subject on your campus, its building's lobby, the
 // building opened up behind it: no cards, as the floors are the list; the lift instead of pages. For one off your
 // campus (no building), the list: the 2D page's content in a wider panel over the campus, as the prototype's was.
-type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; overWorld: boolean; in3d: boolean };
-function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: ViewProps) {
+// path: the path you follow, when it's this subject's (the prototype's lobby): rooms in its order, Up next its current
+// step, its card, and each room's step badge.
+type ViewProps = { subject: SubjectData; card: ReportCard | null; onCampus: CampusSubject | false | null; signedIn: boolean; overWorld: boolean; in3d: boolean; path: PathView | null };
+function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d, path }: ViewProps) {
   const lobby = overWorld && !!onCampus;
   const when = useToday();
   const [params, setParams] = useSearchParams();
@@ -95,7 +123,13 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
   // The lobby keeps the building's order: the floors don't reshuffle, so rooms stay where you left them.
   const order: Order = signedIn && !lobby && params.get("order") === "attention" ? "attention" : "building";
   const { rooms, stats } = useMemo(() => subjectProgress(subject, card, when), [subject, card, when]);
-  const next = signedIn ? upNextHere(rooms) : null;
+  const followed = useMemo(() => (path ? alongPath(path, when) : null), [path, when]);
+  const badges = useMemo(() => stepBadges(followed), [followed]);
+  const step = followed?.current ?? null;
+  const stepRoom = step ? rooms.find((r) => r.set._id === step.set._id) : undefined;
+  // Up next: your path's current step when it's here (a picked step's own class), else this subject's most pressing.
+  const next = signedIn ? (stepRoom && step && followed ? { room: stepRoom, why: `Your path, step ${followed.steps.indexOf(step) + 1}` } : upNextHere(rooms)) : null;
+  const stepClass = path && step && stepRoom && step.step.flashcardIds != null ? pickedClass(path._id, step) : null;
   const attention = signedIn ? alsoNeedsAttention(rooms, next?.room ?? null) : [];
   const classes = useNextClass();
   const nextId = next?.room.set._id;
@@ -104,7 +138,7 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
     if (nextId) classes.prefetch(nextId);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per set, not per render
   }, [nextId]);
-  const found = useMemo(() => ordered(rooms, order).filter((r) => matchesSearch(r.set, search)), [rooms, order, search]);
+  const found = useMemo(() => (followed && order === "building" ? inPathOrder(rooms, followed) : ordered(rooms, order)).filter((r) => matchesSearch(r.set, search)), [rooms, followed, order, search]);
   const { items: shown, page, pages, newRoom } = roomsPage(found, { page: Number(params.get("page")) || null, search });
   const heading = usePageHeading(page);
   const [newOpen, setNewOpen] = useState(false);
@@ -208,9 +242,15 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
               <p className="text-sm text-ink/55">{next.why}</p>
             </div>
             {/* The class its classroom would start, in one tap (its set fetched as the page opens). */}
-            <Button tone="primary" disabled={classes.opening !== null} aria-label={`Start the next class in ${next.room.set.subtopic}`} onClick={() => void classes.open(next.room.set._id)}>
-              {classes.opening === next.room.set._id ? "Opening…" : "Start"}
-            </Button>
+            {stepClass && next.room === stepRoom ? (
+              <Link to={stepClass.href} title={stepClass.note} aria-label={`${stepClass.label}: ${next.room.set.subtopic}`} className={buttonClass("primary")}>
+                Start
+              </Link>
+            ) : (
+              <Button tone="primary" disabled={classes.opening !== null} aria-label={`Start the next class in ${next.room.set.subtopic}`} onClick={() => void classes.open(next.room.set._id)}>
+                {classes.opening === next.room.set._id ? "Opening…" : "Start"}
+              </Button>
+            )}
             {attention.length > 0 && (
               <div className="hidden w-full border-t border-ink/6 pt-3 sm:block">
                 <h3 className="mb-1 text-[11px] font-semibold text-ink/50">Also needs attention</h3>
@@ -248,6 +288,8 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
             </section>
           )
         )}
+
+        {path && followed && <FollowedHere path={path} along={followed} />}
 
         {lobby ? (
           // The lobby: no cards (the floors are the list), the search once there's more than a page, and the lift.
@@ -291,6 +333,7 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
             <p className="mt-1.5 text-[11px] text-ink/50">
               {pages > 1 ? `Floors ${(page - 1) * FLOORS_PER_PAGE + 1}–${(page - 1) * FLOORS_PER_PAGE + classFloors(shown.length + (newRoom ? 1 : 0))}. The lift shows the next ${SETS_PER_PAGE} study sets.` : "Tap a classroom to open it."}
             </p>
+            <PathsHereLinks subject={subject.name} followedId={path?._id ?? null} />
           </section>
         ) : (
           <section aria-labelledby="sets-title">
@@ -325,7 +368,7 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
                   </search>
                 )}
                 {signedIn && rooms.length > 1 && (
-                  <Segmented label="Order of the study sets" items={ORDERS} value={order} onChange={(value) => setParams(paramsWith({ order: value, page: 1 }), { replace: true })} />
+                  <Segmented label="Order of the study sets" items={followed ? PATH_ORDERS : ORDERS} value={order} onChange={(value) => setParams(paramsWith({ order: value, page: 1 }), { replace: true })} />
                 )}
               </div>
             )}
@@ -356,12 +399,13 @@ function SubjectView({ subject, card, onCampus, signedIn, overWorld, in3d }: Vie
               <ul className={SETS_GRID}>
                 {shown.map((room) => (
                   <li key={room.set._id}>
-                    <RoomCard room={room} signedIn={signedIn} classes={classes} />
+                    <RoomCard room={room} signedIn={signedIn} classes={classes} badge={badges.get(room.set._id)} />
                   </li>
                 ))}
               </ul>
             )}
             <Pager page={page} pages={pages} href={hrefFor} label={`Pages of ${subject.name}'s study sets`} />
+            <PathsHereLinks subject={subject.name} followedId={path?._id ?? null} />
           </section>
         )}
 
@@ -384,7 +428,8 @@ const statusIcon = (room: Room): IconName => (room.status.key === "missed" ? "fo
 // A study set in the subject (guide: card): its subtopic links to its classroom, over the whole card. Signed in, its
 // one status, your mastery, and its next class one tap away (above the card's link). Signed out, a set with nothing
 // in it yet still says so.
-function RoomCard({ room, signedIn, classes }: { room: Room; signedIn: boolean; classes: ReturnType<typeof useNextClass> }) {
+type RoomProps = { room: Room; signedIn: boolean; classes: ReturnType<typeof useNextClass>; badge: StepBadgeInfo | undefined };
+function RoomCard({ room, signedIn, classes, badge }: RoomProps) {
   const { set, stats, status } = room;
   return (
     <article className={cardClass}>
@@ -395,6 +440,7 @@ function RoomCard({ room, signedIn, classes }: { room: Room; signedIn: boolean; 
         </Link>
       </h3>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {badge && <StepBadge badge={badge} />}
         {(signedIn || stats.empty) && <Chip tone={SET_STATUS_TONE[status.key]}>{status.label}</Chip>}
         {!stats.empty && <span className="text-[11px] text-ink/50">{`${plural(set.flashcards, "flashcard")}, ${plural(set.questions, "question")}`}</span>}
       </div>

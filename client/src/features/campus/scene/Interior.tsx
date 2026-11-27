@@ -17,6 +17,8 @@ import type { Room as RoomData, RoomsPage } from "#features/subjects/subjectProg
 import { SET_STATUS_TONE } from "../subjects.ts";
 import { BASE, KitShell, OPEN_WALL, STOREY, roofHeight } from "./kit.tsx";
 import { Label, PlaceLink } from "./Label.tsx";
+import { StepBadge } from "#features/paths/StepBadge.tsx";
+import type { StepBadgeInfo } from "#features/paths/pathView.ts";
 import { ROOMS_PER_FLOOR, classFloors, storeys } from "./layout.ts";
 import type { CampusBuilding } from "./layout.ts";
 import { Seated } from "./People.tsx";
@@ -46,7 +48,8 @@ const mat = {
 
 // The page of the building shown inside, and what its rooms do. roomId: the room whose classroom is open (picked out).
 // newHref: the address that opens the "+ New study set" form (onNew does it in the app).
-export type Inside = { page: RoomsPage; roomId: string | null; onOpen: (setId: string) => void; onNew: () => void; newHref: string };
+// badges: each room's place in the path you follow, when it's this subject's (paths/pathView.ts, stepBadges).
+export type Inside = { page: RoomsPage; roomId: string | null; onOpen: (setId: string) => void; onNew: () => void; newHref: string; badges?: ReadonlyMap<string, StepBadgeInfo> };
 export type ShellLook = { cols: number; lit: number; state: "warm" | "cooling" | "cold"; style: number };
 
 const FLOORS_PER_PAGE = SETS_PER_PAGE / ROOMS_PER_FLOOR;
@@ -123,7 +126,7 @@ export function Interior({ b, rot, shell, lobby, sign, inside, pennant }: Props)
       })}
       <Lobby w={w} back={wallZ + 0.01} front={front} people={lobby} sign={sign} accent={b.pennant} />
       {page.items.map((r, i) => (
-        <Room key={r.set._id} room={r} {...roomAt(i)} {...room} selected={r.set._id === inside.roomId} accent={b.pennant} seed={i} onOpen={inside.onOpen} />
+        <Room key={r.set._id} room={r} {...roomAt(i)} {...room} selected={r.set._id === inside.roomId} accent={b.pennant} seed={i} onOpen={inside.onOpen} badge={inside.badges?.get(r.set._id)} />
       ))}
       {page.newRoom && <NewRoom {...roomAt(page.items.length)} {...room} href={inside.newHref} onNew={inside.onNew} />}
       {Array.from({ length: classFloors(slotsUsed) * ROOMS_PER_FLOOR - slotsUsed }, (_, k) => (
@@ -159,10 +162,10 @@ const hover = (on: (v: boolean) => void) => ({
 });
 const pct = (x: number) => Math.round(x * 100);
 
-type RoomProps = { room: RoomData; x: number; y: number; rw: number; back: number; front: number; selected: boolean; accent: string; seed: number; onOpen: (setId: string) => void };
+type RoomProps = { room: RoomData; x: number; y: number; rw: number; back: number; front: number; selected: boolean; accent: string; seed: number; onOpen: (setId: string) => void; badge: StepBadgeInfo | undefined };
 // A classroom, from its back wall (back) to the open front: the subject's colour along the back wall, a whiteboard with
 // the set's name, desks with chairs, and the room itself showing how you're doing with it.
-function Room({ room, x, y, rw, back, front, selected, accent, seed, onOpen }: RoomProps) {
+function Room({ room, x, y, rw, back, front, selected, accent, seed, onOpen, badge }: RoomProps) {
   const { set, stats, status } = room;
   const [hov, setHov] = useState(false);
   const lightOn = stats.started && !stats.empty;
@@ -266,12 +269,13 @@ function Room({ room, x, y, rw, back, front, selected, accent, seed, onOpen }: R
       <Label position={[0, 0.35, front - 1.1]}>
         <PlaceLink
           href={setPath(set._id)}
-          label={`${set.subtopic}: ${status.label}`}
+          label={`${set.subtopic}: ${status.label}${badge ? `, path step ${badge.n}` : ""}`}
           go={() => onOpen(set._id)}
           rank={null}
           chip={false}
           className={`flex items-center gap-1 rounded-full bg-surface p-1 shadow-[0_8px_18px_-8px_rgb(30_27_75/0.45)] ring-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${selected ? "ring-2 ring-brand" : "ring-ink/10"}`}
         >
+          {badge && <StepBadge badge={badge} compact />}
           <Chip tone={SET_STATUS_TONE[status.key]} className="px-1.5! text-[10px]!">
             {status.label}
           </Chip>

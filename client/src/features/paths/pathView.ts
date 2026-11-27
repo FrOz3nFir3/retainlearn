@@ -85,3 +85,29 @@ export function parseStep(param: string | null): { pathId: string; stepId: strin
   const match = /^([0-9a-f]{24})\.([A-Za-z0-9_-]{1,24})$/.exec(param ?? "");
   return match ? { pathId: match[1] as string, stepId: match[2] as string } : null;
 }
+
+// A subject's rooms in the order of the path you follow (the prototype's inPathOrder): its steps' sets first, as the
+// path orders them, then the others as they were.
+export function inPathOrder<T extends { set: { _id: string } }>(rooms: readonly T[], path: PathProgress | null): T[] {
+  if (!path) return [...rooms];
+  const at = new Map<string, number>();
+  path.steps.forEach((s, i) => {
+    if (!at.has(s.set._id)) at.set(s.set._id, i);
+  });
+  const rank = (r: T, i: number) => at.get(r.set._id) ?? path.steps.length + i;
+  return rooms
+    .map((r, i) => ({ r, key: rank(r, i) }))
+    .toSorted((a, b) => a.key - b.key)
+    .map(({ r }) => r);
+}
+
+// Each set's place in the path you follow (its first step's): its number, its state, and whether it has something
+// missed (a done step's tick waits for those).
+export type StepBadgeInfo = { n: number; state: StepState; missed: boolean };
+export function stepBadges(path: PathProgress | null): Map<string, StepBadgeInfo> {
+  const out = new Map<string, StepBadgeInfo>();
+  path?.steps.forEach((s, i) => {
+    if (!out.has(s.set._id)) out.set(s.set._id, { n: i + 1, state: s.state, missed: s.stats.missedFlashcards + s.stats.missedQuestions > 0 });
+  });
+  return out;
+}
