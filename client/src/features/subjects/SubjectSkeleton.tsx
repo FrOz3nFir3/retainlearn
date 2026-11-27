@@ -49,7 +49,7 @@ export function SubjectSkeleton() {
                 <SkeletonText className="w-28" />
               </p>
             </div>
-            <SkeletonBlock className="h-9 w-40 rounded-xl" />
+            <span className={buttonClass("primary")}>Start</span>
           </div>
         )}
         <div>
@@ -79,6 +79,14 @@ export function SubjectSkeleton() {
                     <SkeletonText className="w-16" />
                   </Chip>
                 </div>
+                {/* Signed in, each set's next class, one tap away. */}
+                {signedIn && (
+                  <div className="mt-auto pt-3">
+                    <span className={cx(buttonClass("quiet", "sm"), "w-full !justify-start")}>
+                      <SkeletonText className="w-20" />
+                    </span>
+                  </div>
+                )}
               </div>
             ))}
           </div>

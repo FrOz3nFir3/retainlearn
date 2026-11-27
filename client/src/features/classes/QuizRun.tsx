@@ -20,7 +20,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { textOf } from "#utils/safeHtml.ts";
 import { AnswerOption } from "./AnswerOption.tsx";
-import { ClassShell, Resumed, useReturnTo } from "./ClassShell.tsx";
+import { ClassShell, Resumed, SAVE_FAILED, useReturnTo } from "./ClassShell.tsx";
 import { classPath } from "./modes.ts";
 import { Pips } from "./Pips.tsx";
 import { recallPoints } from "./recallPoints.ts";
@@ -29,7 +29,8 @@ import type { QuizPlan } from "./quizPlan.ts";
 import { answerOptions } from "./quizPlan.ts";
 import { Summary, useWasCold } from "./Summary.tsx";
 import type { ClassResult } from "./Summary.tsx";
-import { useClassSaver } from "./useClassSaver.ts";
+import { useClassSaver, useSaveFailed } from "./useClassSaver.ts";
+import { Why } from "./Why.tsx";
 
 const PIPS_UP_TO = 12; // more balls than this won't fit a phone's row: a longer quiz shows a bar instead
 const MAX_MS = 3_600_000;
@@ -113,6 +114,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
   const start = earlier.length;
   const [options] = useState(() => questions.map((q) => answerOptions(q)));
   const saver = useClassSaver(set._id, mode, keyRound, resume);
+  const problem = useSaveFailed(saver) ? SAVE_FAILED : null;
   const [marks, setMarks] = useState<{ correct: boolean | null }[]>(() => earlier.map((e) => ({ correct: e.correct })));
   const [picked, setPicked] = useState<number | null>(null);
   const [combo, setCombo] = useState(0);
@@ -201,7 +203,6 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
 
   const right = marks.filter((m) => m.correct).length;
   const pips = questions.length <= PIPS_UP_TO;
-  const linked = question?.flashcardId ? set.flashcards.find((f) => f._id === question.flashcardId) : undefined;
 
   if (result || finishing) {
     // The set's rounds as they stand now, for the round's panel and what's next.
@@ -220,7 +221,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
     const behind = [...new Set(answers.filter((a) => !a.correct).map((a) => questions.find((q) => q._id === a.id)?.flashcardId).filter((id): id is string => !!id && set.flashcards.some((f) => f._id === id)))];
     const textOfQuestion = (id: string) => questions.find((q) => q._id === id);
     return (
-      <ClassShell set={set} mode={mode} progress={1}>
+      <ClassShell set={set} mode={mode} progress={1} problem={problem}>
         {result ? (
           <Summary
             setId={set._id}
@@ -333,6 +334,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
     <ClassShell
       set={set}
       mode={mode}
+      problem={problem}
       progressText={pips ? (plan.title ?? "Quiz") : `${plan.title ? `${plan.title} · ` : ""}Question ${index + 1} of ${questions.length}`}
       progress={pips ? undefined : marks.length / questions.length}
       track={
@@ -386,14 +388,12 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
           <p className={reward.kind === "none" || reward.kind === "slip" ? "rounded-2xl bg-rose-wash px-4 py-3 text-sm font-semibold text-rose-ink" : "rounded-2xl bg-mint-wash px-4 py-3 text-sm font-semibold text-mint-ink"}>
             {REWARD_TEXT[reward.kind](reward)}
           </p>
-          {linked && (
-            <details open={reward.kind === "none" || reward.kind === "slip"} className="panel bg-surface p-4">
-              <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand">
-                <Icon name="review" className="size-4" /> Why? From its flashcard
-              </summary>
-              <RichText html={linked.answer} className="mt-2" />
-            </details>
-          )}
+          <details open={reward.kind === "none" || reward.kind === "slip"} className="panel bg-surface p-4">
+            <summary className="flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand">
+              <Icon name="review" className="size-4" /> Why?
+            </summary>
+            <Why question={question} flashcards={set.flashcards} className="mt-2" />
+          </details>
         </div>
       )}
     </ClassShell>

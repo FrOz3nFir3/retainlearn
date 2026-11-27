@@ -9,6 +9,7 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import type { PointerEvent, ReactNode } from "react";
 import { cx } from "#utils/cx.ts";
+import { Icon } from "./Icon.tsx";
 import { IconButton } from "./IconButton.tsx";
 
 type Props = { title: string; eyebrow?: string; onClose: () => void; onCloseRequest?: () => boolean; children: ReactNode; footer?: ReactNode; wide?: boolean };
@@ -72,7 +73,22 @@ export function Dialog({ title, eyebrow, onClose, onCloseRequest, children, foot
           </div>
           <IconButton icon="x" label="Close" size="sm" onClick={() => mayClose() && ref.current?.close()} />
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
+        <div className="kit-scroll min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 py-4">
+          {children}
+          {/* Shown while there's more below (kit.css): a way on for a pointer; the keys scroll the content itself. */}
+          <button
+            type="button"
+            aria-hidden="true"
+            tabIndex={-1}
+            onClick={(e) => {
+              const box = e.currentTarget.parentElement;
+              box?.scrollBy({ top: box.clientHeight * 0.7, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+            }}
+            className="kit-more cursor-pointer items-center gap-1 rounded-full bg-night/85 px-3 text-xs font-semibold text-white shadow-lg ring-1 ring-white/20 hover:bg-night"
+          >
+            More below <Icon name="arrowDown" className="size-3.5" />
+          </button>
+        </div>
         {footer && <footer className="flex flex-wrap justify-end gap-2 border-t border-ink/[0.06] px-5 py-3">{footer}</footer>}
       </div>
     </dialog>

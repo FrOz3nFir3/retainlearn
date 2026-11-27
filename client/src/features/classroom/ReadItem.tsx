@@ -3,7 +3,7 @@
 // - A flashcard: its question, and its answer behind "Show the answer", so opening it doesn't hand you the answer
 //   before you've tried to recall it.
 // - A question: the question, then once you've tried it (you hold it, or you missed it) its answer and why (the
-//   flashcard that teaches it). Not before: seeing the answer first turns the attempt into spotting it.
+//   flashcard that answers it: Why.tsx). Not before: seeing the answer first turns the attempt into spotting it.
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { isPlayerCard } from "@retainlearn/core";
@@ -14,6 +14,7 @@ import { Icon } from "#components/ui/Icon.tsx";
 import { RichText } from "#components/ui/RichText.tsx";
 import { classPath } from "#features/classes/modes.ts";
 import { Note } from "#features/classes/Note.tsx";
+import { Why } from "#features/classes/Why.tsx";
 import type { Reading } from "./Rounds.tsx";
 
 type Props = { set: StudySetContent; item: Reading; progress: ProgressView | null; returnTo: string; onClose: () => void };
@@ -54,8 +55,9 @@ export function ReadItem({ set, item, progress, returnTo, onClose }: Props) {
   const p = progress?.questions[q._id];
   const missed = p?.missedOn != null;
   const held = isPlayerCard(p) ? p : null;
-  const teaches = q.flashcardId ? set.flashcards.find((f) => f._id === q.flashcardId) : undefined;
   const missedInRound = r.questions.filter((x) => progress?.questions[x._id]?.missedOn != null).map((x) => x._id);
+  // Its round's button, as the round's own: retry what you missed once the round is all answered, else quiz it.
+  const answeredAll = r.questions.every((x) => isPlayerCard(progress?.questions[x._id]) || progress?.questions[x._id]?.missedOn != null);
   return (
     <Dialog
       title={`Quiz question ${item.index + 1}`}
@@ -63,7 +65,7 @@ export function ReadItem({ set, item, progress, returnTo, onClose }: Props) {
       onClose={onClose}
       wide
       footer={
-        missed ? (
+        missedInRound.length > 0 && answeredAll ? (
           <Link to={`${classPath(set._id, "retryMissed")}?ids=${missedInRound.join(",")}`} state={{ returnTo }} className={buttonClass("primary")}>
             <Icon name="focus" className="size-4 shrink-0" />
             Retry round {r.n}'s misses
@@ -87,12 +89,10 @@ export function ReadItem({ set, item, progress, returnTo, onClose }: Props) {
           <p className={missed ? "mt-2 text-xs font-semibold text-rose-ink" : "mt-2 text-xs font-semibold text-mint-ink"}>
             {missed ? "You missed it last time: it's on your retry list." : `You hold it as a player card, level ${held?.level}.`}
           </p>
-          {teaches && (
-            <section className="mt-3 rounded-2xl border border-ink/[0.08] p-4">
-              <h2 className="text-xs font-semibold text-ink/50">Why: the flashcard that teaches it</h2>
-              <RichText html={teaches.answer} className="mt-1 !text-sm" />
-            </section>
-          )}
+          <section className="mt-3 rounded-2xl border border-ink/[0.08] p-4">
+            <h2 className="mb-1 text-sm font-semibold">Why?</h2>
+            <Why question={q} flashcards={set.flashcards} />
+          </section>
         </>
       ) : (
         <p className="mt-3 rounded-2xl border border-dashed border-ink/15 px-4 py-4 text-center text-sm text-ink/60">

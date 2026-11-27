@@ -24,10 +24,14 @@ type Props = {
   progress?: number;
   track?: ReactNode;
   bar?: ReactNode;
+  problem?: string | null; // said over the class, signed in: answers that didn't save (SAVE_FAILED)
   children: ReactNode;
 };
 
-export function ClassShell({ set, mode, progressText, progress, track, bar, children }: Props) {
+// What a class says when some of its answers couldn't be saved (useSaveFailed).
+export const SAVE_FAILED = "Some answers didn't save: check your connection. The ones after save as usual once you're back online.";
+
+export function ClassShell({ set, mode, progressText, progress, track, bar, problem, children }: Props) {
   const navigate = useNavigate();
   const signedIn = useSignedIn();
   const returnTo = useReturnTo(set._id);
@@ -38,7 +42,17 @@ export function ClassShell({ set, mode, progressText, progress, track, bar, chil
       title={set.subtopic}
       progressText={progressText}
       below={track ? <div className={TRACK}>{track}</div> : progress != null && <Bar value={progress} label="How far through the class" className="h-1 rounded-none" />}
-      notice={!signedIn && <GuestNote returnTo={returnTo} />}
+      notice={
+        !signedIn ? (
+          <GuestNote returnTo={returnTo} />
+        ) : (
+          problem && (
+            <p role="alert" className="rounded-xl bg-rose-wash px-3 py-2 text-sm text-rose-ink">
+              {problem}
+            </p>
+          )
+        )
+      }
       bar={bar}
     >
       {children}

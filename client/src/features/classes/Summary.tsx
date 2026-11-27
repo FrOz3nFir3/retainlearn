@@ -51,6 +51,19 @@ export function useWasCold(category: string): boolean {
   return cold === true;
 }
 
+// Where "Back to…" goes, in words: the campus (the home page for a guest), a subject's page (a class started there),
+// or the classroom.
+function backTo(returnTo: string, signedIn: boolean): string {
+  if (returnTo === "/") return signedIn ? "campus" : "the home page";
+  const subject = /^\/subjects\/([^/?#]+)/.exec(returnTo)?.[1];
+  if (!subject) return "classroom";
+  try {
+    return decodeURIComponent(subject);
+  } catch {
+    return "the subject";
+  }
+}
+
 type Props = { setId: string; title?: string; result: ClassResult | null; warmAgain?: boolean; hero?: ReactNode; lines: readonly (readonly [string, ReactNode])[]; extra?: ReactNode; actions?: ReactNode };
 
 export function Summary({ setId, title = "Class finished", result, warmAgain = false, hero, lines, extra, actions }: Props) {
@@ -103,7 +116,7 @@ export function Summary({ setId, title = "Class finished", result, warmAgain = f
         )}
         {actions}
         <Link to={returnTo} className={buttonClass("primary")}>
-          Back to {returnTo !== "/" ? "classroom" : signedIn ? "campus" : "the home page"}
+          Back to {backTo(returnTo, signedIn)}
         </Link>
       </div>
     </section>

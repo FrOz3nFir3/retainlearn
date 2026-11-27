@@ -5,7 +5,7 @@
 // once with keepalive, which the browser finishes even if the page goes; leaving the class for another page sends all
 // of it, then your progress in the set is read again. Someone not signed in can try a class: their batches are kept on
 // the device instead (guestClasses.ts) and sent once they sign in or sign up (sendKeptClasses).
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ClassMode, SaveAnswersBody, SavedAnswers } from "@retainlearn/core";
 import { useAppDispatch, useSignedIn } from "#app/hooks.ts";
 import type { AppDispatch } from "#app/hooks.ts";
@@ -70,6 +70,15 @@ export function useClassSaver(setId: string, mode: ClassMode, round: number | st
   );
 
   return saver;
+}
+
+// Whether some of a class's answers couldn't be saved, after the saver's retries: the class says so (it was silent).
+export function useSaveFailed(saver: ClassSaver): boolean {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    saver.onFailed = () => setFailed(true);
+  }, [saver]);
+  return failed;
 }
 
 // How long signing in waits for a guest's classes to be sent before going on regardless (what's left goes next time).

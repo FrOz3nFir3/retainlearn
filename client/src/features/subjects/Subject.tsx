@@ -3,7 +3,7 @@
 // title, or under it on a phone, where beside it would squeeze the counts onto two lines), or take it off while they
 // haven't started it. Your progress comes from your report card and your campus, which the app keeps
 // already, so the page itself asks only for the subject's sets. The search, the order and the page are in the address.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import type { CampusSubject, ReportCard, Subject as SubjectData } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
@@ -13,6 +13,7 @@ import { cardClass, cardLinkClass } from "#components/ui/Card.tsx";
 import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
+import type { IconName } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
 import { Pager, usePageHeading } from "#components/ui/Pager.tsx";
 import { SearchInput } from "#components/ui/SearchInput.tsx";
@@ -20,6 +21,8 @@ import { Segmented } from "#components/ui/Segmented.tsx";
 import { browserTimeZone, useCampus, useToday } from "#features/campus/campusApi.ts";
 import { SET_STATUS_TONE, subjectPath } from "#features/campus/subjects.ts";
 import { setPath } from "#features/classes/modes.ts";
+import { useNextClass } from "#features/classroom/useNextClass.ts";
+import { cx } from "#utils/cx.ts";
 import { useReportCard } from "#features/report-card/reportCardApi.ts";
 import { daysAgoInWords } from "#features/report-card/reportCardStats.ts";
 import { NewStudySet } from "./NewStudySet.tsx";
@@ -82,6 +85,13 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
   const { rooms, stats } = useMemo(() => subjectProgress(subject, card, when), [subject, card, when]);
   const next = signedIn ? upNextHere(rooms) : null;
   const attention = signedIn ? alsoNeedsAttention(rooms, next?.room ?? null) : [];
+  const classes = useNextClass();
+  const nextId = next?.room.set._id;
+  // Up next here's set, fetched as the page opens, so its Start opens the class at once.
+  useEffect(() => {
+    if (nextId) classes.prefetch(nextId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per set, not per render
+  }, [nextId]);
   const found = useMemo(() => ordered(rooms, order).filter((r) => matchesSearch(r.set, search)), [rooms, order, search]);
   const pages = Math.max(1, Math.ceil(found.length / SETS_PER_PAGE));
   const page = Math.min(pages, Math.max(1, Math.floor(Number(params.get("page"))) || 1));
@@ -168,30 +178,39 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
         {next ? (
           <section aria-label="Up next here" className="panel flex flex-wrap items-center gap-3 bg-surface p-4">
             <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-brand/10 text-brand">
-              <Icon name="focus" className="size-5" />
+              <Icon name={statusIcon(next.room)} className="size-5" />
             </span>
             <div className="min-w-0 flex-1 basis-48">
               <p className="text-xs text-ink/50">Up next here</p>
               <p className="font-semibold text-balance">{next.room.set.subtopic}</p>
               <p className="text-sm text-ink/55">{next.why}</p>
             </div>
-            <Link to={setPath(next.room.set._id)} className={buttonClass("primary")}>
-              Open its classroom
-            </Link>
+            {/* The class its classroom would start, in one tap (its set fetched as the page opens). */}
+            <Button tone="primary" disabled={classes.opening !== null} aria-label={`Start the next class in ${next.room.set.subtopic}`} onClick={() => void classes.open(next.room.set._id)}>
+              {classes.opening === next.room.set._id ? "Opening…" : "Start"}
+            </Button>
             {attention.length > 0 && (
               <div className="hidden w-full border-t border-ink/[0.06] pt-3 sm:block">
                 <h3 className="mb-1 text-[11px] font-semibold text-ink/50">Also needs attention</h3>
                 <ul>
                   {attention.map((r) => (
                     <li key={r.set._id}>
-                      <Link to={setPath(r.set._id)} className="flex items-center gap-2.5 rounded-xl px-2 py-1.5 hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:outline-brand">
+                      <button
+                        type="button"
+                        aria-label={`Start the next class in ${r.set.subtopic}: ${r.status.label}`}
+                        disabled={classes.opening !== null}
+                        onClick={() => void classes.open(r.set._id)}
+                        onPointerEnter={() => classes.prefetch(r.set._id)}
+                        onFocus={() => classes.prefetch(r.set._id)}
+                        className="flex w-full cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 text-left hover:bg-ink/[0.03] focus-visible:outline-2 focus-visible:outline-brand disabled:cursor-default"
+                      >
                         <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-brand/[0.08] text-brand">
-                          <Icon name={r.status.key === "missed" ? "focus" : r.status.key === "fading" ? "clock" : "review"} className="size-4" />
+                          <Icon name={statusIcon(r)} className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1 truncate text-sm font-medium">{r.set.subtopic}</span>
-                        <span className="shrink-0 text-xs text-ink/55">{r.status.label}</span>
+                        <span className="shrink-0 text-xs text-ink/55">{classes.opening === r.set._id ? "Opening…" : r.status.label}</span>
                         <Icon name="chevronRight" className="size-4 shrink-0 text-ink/30" />
-                      </Link>
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -271,7 +290,7 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
             <ul className={SETS_GRID}>
               {shown.map((room) => (
                 <li key={room.set._id}>
-                  <RoomCard room={room} signedIn={signedIn} />
+                  <RoomCard room={room} signedIn={signedIn} classes={classes} />
                 </li>
               ))}
             </ul>
@@ -292,9 +311,13 @@ function SubjectView({ subject, card, onCampus, signedIn }: { subject: SubjectDa
   );
 }
 
+// What a set's status looks like as an icon: missed, fading, or a class to do.
+const statusIcon = (room: Room): IconName => (room.status.key === "missed" ? "focus" : room.status.key === "fading" ? "clock" : room.status.key === "mastered" ? "check" : "review");
+
 // A study set in the subject (guide: card): its subtopic links to its classroom, over the whole card. Signed in, its
-// one status and your mastery; signed out, a set with nothing in it yet still says so.
-function RoomCard({ room, signedIn }: { room: Room; signedIn: boolean }) {
+// one status, your mastery, and its next class one tap away (above the card's link). Signed out, a set with nothing
+// in it yet still says so.
+function RoomCard({ room, signedIn, classes }: { room: Room; signedIn: boolean; classes: ReturnType<typeof useNextClass> }) {
   const { set, stats, status } = room;
   return (
     <article className={cardClass}>
@@ -315,6 +338,22 @@ function RoomCard({ room, signedIn }: { room: Room; signedIn: boolean }) {
             <span>{`${pct(stats.mastery)} mastered`}</span>
             {stats.daysAgo != null && <span>{`Studied ${daysAgoInWords(stats.daysAgo)}`}</span>}
           </p>
+        </div>
+      )}
+      {signedIn && !stats.empty && (
+        <div className={cx("pt-3", !stats.started && "mt-auto")}>
+          <Button
+            size="sm"
+            icon={statusIcon(room)}
+            disabled={classes.opening !== null}
+            aria-label={`${stats.started ? "Next class" : "Start"} in ${set.subtopic}`}
+            onClick={() => void classes.open(set._id)}
+            onPointerEnter={() => classes.prefetch(set._id)}
+            onFocus={() => classes.prefetch(set._id)}
+            className="relative z-1 w-full !justify-start"
+          >
+            {classes.opening === set._id ? "Opening…" : stats.started ? "Next class" : "Start"}
+          </Button>
         </div>
       )}
     </article>
