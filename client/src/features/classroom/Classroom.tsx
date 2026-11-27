@@ -6,7 +6,7 @@
 // signed in can study, and is told nothing is saved. The description is the editor's HTML, shown as user content.
 import { useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { MIX_READY, isPlayerCard, mixableCount, nextReview, quizDone, reviewDone, reviewLoad, roundState, setRounds, shortTopic, studySetStats, upNext } from "@retainlearn/core";
+import { isPlayerCard, reviewLoad, roundState, setRounds, shortTopic, studyPlan, studySetStats } from "@retainlearn/core";
 import type { ProgressView, StudySetContent, StudyView, When } from "@retainlearn/core";
 import { useSession } from "#app/session.ts";
 import { Bar } from "#components/ui/Bar.tsx";
@@ -20,7 +20,7 @@ import { RichText } from "#components/ui/RichText.tsx";
 import { Segmented } from "#components/ui/Segmented.tsx";
 import { useToday } from "#features/campus/campusApi.ts";
 import { subjectPath } from "#features/campus/subjects.ts";
-import { classPath, setPath } from "#features/classes/modes.ts";
+import { setPath, stepPath } from "#features/classes/modes.ts";
 import { recallPoints } from "#features/classes/recallPoints.ts";
 import { useGetHistoryInfiniteQuery, useGetSuggestionsQuery } from "#features/editor/editorApi.ts";
 import { daysAgo } from "#features/editor/shared.ts";
@@ -121,48 +121,29 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
   const states = rounds.map((r) => roundState(r, progress, when));
   const stats = studySetStats(set, progress, when);
   const held = Object.values(progress?.questions ?? {}).filter((q) => isPlayerCard(q)).length;
-  const mixable = held >= MIX_READY ? mixableCount(rounds, progress, when) : 0;
   const home = setPath(set._id);
   const both = set.flashcards.length > 0 && set.questions.length > 0;
-  // A set with only flashcards, or only questions, shows what it has.
-  const view: StudyView = both ? picked : set.flashcards.length ? "review" : "quiz";
   const [reporting, setReporting] = useState(false);
   const [ordering, setOrdering] = useState(false);
   const [reading, setReading] = useState<Reading | null>(null);
 
-  // Up next, for what each round shows.
-  const next: { round: SetRound; mode: "review" | "quiz" } | null =
-    view === "both"
-      ? upNext(rounds, states)
-      : view === "review"
-        ? (() => {
-            const round = nextReview(rounds, states);
-            return round ? { round, mode: "review" as const } : null;
-          })()
-        : (() => {
-            const i = rounds.findIndex((r, j) => r.questions.length > 0 && states[j] && !quizDone(states[j]));
-            return rounds[i] ? { round: rounds[i], mode: "quiz" as const } : null;
-          })();
-  const nextState = next ? states[rounds.indexOf(next.round)] : undefined;
-  const upNextButton: Next | null =
-    next && nextState
-      ? {
-          to: `${classPath(set._id, next.mode)}?round=${next.round.n}`,
-          icon: next.mode,
-          label: view === "both" ? `Round ${next.round.n}: ${next.round.flashcards[0] ? shortTopic(textOf(next.round.flashcards[0].question)) : "quiz questions"}` : `${next.mode === "review" ? "Review" : "Quiz"} round ${next.round.n}`,
-          note:
-            next.mode === "review"
-              ? `${plural(next.round.flashcards.length, "flashcard")}, about ${next.round.load} recall points.`
-              : `${plural(next.round.questions.length, "question")} on what you've reviewed. Each one you get right becomes a player card.`,
-          steps:
-            view === "both" && next.round.flashcards.length > 0 && next.round.questions.length > 0
-              ? [
-                  { text: "Review", state: reviewDone(nextState) ? "done" : "now" },
-                  { text: "Quiz", state: next.mode === "quiz" ? "now" : quizDone(nextState) ? "done" : "later" },
-                ]
-              : undefined,
-        }
-      : null;
+  // Up next and what else there is to do here: one rule for everywhere that suggests it (core's studyPlan). A set
+  // with only flashcards, or only questions, shows what it has.
+  const plan = studyPlan({ rounds, states, progress, when, view: picked, loadOf: (f) => reviewLoad(recallPoints(f.answer).length) });
+  const view = plan.view;
+  const next = plan.next;
+  // In Both, a round says its first topic.
+  const topicOf = (n: number) => {
+    const first = rounds[n - 1]?.flashcards[0];
+    return first ? shortTopic(textOf(first.question)) : "quiz questions";
+  };
+  const upNextButton: Next | null = next && {
+    to: stepPath(set._id, next.action),
+    icon: next.icon,
+    label: next.kind === "round" && view === "both" && next.round ? `${next.label}: ${topicOf(next.round)}` : next.label,
+    note: next.note,
+    steps: next.steps,
+  };
 
   return (
     <Page
@@ -232,13 +213,9 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
           ) : (
             <>
               {upNextButton && <UpNext next={upNextButton} returnTo={home} />}
-              {stats.missedFlashcards > 0 && view !== "quiz" && (
-                <Action returnTo={home} to={classPath(set._id, "reviewMissed")} icon="focus" title="Go over what you missed" body={`Just the points you missed, on ${plural(Math.min(4, stats.missedFlashcards), "flashcard")}.`} />
-              )}
-              {stats.missedQuestions > 0 && view !== "review" && (
-                <Action returnTo={home} to={classPath(set._id, "retryMissed")} icon="focus" title="Retry what you missed" body={`${plural(stats.missedQuestions, "question")} you got wrong, until you get them right.`} />
-              )}
-              {mixable > 0 && view !== "review" && <Action returnTo={home} to={`${classPath(set._id, "quiz")}?mix=1`} icon="layers" title="Mixed quiz" body="Questions you hold, from across the set: the fading ones first." />}
+              {plan.others.map((step) => (
+                <Action key={step.kind} returnTo={home} to={stepPath(set._id, step.action)} icon={step.icon} title={step.label} body={step.note} />
+              ))}
 
               <div className="pt-2">
                 <div className="mb-2 flex flex-wrap items-baseline gap-x-2 gap-y-1">
@@ -255,7 +232,7 @@ function ClassroomView({ set, progress, when, signedIn, view: picked, onView }: 
                       </Link>
                     ))}
                 </div>
-                <RoundList set={set} rounds={rounds} states={states} progress={progress} view={view} current={next?.round.n ?? null} returnTo={home} onRead={setReading} />
+                <RoundList set={set} rounds={rounds} states={states} progress={progress} view={view} when={when} current={plan.current} currentTag={plan.currentTag} returnTo={home} onRead={setReading} />
                 <p className="mt-1.5 text-xs text-ink/50">Open a round to see its flashcards and quiz questions.</p>
               </div>
             </>

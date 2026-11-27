@@ -7,6 +7,7 @@ export * from "./answers.ts";
 export * from "./progress.ts";
 export * from "./timetable.ts";
 export * from "./rounds.ts";
+export * from "./next.ts";
 export * from "./rewards.ts";
 export * from "./schemas.ts";
 export * from "./api.ts";

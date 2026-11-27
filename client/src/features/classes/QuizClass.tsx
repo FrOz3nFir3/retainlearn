@@ -1,6 +1,6 @@
 // A quiz class: /study-sets/:id/quiz (?round=n, ?mix=1 or ?ids=…) and /study-sets/:id/retry-missed (retry what
-// you missed). While the set and your progress load, the class's skeleton. A class of this kind left halfway today is
-// carried on, with the way to start afresh. The questions are chosen once, as the class starts, so saving answers
+// you missed). While the set and your progress load, the class's skeleton. The same class left halfway today is
+// carried on (resume.ts), with the way to start afresh. The questions are chosen once, as the class starts, so saving answers
 // (which updates your progress) never reshuffles them.
 import { useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
@@ -17,7 +17,9 @@ import { classPath } from "./modes.ts";
 import { planQuiz } from "./quizPlan.ts";
 import type { QuizPlan } from "./quizPlan.ts";
 import { QuizRun } from "./QuizRun.tsx";
+import type { Earlier } from "./QuizRun.tsx";
 import { recallPoints } from "./recallPoints.ts";
+import { answeredBefore, carryOn, keyRound } from "./resume.ts";
 
 type Mode = "quiz" | "retryMissed";
 
@@ -39,27 +41,29 @@ export default function QuizClass({ mode }: { mode: Mode }) {
   return <QuizStart key={`${mode}:${id}?${params}`} set={set.data} progress={progress.data ?? null} mode={mode} params={params} />;
 }
 
-type Run = { plan: QuizPlan; start: number; resume: { key: string; seq: number } | null; id: number };
+// earlier: in a class carried on, the questions answered before leaving and how they went (resume.ts).
+type Run = { plan: QuizPlan; keyRound: string; start: number; earlier: Earlier[]; resume: { key: string; seq: number } | null; id: number };
 
 function QuizStart({ set, progress, mode, params }: { set: StudySetContent; progress: ProgressView | null; mode: Mode; params: URLSearchParams }) {
   const [when] = useState<When>(() => {
     const timeZone = browserTimeZone();
     return { today: dayKey(new Date(), timeZone), timeZone };
   });
+  const ids = params.get("ids");
+  const choice = { round: Number(params.get("round")) || null, mix: params.get("mix") === "1", picked: ids ? new Set(ids.split(",")) : null };
   const fresh = (): Run => {
-    const ids = params.get("ids");
-    const choice = { round: Number(params.get("round")) || null, mix: params.get("mix") === "1", picked: ids ? new Set(ids.split(",")) : null };
-    return { plan: planQuiz(set, progress, mode === "retryMissed", when, choice, (f) => reviewLoad(recallPoints(f.answer).length)), start: 0, resume: null, id: Date.now() };
+    const plan = planQuiz(set, progress, mode === "retryMissed", when, choice, (f) => reviewLoad(recallPoints(f.answer).length));
+    return { plan, keyRound: keyRound(plan.round, choice.mix), start: 0, earlier: [], resume: null, id: Date.now() };
   };
   const [run, setRun] = useState<Run>(() => {
-    const left = progress?.classInProgress;
-    const index = left?.index ?? 0;
-    if (left && left.mode === mode && left.day === when.today && left.ids?.length && index < left.ids.length) {
-      const byId = new Map(set.questions.map((q) => [q._id, q]));
-      const questions = left.ids.flatMap((qid) => byId.get(qid) ?? []);
-      if (questions.length === left.ids.length) return { plan: { title: null, questions, round: null }, start: index, resume: { key: left.key, seq: left.seq }, id: 0 };
-    }
-    return fresh();
+    const asked = fresh();
+    const left = carryOn(progress?.classInProgress, mode, when.today, { round: asked.keyRound, ids: choice.picked });
+    if (!left) return asked;
+    const byId = new Map(set.questions.map((q) => [q._id, q]));
+    const questions = left.ids.flatMap((qid) => byId.get(qid) ?? []);
+    if (questions.length !== left.ids.length) return asked;
+    const earlier = left.ids.slice(0, left.index).map((qid) => ({ id: qid, correct: answeredBefore(progress?.questions[qid], when) }));
+    return { ...asked, plan: { ...asked.plan, questions }, start: left.index, earlier, resume: { key: left.key, seq: left.seq }, id: 0 };
   });
 
   if (!run.plan.questions.length) {
@@ -80,5 +84,18 @@ function QuizStart({ set, progress, mode, params }: { set: StudySetContent; prog
       </ClassShell>
     );
   }
-  return <QuizRun key={run.id} set={set} progress={progress} mode={mode} when={when} plan={run.plan} start={run.start} resume={run.resume} onRestart={run.resume ? () => setRun(fresh()) : undefined} />;
+  return (
+    <QuizRun
+      key={run.id}
+      set={set}
+      progress={progress}
+      mode={mode}
+      when={when}
+      plan={run.plan}
+      keyRound={run.keyRound}
+      earlier={run.earlier}
+      resume={run.resume}
+      onRestart={run.resume ? () => setRun(fresh()) : undefined}
+    />
+  );
 }

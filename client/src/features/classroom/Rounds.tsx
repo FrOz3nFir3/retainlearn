@@ -9,8 +9,8 @@
 import { useState } from "react";
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
-import { isPlayerCard, reviewDone, shortTopic } from "@retainlearn/core";
-import type { ProgressView, Round, RoundState, StudySetContent, StudyView } from "@retainlearn/core";
+import { isPlayerCard, leftToday, reviewDone, shortTopic } from "@retainlearn/core";
+import type { ProgressView, Round, RoundState, StudySetContent, StudyView, When } from "@retainlearn/core";
 import { Icon } from "#components/ui/Icon.tsx";
 import type { IconName } from "#components/ui/Icon.tsx";
 import { classPath } from "#features/classes/modes.ts";
@@ -29,20 +29,15 @@ type Props = {
   states: RoundState[];
   progress: ProgressView | null;
   view: StudyView;
-  current: number | null; // the round Up next is in
+  when: When;
+  current: number | null; // where you are in the rounds (core's studyPlan)
+  currentTag: string; // "Up next", or "Next round" when Up next is something else
   returnTo: string;
   onRead: (item: Reading) => void;
 };
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-
-// The round a class left halfway is in, and its kind, from its key ("review:3:…").
-function leftHalfway(progress: ProgressView | null): { mode: string; round: string } | null {
-  const left = progress?.classInProgress;
-  if (!left) return null;
-  const [, round = ""] = left.key.split(":");
-  return { mode: left.mode, round };
-}
+const TAG = "shrink-0 rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand";
 
 const BUTTON = "relative flex min-h-7 items-center gap-1 rounded-lg border px-2 text-[11px] font-semibold transition-colors pointer-coarse:min-h-9 focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand";
 const TONE = {
@@ -66,9 +61,10 @@ function RoundButton({ to, returnTo, tone, icon, label, fill, missed, children }
   );
 }
 
-export function RoundList({ set, rounds, states, progress, view, current, returnTo, onRead }: Props) {
+export function RoundList({ set, rounds, states, progress, view, when, current, currentTag, returnTo, onRead }: Props) {
   const [open, setOpen] = useState<number | null>(null);
-  const left = leftHalfway(progress);
+  // A class left halfway today, as Up next sees it: its round's button says Continue.
+  const left = leftToday(progress?.classInProgress, when);
   const missedFlashcard = (id: string) => progress?.flashcards[id]?.missedOn != null;
   const missedQuestion = (id: string) => progress?.questions[id]?.missedOn != null;
   return (
@@ -77,8 +73,8 @@ export function RoundList({ set, rounds, states, progress, view, current, return
         const st = states[i];
         if (!st || (view === "quiz" && !r.questions.length) || (view === "review" && !r.flashcards.length)) return null;
         const isOpen = open === r.n;
-        const reviewLeft = left?.mode === "review" && left.round === String(r.n);
-        const quizLeft = left?.mode === "quiz" && left.round === String(r.n);
+        const reviewLeft = left?.mode === "review" && left.round === r.n;
+        const quizLeft = left?.mode === "quiz" && left.round === r.n;
         const goOver = reviewDone(st) && st.weak > 0 && !reviewLeft;
         const reviewed = reviewDone(st) && !st.weak && !reviewLeft;
         const retry = st.retry > 0 && !st.untried && !quizLeft;
@@ -95,7 +91,8 @@ export function RoundList({ set, rounds, states, progress, view, current, return
               >
                 <Icon name={isOpen ? "chevronDown" : "chevronRight"} className="size-4 shrink-0 text-ink/40" />
                 <span className="shrink-0 text-sm font-semibold">Round {r.n}</span>
-                {r.n === current && <span className="shrink-0 rounded-full bg-brand/10 px-1.5 py-0.5 text-[10px] font-bold text-brand">Up next</span>}
+                {/* On a phone the tag goes under, with the topics, so the round's two buttons keep their room. */}
+                {r.n === current && <span className={cx(TAG, "max-sm:hidden")}>{currentTag}</span>}
               </button>
               <div className="flex items-center gap-1.5">
                 {view !== "quiz" && r.flashcards.length > 0 && (
@@ -140,7 +137,10 @@ export function RoundList({ set, rounds, states, progress, view, current, return
                     <span className="px-1 text-[11px] text-ink/45">No quiz yet</span>
                   ))}
               </div>
-              <p className="col-span-2 mt-0.5 truncate pl-[22px] text-xs text-ink/55">{topics}</p>
+              <p className="col-span-2 mt-0.5 truncate pl-[22px] text-xs text-ink/55">
+                {r.n === current && <span className={cx(TAG, "mr-1.5 sm:hidden")}>{currentTag}</span>}
+                {topics}
+              </p>
             </div>
             {isOpen && <RoundContents set={set} round={r} view={view} progress={progress} onRead={onRead} />}
           </li>

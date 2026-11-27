@@ -34,15 +34,16 @@ type Props = {
   mode: "review" | "reviewMissed";
   when: When;
   plan: ReviewPlan;
+  keyRound: string; // what the class is, in its sitting's key (resume.ts)
   start: number; // flashcards already done, in a class carried on
   resume: { key: string; seq: number } | null;
   onRestart?: () => void;
 };
 
-export function ReviewRun({ set, progress, mode, when, plan, start, resume, onRestart }: Props) {
+export function ReviewRun({ set, progress, mode, when, plan, keyRound, start, resume, onRestart }: Props) {
   const wasCold = useWasCold(set.category);
   const flashcards = plan.flashcards;
-  const saver = useClassSaver(set._id, mode, plan.round ?? "pick", resume);
+  const saver = useClassSaver(set._id, mode, keyRound, resume);
   const [index, setIndex] = useState(start);
   const [marks, setMarks] = useState<Record<string, boolean>>({});
   const [results, setResults] = useState<FlashcardResult[]>([]);
