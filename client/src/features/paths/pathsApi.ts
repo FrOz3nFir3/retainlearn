@@ -57,43 +57,43 @@ export const pathsApi = apiSlice.enhanceEndpoints({ addTagTypes: ["Paths", "Path
       query: (id) => ({ url: `/paths/${id}/follow`, method: "DELETE" }),
       invalidatesTags: (_done, error, id) => (error ? [] : ["Paths", path(id), "Campus"]),
     }),
-    addEditor: build.mutation<{ editors: PathPerson[] }, { id: string; username: string }>({
+    addPathEditor: build.mutation<{ editors: PathPerson[] }, { id: string; username: string }>({
       query: ({ id, username }) => ({ url: `/paths/${id}/editors`, method: "POST", body: { username } }),
       invalidatesTags: (_done, error, { id }) => (error ? [] : [path(id)]),
     }),
-    removeEditor: build.mutation<{ editors: PathPerson[] }, { id: string; userId: string }>({
+    removePathEditor: build.mutation<{ editors: PathPerson[] }, { id: string; userId: string }>({
       query: ({ id, userId }) => ({ url: `/paths/${id}/editors/${userId}`, method: "DELETE" }),
       invalidatesTags: (_done, error, { id }) => (error ? [] : [path(id)]),
     }),
-    getSuggestions: build.query<{ suggestions: PathSuggestion[] }, string>({
+    getPathSuggestions: build.query<{ suggestions: PathSuggestion[] }, string>({
       query: (id) => `/paths/${id}/suggestions`,
       providesTags: (_list, _error, id) => [{ type: "PathSuggestions", id }],
     }),
-    suggest: build.mutation<PathSuggestion, { id: string; path: PathVersion; version: string }>({
+    suggestPathChange: build.mutation<PathSuggestion, { id: string; path: PathVersion; version: string }>({
       query: ({ id, path: body, version }) => ({ url: `/paths/${id}/suggestions/mine`, method: "PUT", body: { path: body, version } }),
       invalidatesTags: (_sent, error, { id }) => (error ? [] : [path(id), { type: "PathSuggestions", id }]),
     }),
-    withdrawSuggestion: build.mutation<void, string>({
+    withdrawPathSuggestion: build.mutation<void, string>({
       query: (id) => ({ url: `/paths/${id}/suggestions/mine`, method: "DELETE" }),
       invalidatesTags: (_done, error, id) => (error ? [] : [path(id), { type: "PathSuggestions", id }]),
     }),
-    acceptSuggestion: build.mutation<PathView, { id: string; suggestionId: string }>({
+    acceptPathSuggestion: build.mutation<PathView, { id: string; suggestionId: string }>({
       query: ({ id, suggestionId }) => ({ url: `/paths/${id}/suggestions/${suggestionId}/accept`, method: "POST" }),
       invalidatesTags: (_done, error, { id }) => (error ? [] : ["Paths", path(id), { type: "PathSuggestions", id }, { type: "PathHistory", id }, "Campus"]),
     }),
-    declineSuggestion: build.mutation<void, { id: string; suggestionId: string; note: string }>({
+    declinePathSuggestion: build.mutation<void, { id: string; suggestionId: string; note: string }>({
       query: ({ id, suggestionId, note }) => ({ url: `/paths/${id}/suggestions/${suggestionId}/decline`, method: "POST", body: { note } }),
       invalidatesTags: (_done, error, { id }) => (error ? [] : [{ type: "PathSuggestions", id }]),
     }),
-    getHistory: build.query<PathHistoryPage, { id: string; page: number }>({
+    getPathHistory: build.query<PathHistoryPage, { id: string; page: number }>({
       query: ({ id, page }) => ({ url: `/paths/${id}/history`, params: page > 1 ? { page } : {} }),
       providesTags: (_page, _error, { id }) => [{ type: "PathHistory", id }],
     }),
-    testOut: build.mutation<TestOutResult, { id: string; stepId: string; tz: string; answers: TestOutAnswer[] }>({
+    testOutOfStep: build.mutation<TestOutResult, { id: string; stepId: string; tz: string; answers: TestOutAnswer[] }>({
       query: ({ id, stepId, tz, answers }) => ({ url: `/paths/${id}/steps/${stepId}/test-out`, method: "POST", params: { tz }, body: { answers } }),
       invalidatesTags: (result, error, { id }) => (error || !result?.passed ? [] : [path(id), "Paths", "Campus"]),
     }),
-    claimSkill: build.mutation<PathSkill, { id: string; tz: string }>({
+    claimPathSkill: build.mutation<PathSkill, { id: string; tz: string }>({
       query: ({ id, tz }) => ({ url: `/paths/${id}/skill`, method: "POST", params: { tz } }),
       invalidatesTags: (_skill, error, { id }) => (error ? [] : [path(id), "ReportCard"]),
     }),
@@ -112,15 +112,15 @@ export const {
   useCopyPathMutation,
   useFollowPathMutation,
   useUnfollowPathMutation,
-  useAddEditorMutation,
-  useRemoveEditorMutation,
-  useGetSuggestionsQuery,
-  useSuggestMutation,
-  useWithdrawSuggestionMutation,
-  useAcceptSuggestionMutation,
-  useDeclineSuggestionMutation,
-  useGetHistoryQuery,
-  useTestOutMutation,
-  useClaimSkillMutation,
+  useAddPathEditorMutation,
+  useRemovePathEditorMutation,
+  useGetPathSuggestionsQuery,
+  useSuggestPathChangeMutation,
+  useWithdrawPathSuggestionMutation,
+  useAcceptPathSuggestionMutation,
+  useDeclinePathSuggestionMutation,
+  useGetPathHistoryQuery,
+  useTestOutOfStepMutation,
+  useClaimPathSkillMutation,
   useReportPathMutation,
 } = pathsApi;

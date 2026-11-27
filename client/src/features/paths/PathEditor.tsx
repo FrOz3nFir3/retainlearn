@@ -34,14 +34,14 @@ import { pathPath } from "./pathView.ts";
 import { PATH_WIDTH } from "./PathSkeleton.tsx";
 import { EDITOR_FIELDS, EDITOR_FOOTER, PathEditorSkeleton } from "./PathEditorSkeleton.tsx";
 import {
-  useAddEditorMutation,
+  useAddPathEditorMutation,
   useCopyPathMutation,
   useCreatePathMutation,
   useDeletePathMutation,
   useGetPathQuery,
-  useRemoveEditorMutation,
+  useRemovePathEditorMutation,
   useSavePathMutation,
-  useSuggestMutation,
+  useSuggestPathChangeMutation,
 } from "./pathsApi.ts";
 
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en")} ${n === 1 ? one : many}`;
@@ -172,7 +172,7 @@ function Form({ view, mode }: { view: PathView | null; mode: "edit" | "suggest" 
   const titleRef = useRef<HTMLInputElement>(null);
   const [create, creating] = useCreatePathMutation();
   const [save, saving] = useSavePathMutation();
-  const [suggest, sending] = useSuggestMutation();
+  const [suggest, sending] = useSuggestPathChangeMutation();
   const [copy] = useCopyPathMutation();
   const [remove] = useDeletePathMutation();
 
@@ -764,8 +764,8 @@ function StepPicker({ category, step, onClose, onDone }: PickerProps) {
 // The path's editors (decision 2, as a study set's reviewers): its author always, and those any editor adds by their
 // username. They change it directly and decide on suggestions; only its author deletes it or changes who sees it.
 function Editors({ view }: { view: PathView }) {
-  const [add, adding] = useAddEditorMutation();
-  const [take, taking] = useRemoveEditorMutation();
+  const [add, adding] = useAddPathEditorMutation();
+  const [take, taking] = useRemovePathEditorMutation();
   const [username, setUsername] = useState("");
   const [note, setNote] = useState<{ text: string; tone: "done" | "failed" } | null>(null);
   const addIt = async () => {

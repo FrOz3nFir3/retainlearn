@@ -29,17 +29,17 @@ import { upNextHere } from "#features/subjects/subjectProgress.ts";
 import { cx } from "#utils/cx.ts";
 import { STATE_CHIP, along, fixText, pathEditPath, pickedClass, stepCounts, stepName, testOutHref } from "./pathView.ts";
 import {
-  useAcceptSuggestionMutation,
-  useClaimSkillMutation,
+  useAcceptPathSuggestionMutation,
+  useClaimPathSkillMutation,
   useCopyPathMutation,
-  useDeclineSuggestionMutation,
+  useDeclinePathSuggestionMutation,
   useFollowPathMutation,
-  useGetHistoryQuery,
+  useGetPathHistoryQuery,
   useGetPathQuery,
-  useGetSuggestionsQuery,
+  useGetPathSuggestionsQuery,
   useReportPathMutation,
   useUnfollowPathMutation,
-  useWithdrawSuggestionMutation,
+  useWithdrawPathSuggestionMutation,
 } from "./pathsApi.ts";
 import { PATH_INTRO, PATH_WIDTH, PROGRESS_BLOCK, PathSkeleton, STEPS_LIST, STEP_NUMBER, STEP_ROW } from "./PathSkeleton.tsx";
 
@@ -352,7 +352,7 @@ function StepRow({ view, entry, n, signedIn, upNext }: { view: PathView; entry: 
 // The skill: earned once every step is done. With the exam on, the match against Professor Quill comes with the
 // stadium (decision 1); until then, finishing every step earns it.
 function SkillCard({ view, done, total, complete, signedIn }: { view: PathView; done: number; total: number; complete: boolean; signedIn: boolean }) {
-  const [claim, claiming] = useClaimSkillMutation();
+  const [claim, claiming] = useClaimPathSkillMutation();
   const skill = view.you?.skill;
   const left = total - done;
   const claimIt = async () => {
@@ -390,8 +390,8 @@ function SkillCard({ view, done, total, complete, signedIn }: { view: PathView; 
 // For the path's editors: the suggestions waiting for them, each accepted (its own changes applied to the path as it
 // is now) or declined with a note its suggester sees.
 function Suggestions({ view }: { view: PathView }) {
-  const list = useGetSuggestionsQuery(view._id);
-  const [accept, accepting] = useAcceptSuggestionMutation();
+  const list = useGetPathSuggestionsQuery(view._id);
+  const [accept, accepting] = useAcceptPathSuggestionMutation();
   const [declining, setDeclining] = useState<PathSuggestion | null>(null);
   const open = (list.data?.suggestions ?? []).filter((s) => s.status === "open");
   if (!open.length) return null;
@@ -434,7 +434,7 @@ function Suggestions({ view }: { view: PathView }) {
 
 // Declining, with a note for whoever suggested it (optional).
 function DeclineDialog({ pathId, suggestion, onClose }: { pathId: string; suggestion: PathSuggestion; onClose: () => void }) {
-  const [decline, declining] = useDeclineSuggestionMutation();
+  const [decline, declining] = useDeclinePathSuggestionMutation();
   const [note, setNote] = useState("");
   const send = async () => {
     try {
@@ -468,7 +468,7 @@ function DeclineDialog({ pathId, suggestion, onClose }: { pathId: string; sugges
 
 // Your suggestion on someone else's path: waiting, accepted or declined (with their note), until it expires.
 function YourSuggestion({ pathId, suggestion }: { pathId: string; suggestion: PathSuggestion }) {
-  const [withdraw, withdrawing] = useWithdrawSuggestionMutation();
+  const [withdraw, withdrawing] = useWithdrawPathSuggestionMutation();
   const status = { open: { label: "Pending review", tone: "bell" as const }, accepted: { label: "Accepted", tone: "mint" as const }, declined: { label: "Declined", tone: "rose" as const } }[suggestion.status];
   const withdrawIt = async () => {
     try {
@@ -506,7 +506,7 @@ function YourSuggestion({ pathId, suggestion }: { pathId: string; suggestion: Pa
 function History({ pathId }: { pathId: string }) {
   const [shown, setShown] = useState(1); // pages on show, once "Show all" is pressed
   const [all, setAll] = useState(false);
-  const first = useGetHistoryQuery({ id: pathId, page: 1 });
+  const first = useGetPathHistoryQuery({ id: pathId, page: 1 });
   const data = first.data;
   if (!data || !data.entries.length) return null;
   const line = (e: (typeof data.entries)[number]) =>
@@ -538,7 +538,7 @@ function History({ pathId }: { pathId: string }) {
   );
 }
 
-function HistoryPage({ pathId, page, line }: { pathId: string; page: number; line: (e: NonNullable<ReturnType<typeof useGetHistoryQuery>["data"]>["entries"][number]) => string }) {
-  const data = useGetHistoryQuery({ id: pathId, page }).data;
+function HistoryPage({ pathId, page, line }: { pathId: string; page: number; line: (e: NonNullable<ReturnType<typeof useGetPathHistoryQuery>["data"]>["entries"][number]) => string }) {
+  const data = useGetPathHistoryQuery({ id: pathId, page }).data;
   return <>{data?.entries.map((e) => <li key={e._id}>{line(e)}</li>)}</>;
 }

@@ -19,7 +19,7 @@ import { cx } from "#utils/cx.ts";
 import { Icon } from "#components/ui/Icon.tsx";
 import { toast } from "#components/ui/Toast.tsx";
 import { browserTimeZone } from "#features/campus/campusApi.ts";
-import { useTestOutMutation } from "#features/paths/pathsApi.ts";
+import { useTestOutOfStepMutation } from "#features/paths/pathsApi.ts";
 import { RichText } from "#components/ui/RichText.tsx";
 import { textOf } from "#utils/safeHtml.ts";
 import { AnswerOption } from "./AnswerOption.tsx";
@@ -134,7 +134,7 @@ export function QuizRun({ set, progress, mode, when, plan, keyRound, earlier, re
   const [reward, setReward] = useState<Reward | null>(null);
   const [result, setResult] = useState<ClassResult | null>(null);
   const [finishing, setFinishing] = useState(false);
-  const [sendTestOut] = useTestOutMutation();
+  const [sendTestOut] = useTestOutOfStepMutation();
   const [passed, setPassed] = useState<boolean | null>(null);
   const need = testOutPass(questions.length);
   const xp = useRef(0);

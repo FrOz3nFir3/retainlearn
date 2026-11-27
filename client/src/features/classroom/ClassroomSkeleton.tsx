@@ -47,7 +47,7 @@ export function ClassroomSkeleton() {
   const signedIn = useSession() !== "out";
   const { id = "" } = useParams();
   // In the path you follow (your campus says): its banner comes first.
-  const inPath = !!useCampus(!signedIn).data?.player.path?.setIds.includes(id);
+  const inPath = !!useCampus(useSession() !== "in").data?.player.path?.setIds.includes(id); // asked once signed in, with its token
   // In 3D, over its room (a panel), when the world can tell its building: from the set, or from the room it was opened in.
   const world = useWorld();
   const desk: [IconName, string][] = [
