@@ -12,6 +12,7 @@ import { CrashScreen } from "#components/layout/CrashScreen.tsx";
 import { useSession, useSessionCheck } from "#app/session.ts";
 import { TabBar } from "#components/layout/TabBar.tsx";
 import { TopBar } from "#components/layout/TopBar.tsx";
+import { Toasts } from "#components/ui/Toast.tsx";
 import { isClassPath } from "#features/classes/modes.ts";
 // Each screen's skeleton, loaded with the app, so a screen shows it the moment it's opened, before its own code
 // arrives (PLAN 14.15).
@@ -82,6 +83,7 @@ const RootLayout = () => {
       </main>
       {!inClass && <SiteFooter />}
       {!inClass && <TabBar />}
+      <Toasts />
       <ScrollRestoration
         getKey={(location, matches) => {
           // Pages whose address changes as you use them (a search, the editor's tabs and filter) keep their place.

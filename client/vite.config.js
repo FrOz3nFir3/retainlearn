@@ -69,6 +69,16 @@ export default defineConfig(() => {
       // inlined into CSS as data: URIs, which the CSP correctly blocks
       // since font-src/style-src don't allow the data: scheme.
       assetsInlineLimit: 0,
+      rolldownOptions: {
+        output: {
+          // three.js and its React bindings in a chunk of their own: loaded only with the 3D campus, and the same from
+          // one release to the next, so the browser keeps it while the campus's own code changes.
+          // Only those packages: their dependencies (React among them) stay where the app needs them.
+          codeSplitting: {
+            groups: [{ name: "three", test: /node_modules[\\/](three|three-stdlib|@react-three)[\\/]/, includeDependenciesRecursively: false }],
+          },
+        },
+      },
     },
     resolve: {
       alias: {

@@ -146,6 +146,12 @@ export async function addXp(userId: string, xp: number): Promise<void> {
   if (xp) await Player.updateOne({ _id: userId }, { $inc: { xp } });
 }
 
+// The last bell's reward, when it rings (bonus: 0 when it didn't): its bonus XP, and from the first time on, the
+// fountain on the campus's quad (the prototype's unlock), in the same write.
+export async function addBellBonus(userId: string, bonus: number): Promise<void> {
+  if (bonus) await Player.updateOne({ _id: userId }, { $inc: { xp: bonus }, $addToSet: { unlocks: "fountain" } });
+}
+
 // A class left halfway, for the coach to mention.
 export async function setClassLeft(userId: string, left: { setId: string; key: string; day: Day }): Promise<void> {
   await Player.updateOne({ _id: userId }, { $set: { classLeft: { ...left, setId: new Types.ObjectId(left.setId) } } });

@@ -8,7 +8,7 @@ import { studySetContent, studySetExists, studySetOutline } from "#models/studyS
 import { progressView, resetQuiz, saveAnswers, setOrder } from "#models/progress/progress.model.ts";
 import { logAnswers } from "#models/answers/answers.model.ts";
 import { countAnswers, dropRetryPeriods, finishPeriod } from "#models/activity/activity.model.ts";
-import { addXp, finishClass, playerOf, refreshSubject, setClassLeft } from "#models/players/players.model.ts";
+import { addBellBonus, addXp, finishClass, playerOf, refreshSubject, setClassLeft } from "#models/players/players.model.ts";
 import { subjectSummary, subjectsFromProgress } from "#services/campus.ts";
 
 export const setInput = { params: SetParams };
@@ -46,7 +46,7 @@ export async function deleteQuizProgress(req: Request, res: Response) {
     const at = new Date();
     const when: When = { today: dayKey(at, query.tz), timeZone: query.tz };
     const bonus = await dropRetryPeriods(userId, when.today, params.id, at);
-    await addXp(userId, bonus);
+    await addBellBonus(userId, bonus);
     if (reset.category) await refreshSubject(userId, await subjectSummary(userId, reset.category, when));
   } catch (error) {
     console.error("After resetting a quiz:", error);
@@ -78,7 +78,7 @@ export async function postAnswers(req: Request, res: Response) {
     await Promise.all([logAnswers(userId, set._id, body.answers, at), countAnswers(userId, when.today, body.answers.length, saved.xp), addXp(userId, saved.xp)]);
     if (body.finished) {
       bonus = await finishPeriod(userId, when.today, set._id, body.mode, at);
-      await addXp(userId, bonus);
+      await addBellBonus(userId, bonus);
       const { streak, firstToday } = await finishClass(userId, when.today, await subjectSummary(userId, set.category, when), body.classKey);
       finished = { streak: streak.count, firstToday, timetableDone: bonus > 0 };
     } else if (saved.firstOfSitting) {

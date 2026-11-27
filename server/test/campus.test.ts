@@ -86,10 +86,12 @@ test("finishing the timetable's class ticks it off, and finishing the whole time
   assert.equal(now.timetable[0]?.done, true);
   assert.deepEqual(now.today, { xp: 6 + 56, answers: 2 });
   assert.equal(now.player.xp, 62);
+  assert.deepEqual(now.player.unlocks, ["fountain"], "the first rung bell puts up the fountain");
 
   const again = await finishClass(lee, "review:round-1:c", String(ids.loopCard));
   assert.deepEqual(again.finished, { streak: 1, firstToday: false, timetableDone: false });
   assert.equal(again.xp, 6, "no second bonus");
+  assert.deepEqual((await campus(lee)).player.unlocks, ["fountain"], "once");
 });
 
 test("a player made from the old app's copied progress gets its subjects, and a timetable from them", async () => {

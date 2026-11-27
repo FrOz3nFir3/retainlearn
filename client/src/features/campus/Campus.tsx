@@ -1,7 +1,9 @@
-// The campus in 2D (/, the prototype's World2D), for a signed-in player: your coach (Coach.tsx), today's timetable,
-// then each subject you study as a card (how warm it is, what you missed, what's fading, your mastery), your report
-// card, and a way to add a subject. While the session is checked or the campus loads, its skeleton. The stadium and
-// paths join it with their features, and the 3D campus after.
+// The campus (/), for a signed-in player: in 3D (Campus3D.tsx) or as the 2D page, by your pick on its switch or, until
+// you pick, what the device suits (view.ts). The 2D page (the prototype's World2D): your coach (Coach.tsx), today's
+// timetable, then each subject you study as a card (how warm it is, what you missed, what's fading, your mastery), your
+// report card, and a way to add a subject. While the session is checked or the campus loads, its skeleton. The stadium
+// and paths join it with their features.
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import type { Campus as CampusData, CampusSubject } from "@retainlearn/core";
 import { useMyUsername } from "#app/hooks.ts";
@@ -13,11 +15,13 @@ import { Chip } from "#components/ui/Chip.tsx";
 import { Empty } from "#components/ui/Empty.tsx";
 import { Icon } from "#components/ui/Icon.tsx";
 import { Page } from "#components/ui/Page.tsx";
-import { useCampus } from "./campusApi.ts";
-import { CampusSkeleton, SUBJECTS_GRID, SUBJECTS_HEADING, dayName } from "./CampusSkeleton.tsx";
+import { useCampus, useSaveSettingsMutation } from "./campusApi.ts";
+import Campus3D from "./Campus3D.tsx";
+import { CampusSkeleton, SUBJECTS_GRID, SUBJECTS_HEADING, ViewSwitch, dayName } from "./CampusSkeleton.tsx";
 import { CoachCard, CoachTalk, useCoach } from "./Coach.tsx";
 import { SUBJECT_STATUS, pennantOf, subjectPath } from "./subjects.ts";
 import { Timetable } from "./Timetable.tsx";
+import { keepView, shows3d, webglWorks } from "./view.ts";
 
 const pct = (x: number) => `${Math.round(x * 100)}%`;
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
@@ -25,9 +29,21 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 export default function Campus() {
   const session = useSession();
   const campus = useCampus(session !== "in");
+  const [save] = useSaveSettingsMutation();
+  // 3D that didn't start, or stopped, on this device: the 2D page until you try 3D again.
+  const [broken, setBroken] = useState(false);
+  const want3d = !!campus.data && shows3d(campus.data.player.settings.view3d);
+  useEffect(() => {
+    if (campus.data) keepView(want3d);
+  }, [campus.data, want3d]);
   if (campus.isError) return <Failed retry={() => void campus.refetch()} />;
   if (!campus.data) return <CampusSkeleton />;
-  return <CampusView campus={campus.data} />;
+  const pick = (in3d: boolean) => {
+    setBroken(false);
+    void save({ view3d: in3d });
+  };
+  if (want3d && !broken) return <Campus3D campus={campus.data} onPick={pick} onBroken={() => setBroken(true)} />;
+  return <CampusView campus={campus.data} onPick={pick} broken={broken} />;
 }
 
 function Failed({ retry }: { retry: () => void }) {
@@ -38,12 +54,20 @@ function Failed({ retry }: { retry: () => void }) {
   );
 }
 
-function CampusView({ campus }: { campus: CampusData }) {
+function CampusView({ campus, onPick, broken }: { campus: CampusData; onPick: (in3d: boolean) => void; broken: boolean }) {
   const fading = new Map(campus.fading.map((f) => [f.category, f.count]));
   const subjects = campus.subjects.toSorted((a, b) => a.plot - b.plot);
   const coach = useCoach(campus, useMyUsername());
   return (
-    <Page title="Your campus" eyebrow={dayName(campus.day)} back={false}>
+    <Page title="Your campus" eyebrow={dayName(campus.day)} back={false} actions={webglWorks() ? <ViewSwitch in3d={false} onPick={onPick} /> : undefined}>
+      {broken && (
+        <div role="status" className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl bg-orange-wash p-3.5 text-sm text-orange-ink">
+          <p className="min-w-0 flex-1 basis-56 text-pretty">The 3D campus stopped on this device, so here it is as the 2D map.</p>
+          <Button size="sm" icon="cube" onClick={() => onPick(true)}>
+            Try 3D again
+          </Button>
+        </div>
+      )}
       <CoachCard who={coach.who} news={coach.news} onTalk={coach.open} />
       {coach.line && <CoachTalk who={coach.who} line={coach.line} lines={coach.lines} onNext={coach.next} onDone={coach.done} />}
       <Timetable campus={campus} />

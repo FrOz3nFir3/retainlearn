@@ -49,7 +49,7 @@ test("the next period: what, where, why and how long, and its class a tap away",
 
 test("back after days away comes first, without shaming, with the easiest way back in", () => {
   const lines = coachLines(
-    campus({ player: { away: { days: 4, endedStreak: 6 } }, timetable: [period(false)], subjects: [{ category: "Programming", plot: 0, started: 1, mastery: 0.2, missed: 0, lastAt: null, status: "cold" }], fading: [{ category: "Programming", count: 3 }] }),
+    campus({ player: { away: { days: 4, endedStreak: 6 } }, timetable: [period(false)], subjects: [{ category: "Programming", plot: 0, started: 1, mastery: 0.2, missed: 0, lastAt: null, status: "cold", sets: 2 }], fading: [{ category: "Programming", count: 3 }] }),
     "lee",
   );
   assert.equal(lines[0]?.text, "Welcome back! You were away 4 days. 1 building went cold and 3 player cards started fading. Your 6-day streak ended, but one class today starts a new one.");
